@@ -166,7 +166,7 @@
 }
 .stu-mast-title {
   font-family: var(--font-display);
-  font-weight: 700; font-size: 36px;
+  font-weight: 700; font-size: clamp(1.25rem, 4vw, 2.25rem);
   letter-spacing: -0.025em;
   color: var(--ink); margin: 0;
   line-height: 1;
@@ -316,7 +316,7 @@
 }
 .stu-hero-headline {
   font-family: var(--font-display);
-  font-weight: 600; font-size: 40px;
+  font-weight: 600; font-size: clamp(1.75rem, 6vw, 3rem);
   line-height: 1.15; letter-spacing: -0.028em;
   color: var(--ink);
   margin: 0;
@@ -360,7 +360,7 @@
 }
 .stu-metric-val {
   font-family: var(--font-display);
-  font-weight: 700; font-size: 22px;
+  font-weight: 700; font-size: clamp(1rem, 3vw, 1.375rem);
   letter-spacing: -0.025em;
   color: var(--ink);
   line-height: 1.1;
@@ -401,7 +401,7 @@
 .stu-chapter-text { display: flex; flex-direction: column; gap: 2px; }
 .stu-chapter-title {
   font-family: var(--font-display);
-  font-weight: 600; font-size: 22px;
+  font-weight: 600; font-size: clamp(1rem, 3vw, 1.375rem);
   letter-spacing: -0.025em;
   color: var(--ink); margin: 0;
   line-height: 1.1;
@@ -542,7 +542,7 @@
 .stu-acct-tag { font-size: 10.5px; color: var(--muted); font-family: var(--font-mono); margin-top: 1px; }
 .stu-acct-bal {
   font-family: var(--font-display);
-  font-weight: 700; font-size: 20px;
+  font-weight: 700; font-size: clamp(1rem, 2.5vw, 1.375rem);
   color: var(--ink); letter-spacing: -0.025em;
   line-height: 1.1;
   font-variant-numeric: tabular-nums;
@@ -550,4 +550,123 @@
 .stu-cc-meta {
   display: flex; justify-content: space-between;
   font-size: 10.5px; color: var(--muted);
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   RESPONSIVIDADE MOBILE / TABLET — fides-studio.css
+   Adicionado: mai 2026
+   ═══════════════════════════════════════════════════════════════ */
+
+/* ── Tablet (≤ 1024px) ──────────────────────────────────────── */
+@media (max-width: 1024px) {
+  .stu-accounts-strip {
+    grid-template-columns: repeat(3, 1fr);
+  }
+  .stu-2col {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* ── Mobile (≤ 768px) ──────────────────────────────────────── */
+@media (max-width: 768px) {
+  /* Shell: empilha verticalmente */
+  .fds-studio {
+    flex-direction: column;
+  }
+
+  /* Sidebar slim → barra inferior fixa */
+  .fds-sb-slim {
+    width: 100% !important;
+    height: 60px;
+    flex-direction: row;
+    padding: 0 8px;
+    border-right: none;
+    border-top: 1px solid var(--border);
+    position: fixed;
+    bottom: 0; left: 0; right: 0;
+    top: auto !important;
+    z-index: 40;
+    align-self: auto;
+    gap: 0;
+    justify-content: space-around;
+    align-items: center;
+  }
+  .fds-sb-slim-head,
+  .fds-sb-slim-foot { display: none; }
+  .fds-sb-slim-nav {
+    flex-direction: row;
+    gap: 0;
+    flex: 1;
+    justify-content: space-around;
+    align-items: center;
+  }
+  /* Indicador ativo: linha superior em vez de esquerda */
+  .fds-sb-slim-item.on::before {
+    left: 50%;
+    top: -6px;
+    bottom: auto;
+    width: 20px;
+    height: 3px;
+    transform: translateX(-50%);
+  }
+  .fds-sb-slim-tip { display: none; }
+
+  /* Área principal: espaço para barra inferior */
+  .fds-studio .fds-main {
+    padding-bottom: 68px;
+  }
+
+  /* Masthead compacto */
+  .stu-mast {
+    flex-wrap: wrap;
+    padding: 12px 14px 10px;
+    gap: 10px;
+  }
+  .stu-mast-r {
+    width: 100%;
+    justify-content: flex-end;
+  }
+  .stu-mast-search { display: none; }
+
+  /* Página: padding reduzido */
+  .stu-page { padding: 14px 12px 20px; }
+
+  /* Hero: padding reduzido */
+  .stu-hero { padding: 18px 14px 14px; }
+
+  /* Hero strip: 2 colunas, ocultar separadores */
+  .stu-hero-strip {
+    grid-template-columns: 1fr 1fr;
+    gap: 14px;
+  }
+  .stu-metric-sep { display: none; }
+
+  /* Contas strip: 2 colunas */
+  .stu-accounts-strip { grid-template-columns: repeat(2, 1fr); }
+
+  /* Transações: scroll horizontal na tabela */
+  .fds-studio .fds-tx-table-card { overflow-x: auto; -webkit-overflow-scrolling: touch; }
+  .fds-studio .fds-tx-table { min-width: 580px; }
+
+  /* Filtros wrap */
+  .fds-studio .fds-tx-filter-row { flex-wrap: wrap; }
+  .fds-studio .fds-tx-search { width: 100%; }
+  .fds-studio .fds-tx-months { overflow-x: auto; -webkit-overflow-scrolling: touch; }
+
+  /* Touch targets */
+  .fds-studio button,
+  .fds-studio a,
+  .fds-studio [role="button"] { min-height: 44px; }
+
+  /* Exceções: elementos pequenos decorativos */
+  .fds-sb-slim-item,
+  .fds-studio .fds-tx-row-act,
+  .fds-studio .stu-mast-nav { min-height: unset; }
+}
+
+/* ── Mobile pequeno (≤ 480px) ──────────────────────────────── */
+@media (max-width: 480px) {
+  .stu-accounts-strip { grid-template-columns: 1fr; }
+  .stu-page { padding: 10px 10px 16px; }
+  .stu-hero-strip { grid-template-columns: 1fr 1fr; }
 }

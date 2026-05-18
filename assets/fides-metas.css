@@ -68,7 +68,7 @@
 }
 .fds-studio .met-card-int {
   font-family: var(--font-display);
-  font-weight: 700; font-size: 30px;
+  font-weight: 700; font-size: clamp(1.75rem, 6vw, 3rem);
   letter-spacing: -0.03em;
   font-variant-numeric: tabular-nums;
   line-height: 1;
@@ -272,4 +272,38 @@
 .fds-studio .met-done-empty {
   padding: 32px; text-align: center;
   color: var(--muted); font-style: italic;
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   RESPONSIVIDADE MOBILE / TABLET — fides-metas.css
+   Adicionado: mai 2026
+   ═══════════════════════════════════════════════════════════════ */
+
+/* ── Tablet (≤ 1024px) ──────────────────────────────────────── */
+@media (max-width: 1024px) {
+  .fds-studio .met-grid { grid-template-columns: 1fr; }
+  .fds-studio .met-tips { grid-template-columns: 1fr 1fr; }
+}
+
+/* ── Mobile (≤ 768px) ──────────────────────────────────────── */
+@media (max-width: 768px) {
+  .fds-studio .met-tips { grid-template-columns: 1fr; }
+
+  /* Cards de meta: padding reduzido */
+  .fds-studio .met-card { padding: 16px; }
+
+  /* Stats da meta: 2 colunas no mobile */
+  .fds-studio .met-card-stats { grid-template-columns: 1fr 1fr; }
+
+  /* Metas atingidas: scroll horizontal (grid com colunas fixas) */
+  .fds-studio .met-done { overflow-x: auto; -webkit-overflow-scrolling: touch; }
+  .fds-studio .met-done-list { min-width: 520px; }
+}
+
+/* ── Mobile pequeno (≤ 480px) ──────────────────────────────── */
+@media (max-width: 480px) {
+  .fds-studio .met-card-emoji {
+    width: 44px; height: 44px; font-size: 20px;
+  }
+  .fds-studio .met-card-head { gap: 10px; }
 }

@@ -238,7 +238,7 @@
   font-family: var(--hero-family);
   font-weight: var(--hero-weight);
   font-style: var(--hero-style);
-  font-size: 28px;
+  font-size: clamp(1.25rem, 4vw, 1.75rem);
   letter-spacing: var(--hero-tracking);
   color: var(--ink);
   margin: 0;
@@ -431,7 +431,7 @@
   color: var(--ink);
 }
 .fds-hero-amount .cur {
-  font-size: 22px; color: var(--muted); font-weight: 500;
+  font-size: clamp(1rem, 3vw, 1.5rem); color: var(--muted); font-weight: 500;
   margin-right: 4px;
   font-family: var(--font-sans);
 }
@@ -441,14 +441,14 @@
   font-weight: var(--hero-weight);
   letter-spacing: var(--hero-tracking);
 }
-.fds-hero-amount.v1 .int { font-size: 64px; line-height: 1; }
-.fds-hero-amount.v2 .int { font-size: 60px; line-height: 1; }
-.fds-hero-amount.v3 .int { font-size: 66px; line-height: 1; color: var(--ink); }
+.fds-hero-amount.v1 .int { font-size: clamp(1.75rem, 6vw, 3rem); line-height: 1; }
+.fds-hero-amount.v2 .int { font-size: clamp(1.75rem, 6vw, 3rem); line-height: 1; }
+.fds-hero-amount.v3 .int { font-size: clamp(1.75rem, 6vw, 3rem); line-height: 1; color: var(--ink); }
 .fds-hero-amount .dec {
   font-family: var(--hero-family);
   font-style: var(--hero-style);
   font-weight: var(--hero-weight);
-  font-size: 28px;
+  font-size: clamp(1.25rem, 4vw, 1.75rem);
   color: var(--muted);
   letter-spacing: var(--hero-tracking);
 }
@@ -509,13 +509,13 @@
 .fds-kpi-delta.down { color: var(--bad); background: var(--bad-soft); }
 .fds-kpi-amount {
   font-family: var(--font-sans);
-  font-size: 22px; font-weight: 600;
+  font-size: clamp(1rem, 3vw, 1.375rem); font-weight: 600;
   letter-spacing: -0.02em;
   line-height: 1.1;
 }
 .fds-app[data-variant="v1"] .fds-kpi-amount {
   font-family: var(--font-serif); font-style: italic; font-weight: 400;
-  font-size: 28px;
+  font-size: clamp(1.25rem, 4vw, 1.75rem);
   letter-spacing: -0.01em;
 }
 .fds-kpi-spark { color: var(--accent); margin-top: 4px; }
@@ -723,12 +723,12 @@
 .fds-cc-name { font-size: 12.5px; font-weight: 550; color: var(--ink); flex: 1; }
 .fds-cc-tag { font-size: 11px; color: var(--muted); font-family: var(--font-mono); }
 .fds-cc-amount {
-  font-family: var(--font-sans); font-size: 20px; font-weight: 600;
+  font-family: var(--font-sans); font-size: clamp(1rem, 2.5vw, 1.25rem); font-weight: 600;
   color: var(--ink); letter-spacing: -0.01em;
   font-variant-numeric: tabular-nums;
 }
 .fds-app[data-variant="v1"] .fds-cc-amount {
-  font-family: var(--font-serif); font-style: italic; font-weight: 400; font-size: 24px;
+  font-family: var(--font-serif); font-style: italic; font-weight: 400; font-size: clamp(1rem, 3vw, 1.5rem);
 }
 .fds-cc-meta {
   display: flex; justify-content: space-between;
@@ -748,12 +748,12 @@
 .fds-tx-kpi-head { display: flex; align-items: center; gap: 8px; }
 .fds-tx-kpi-amt {
   font-family: var(--font-sans);
-  font-size: 22px; font-weight: 600; letter-spacing: -0.02em;
+  font-size: clamp(1rem, 3vw, 1.375rem); font-weight: 600; letter-spacing: -0.02em;
   font-variant-numeric: tabular-nums;
   line-height: 1.1;
 }
 .fds-app[data-variant="v1"] .fds-tx-kpi-amt {
-  font-family: var(--font-serif); font-style: italic; font-weight: 400; font-size: 28px;
+  font-family: var(--font-serif); font-style: italic; font-weight: 400; font-size: clamp(1.25rem, 4vw, 1.75rem);
 }
 .fds-tx-kpi-pending {
   display: flex; align-items: center; justify-content: space-between;
@@ -1017,7 +1017,7 @@
 .fds-modal-title {
   font-family: var(--hero-family); font-style: var(--hero-style);
   font-weight: var(--hero-weight);
-  font-size: 26px; letter-spacing: var(--hero-tracking);
+  font-size: clamp(1.25rem, 4vw, 1.625rem); letter-spacing: var(--hero-tracking);
   color: var(--ink); margin: 0;
 }
 
@@ -1181,3 +1181,81 @@
   background: var(--card);
 }
 .fds-app[data-variant="v2"] .fds-btn-primary { background: var(--ink); border-radius: 6px; }
+
+/* ═══════════════════════════════════════════════════════════════
+   RESPONSIVIDADE MOBILE / TABLET — fides.css
+   Adicionado: mai 2026
+   ═══════════════════════════════════════════════════════════════ */
+
+/* ── Tablet (≤ 1024px) ──────────────────────────────────────── */
+@media (max-width: 1024px) {
+  .fds-app { width: 100%; }
+  .fds-grid-3 { grid-template-columns: 1fr 1fr; }
+  .fds-tx-kpis { grid-template-columns: 1fr 1fr; }
+}
+
+/* ── Mobile (≤ 768px) ──────────────────────────────────────── */
+@media (max-width: 768px) {
+  /* App shell */
+  .fds-app { width: 100%; flex-direction: column; }
+  .fds-sb { display: none; }
+
+  /* Topbar */
+  .fds-top { padding: 10px 14px 8px; flex-wrap: wrap; }
+  .fds-search { width: 100%; }
+
+  /* Page */
+  .fds-page { padding: 14px 12px 24px; }
+
+  /* Dashboard hero: 1 coluna */
+  .fds-hero { grid-template-columns: 1fr; }
+
+  /* Hero KPIs: 2 colunas */
+  .fds-hero-kpis { grid-template-columns: 1fr 1fr; }
+
+  /* 3-col → 1-col */
+  .fds-grid-3 { grid-template-columns: 1fr; }
+
+  /* 4-col KPIs → 2-col */
+  .fds-tx-kpis { grid-template-columns: 1fr 1fr; }
+
+  /* Accounts → 1-col */
+  .fds-grid-accounts { grid-template-columns: 1fr; }
+
+  /* Cats body: empilha */
+  .fds-cats-body { flex-direction: column; }
+
+  /* Modal: bottom sheet em mobile */
+  .fds-modal-backdrop { padding: 12px; align-items: flex-end; }
+  .fds-modal {
+    width: 100%;
+    border-radius: 18px 18px 0 0;
+    max-height: 90vh;
+  }
+  .fds-modal-row.two { grid-template-columns: 1fr; }
+
+  /* Tabela de transações: scroll horizontal */
+  .fds-tx-table-card { overflow-x: auto; -webkit-overflow-scrolling: touch; }
+  .fds-tx-table { min-width: 580px; }
+
+  /* Filtros e meses: wrap + scroll */
+  .fds-tx-filter-row { flex-wrap: wrap; }
+  .fds-tx-search { width: 100%; }
+  .fds-tx-months { overflow-x: auto; -webkit-overflow-scrolling: touch; }
+
+  /* Touch targets mínimos de 44px */
+  button, a, [role="button"] { min-height: 44px; }
+
+  /* Exceções: elementos decorativos pequenos */
+  .fds-tx-row-act,
+  .fds-pg,
+  .fds-cbx,
+  .fds-month { min-height: unset; }
+}
+
+/* ── Mobile pequeno (≤ 480px) ──────────────────────────────── */
+@media (max-width: 480px) {
+  .fds-hero-kpis { grid-template-columns: 1fr; }
+  .fds-tx-kpis { grid-template-columns: 1fr; }
+  .fds-top { padding: 8px 10px 6px; }
+}

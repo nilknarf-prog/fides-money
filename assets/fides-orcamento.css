@@ -27,7 +27,7 @@
 }
 .fds-studio .orc-rule-pct {
   font-family: var(--font-display);
-  font-weight: 700; font-size: 52px;
+  font-weight: 700; font-size: clamp(1.75rem, 6vw, 3rem);
   letter-spacing: -0.04em; line-height: 1;
   font-variant-numeric: tabular-nums;
 }
@@ -421,6 +421,45 @@
 }
 .fds-studio .orc-legend-dot.real {
   background: linear-gradient(180deg, var(--accent-bright) 0%, var(--accent) 100%);
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   RESPONSIVIDADE MOBILE / TABLET — fides-orcamento.css
+   Adicionado: mai 2026
+   ═══════════════════════════════════════════════════════════════ */
+
+/* ── Tablet (≤ 1024px) ──────────────────────────────────────── */
+@media (max-width: 1024px) {
+  .fds-studio .orc-rule { grid-template-columns: 1fr 1fr; }
+  .fds-studio .orc-history-foot { grid-template-columns: repeat(2, 1fr); }
+}
+
+/* ── Mobile (≤ 768px) ──────────────────────────────────────── */
+@media (max-width: 768px) {
+  /* Regra 50/30/20: 1 coluna */
+  .fds-studio .orc-rule { grid-template-columns: 1fr; }
+
+  /* Tabela de categorias: scroll horizontal (evita refatoração estrutural) */
+  .fds-studio .orc-cats { overflow-x: auto; -webkit-overflow-scrolling: touch; }
+  .fds-studio .orc-cats-head,
+  .fds-studio .orc-cat-row { min-width: 600px; }
+
+  /* Detalhes expandidos: scroll */
+  .fds-studio .orc-cat-detail { overflow-x: auto; -webkit-overflow-scrolling: touch; }
+  .fds-studio .orc-cat-detail-tx { min-width: 500px; }
+
+  /* Histórico */
+  .fds-studio .orc-history { padding: 16px 12px; }
+  .fds-studio .orc-history-foot { grid-template-columns: repeat(2, 1fr); }
+  .fds-studio .orc-history-grid { overflow-x: auto; -webkit-overflow-scrolling: touch; }
+
+  /* Info banner */
+  .fds-studio .pln-info-title { flex-direction: column; align-items: flex-start; gap: 6px; }
+}
+
+/* ── Mobile pequeno (≤ 480px) ──────────────────────────────── */
+@media (max-width: 480px) {
+  .fds-studio .orc-history-foot { grid-template-columns: 1fr 1fr; }
 }
 
 /* ─── Insight banner (for Transações in Studio) ─── */

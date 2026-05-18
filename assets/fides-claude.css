@@ -252,3 +252,43 @@
   70%  { transform: scale(1.4); opacity: 0; }
   100% { transform: scale(1.4); opacity: 0; }
 }
+
+/* ═══════════════════════════════════════════════════════════════
+   RESPONSIVIDADE MOBILE / TABLET — fides-claude.css
+   Adicionado: mai 2026
+   ═══════════════════════════════════════════════════════════════ */
+
+@keyframes cla-slide-up-mobile {
+  from { transform: translateY(20px); opacity: 0; }
+  to   { transform: none; opacity: 1; }
+}
+
+/* ── Mobile (≤ 768px) ──────────────────────────────────────── */
+@media (max-width: 768px) {
+  /* FAB: sobe acima da barra de navegação inferior */
+  .fds-studio .cla-fab {
+    bottom: 76px;
+    right: 16px;
+  }
+
+  /* Painel: ocupa largura total e anima de baixo para cima */
+  .fds-studio .cla-panel {
+    width: 100%;
+    max-width: 100%;
+    border-left: none;
+    border-top: 1px solid var(--border);
+    border-radius: 16px 16px 0 0;
+    top: auto;
+    height: 85vh;
+    animation: cla-slide-up-mobile 0.28s cubic-bezier(.2,.7,.2,1);
+  }
+
+  /* Sugestões: scroll horizontal em telas pequenas */
+  .fds-studio .cla-suggestions {
+    flex-wrap: nowrap;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    padding-bottom: 10px;
+  }
+  .fds-studio .cla-suggestion { flex-shrink: 0; }
+}
