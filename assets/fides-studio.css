@@ -574,29 +574,33 @@
   }
 }
 
-/* ── Mobile (≤ 768px) ──────────────────────────────────────── */
-@media (max-width: 768px) {
-  /* Shell: empilha verticalmente */
+/* ── Mobile (≤ 767px) ──────────────────────────────────────── */
+@media (max-width: 767px) {
+  /* Container raiz mantém flex mas empilha verticalmente */
   .fds-studio {
     flex-direction: column;
+    width: 100%;
+    max-width: 100%;
+    overflow-x: hidden;
   }
 
-  /* Sidebar slim → barra inferior fixa */
-  .fds-sb-slim {
-    width: 100% !important;
+  /* Sidebar vira bottom nav fixa */
+  .fds-studio .fds-sb-slim {
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    width: 100%;
     height: 60px;
     flex-direction: row;
     padding: 0 8px;
     border-right: none;
     border-top: 1px solid var(--border);
-    position: fixed;
-    bottom: 0; left: 0; right: 0;
-    top: auto !important;
-    z-index: 40;
-    align-self: auto;
-    gap: 0;
     justify-content: space-around;
     align-items: center;
+    z-index: 100;
+    align-self: auto;
+    gap: 0;
   }
   .fds-sb-slim-head,
   .fds-sb-slim-foot { display: none; }
@@ -618,9 +622,20 @@
   }
   .fds-sb-slim-tip { display: none; }
 
-  /* Área principal: espaço para barra inferior */
-  .fds-studio .fds-main {
-    padding-bottom: 68px;
+  /* Conteúdo principal recupera largura e espaço para a bottom nav */
+  .fds-studio .fds-main,
+  .fds-studio .stu-page {
+    width: 100%;
+    max-width: 100%;
+    padding-bottom: 76px;
+  }
+
+  /* Masthead permanece visível */
+  .fds-studio .stu-mast {
+    width: 100%;
+    position: sticky;
+    top: 0;
+    z-index: 20;
   }
 
   /* Masthead compacto */
