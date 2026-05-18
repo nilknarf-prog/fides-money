@@ -1,0 +1,103 @@
+/* ─────────────────────────────────────────────────────────────
+ * Fides Money — Design Tokens (handoff)
+ *
+ * Cole isto no projeto Vercel/Next como `app/globals.css` ou
+ * importe num CSS module. Os mesmos nomes de variável são
+ * usados pelos componentes do canvas.
+ *
+ * Última atualização: 17 mai 2026
+ * ──────────────────────────────────────────────────────────── */
+
+:root {
+  /* ─── Tipografia ─────────────────────────────────────────── */
+  --font-sans:    'Manrope', ui-sans-serif, system-ui, sans-serif;
+  --font-display: 'Manrope', ui-sans-serif, system-ui, sans-serif;
+  --font-mono:    'JetBrains Mono', ui-monospace, monospace;
+
+  /* ─── Cores ─ Sage paper + verde floresta ───────────────── */
+  --bg:            #F4F5F1;   /* fundo da página (sage paper) */
+  --bg-elev:       #FFFFFF;
+  --card:          #FFFFFF;
+  --card-soft:     #EDEFE9;   /* hover row, search input */
+  --border:        #DCE0D5;
+  --border-strong: #BFC6B2;
+
+  --ink:           #0F1A14;   /* texto primário (preto com tom verde) */
+  --ink-2:         #233028;   /* secundário */
+  --ink-3:         #4A574F;   /* terciário */
+  --muted:         #7A857C;   /* labels, captions */
+  --muted-2:       #ABB5A8;
+
+  /* Verde — cor principal Fides */
+  --accent:        #2D5A3D;   /* verde floresta profundo */
+  --accent-2:      #1F4029;   /* verde mais escuro (hover, sombras) */
+  --accent-soft:   #DDE9DE;   /* tint (pills, hover bg, chapter mark) */
+  --accent-bright: #4A8B5C;   /* glow, sparklines, tick do logo */
+
+  /* Estados */
+  --ok:        #2D5A3D;
+  --ok-soft:   #DDE9DE;
+  --bad:       #9B2C2C;
+  --bad-soft:  #F2DDDD;
+  --warn:      #B45309;
+  --warn-soft: #FEF0D6;
+  --info:      #2C5282;
+  --info-soft: #DCE6F2;
+
+  /* ─── Raios e elevações ─────────────────────────────────── */
+  --radius-pill:   999px;
+  --radius-sm:     8px;
+  --radius-md:     11px;
+  --radius-lg:     16px;
+  --radius-xl:     20px;
+
+  --shadow-card:    0 1px 0 rgba(15,26,20,.04), 0 8px 24px -16px rgba(45,90,61,.14);
+  --shadow-hero:    0 1px 0 rgba(15,26,20,.04), 0 12px 32px -16px rgba(45,90,61,.18);
+  --shadow-elev:    0 1px 0 rgba(15,26,20,.04), 0 6px 16px -10px rgba(45,90,61,.16);
+
+  /* ─── Tipografia · escala ───────────────────────────────── */
+  --fs-hero:     40px;   /* manchete editorial */
+  --fs-display:  36px;   /* masthead title */
+  --fs-h2:       28px;   /* page section */
+  --fs-h3:       22px;   /* capítulo title */
+  --fs-h4:       18px;
+  --fs-body:     15px;   /* lede, prosa */
+  --fs-ui:       13.5px; /* texto de UI base */
+  --fs-sm:       12.5px;
+  --fs-xs:       11px;   /* labels, captions */
+
+  --tracking-tight:   -0.03em;
+  --tracking-display: -0.025em;
+  --tracking-body:    0;
+  --tracking-eyebrow: 0.10em;
+}
+
+/* ─── Categorias (tints fixos, usados em pills e ícones) ─── */
+:root {
+  --cat-salario:     #10B981;
+  --cat-freelance:   #0EA5E9;
+  --cat-mercado:     #F59E0B;
+  --cat-alimentacao: #EF4444;
+  --cat-combustivel: #DC2626;
+  --cat-carro:       #7C3AED;
+  --cat-celular:     #0EA5E9;
+  --cat-saude:       #16A34A;
+  --cat-compras:     #EC4899;
+  --cat-lazer:       #A855F7;
+  --cat-academia:    #22C55E;
+  --cat-assinaturas: #8B5CF6;
+  --cat-divida:      #B91C1C;
+  --cat-investimento:#0F766E;
+}
+
+/* ─── Tabular nums utility ────────────────────────────────── */
+.tabular { font-variant-numeric: tabular-nums; }
+
+/* ─── Base body presets ───────────────────────────────────── */
+body {
+  font-family: var(--font-sans);
+  font-feature-settings: 'cv01','cv02','cv05','cv11','ss03';
+  -webkit-font-smoothing: antialiased;
+  background: var(--bg);
+  color: var(--ink);
+}

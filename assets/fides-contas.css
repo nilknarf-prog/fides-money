@@ -1,0 +1,364 @@
+/* fides-contas.css — Studio Contas & cartões page */
+
+/* ─── Capítulo I · Contas (large cards) ─── */
+.fds-studio .ctn-accounts {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(420px, 1fr));
+  gap: 14px;
+}
+.fds-studio .ctn-account {
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: 18px;
+  padding: 20px 22px;
+  display: flex; flex-direction: column; gap: 18px;
+  box-shadow: 0 1px 0 rgba(15,26,20,.04), 0 8px 24px -16px rgba(45,90,61,.14);
+  transition: transform 0.15s, box-shadow 0.15s;
+}
+.fds-studio .ctn-account:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 1px 0 rgba(15,26,20,.04), 0 12px 28px -14px rgba(45,90,61,.20);
+}
+.fds-studio .ctn-account-head {
+  display: flex; align-items: center; gap: 12px;
+}
+.fds-studio .ctn-account-mark {
+  width: 44px; height: 44px;
+  border-radius: 12px;
+  color: white;
+  display: flex; align-items: center; justify-content: center;
+  flex: none;
+  box-shadow: 0 4px 12px -4px currentColor;
+}
+.fds-studio .ctn-account-meta { flex: 1; min-width: 0; }
+.fds-studio .ctn-account-name {
+  font-family: var(--font-display);
+  font-weight: 600; font-size: 16px;
+  letter-spacing: -0.02em;
+  color: var(--ink);
+}
+.fds-studio .ctn-account-tag {
+  font-size: 12px; color: var(--muted);
+  margin-top: 2px;
+}
+
+.fds-studio .ctn-account-bal-row {
+  display: flex; align-items: flex-end;
+  justify-content: space-between;
+  gap: 16px;
+}
+.fds-studio .ctn-account-bal-lbl {
+  font-size: 10.5px; font-weight: 600;
+  text-transform: uppercase; letter-spacing: 0.08em;
+  color: var(--muted);
+}
+.fds-studio .ctn-account-bal {
+  font-family: var(--font-display);
+  font-weight: 700; font-size: 32px;
+  letter-spacing: -0.03em;
+  color: var(--ink);
+  font-variant-numeric: tabular-nums;
+  line-height: 1.05;
+  margin-top: 2px;
+}
+.fds-studio .ctn-account-delta {
+  display: inline-flex; align-items: center; gap: 4px;
+  font-size: 11.5px; font-weight: 600;
+  margin-top: 6px;
+  font-variant-numeric: tabular-nums;
+}
+.fds-studio .ctn-account-delta.pos { color: var(--ok); }
+.fds-studio .ctn-account-delta.neg { color: var(--bad); }
+.fds-studio .ctn-account-spark {
+  flex: none;
+  opacity: 0.95;
+}
+
+.fds-studio .ctn-account-stats {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 14px;
+  padding-top: 14px;
+  border-top: 1px solid var(--border);
+}
+.fds-studio .ctn-stat-lbl {
+  font-size: 10.5px; font-weight: 600;
+  text-transform: uppercase; letter-spacing: 0.07em;
+  color: var(--muted);
+}
+.fds-studio .ctn-stat-val {
+  font-family: var(--font-display);
+  font-weight: 700; font-size: 16px;
+  color: var(--ink);
+  letter-spacing: -0.02em;
+  font-variant-numeric: tabular-nums;
+  margin-top: 3px;
+}
+.fds-studio .ctn-stat-val.pos { color: var(--ok); }
+.fds-studio .ctn-stat-val.neg { color: var(--ink); }
+
+.fds-studio .ctn-account-last {
+  display: flex; flex-direction: column; gap: 8px;
+  padding-top: 14px;
+  border-top: 1px solid var(--border);
+}
+.fds-studio .ctn-account-last-row {
+  display: grid;
+  grid-template-columns: 28px 1fr auto auto;
+  align-items: center; gap: 10px;
+}
+.fds-studio .ctn-account-last-desc {
+  font-size: 13px; font-weight: 550;
+  color: var(--ink);
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+.fds-studio .ctn-account-last-val {
+  font-family: var(--font-display);
+  font-weight: 600; font-size: 13.5px;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: -0.01em;
+}
+.fds-studio .ctn-account-last-val.pos { color: var(--ok); }
+.fds-studio .ctn-account-last-val.neg { color: var(--ink); }
+
+/* ─── Capítulo II · Cartões ─── */
+.fds-studio .ctn-cards {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(440px, 1fr));
+  gap: 16px;
+}
+.fds-studio .ctn-card {
+  display: flex; flex-direction: column;
+  gap: 0;
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: 20px;
+  overflow: hidden;
+  box-shadow: 0 1px 0 rgba(15,26,20,.04), 0 8px 24px -16px rgba(45,90,61,.14);
+  transition: transform 0.15s, box-shadow 0.15s;
+}
+.fds-studio .ctn-card:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 1px 0 rgba(15,26,20,.04), 0 12px 28px -14px rgba(45,90,61,.20);
+}
+.fds-studio .ctn-card-visual {
+  padding: 22px;
+  color: white;
+  position: relative;
+  min-height: 180px;
+  display: flex; flex-direction: column; justify-content: space-between;
+  background-size: cover;
+  font-feature-settings: 'tnum';
+}
+.fds-studio .ctn-card-visual::before {
+  content: ''; position: absolute;
+  inset: 0;
+  background: radial-gradient(circle at 80% 20%, rgba(255,255,255,0.18) 0%, transparent 60%);
+  pointer-events: none;
+}
+.fds-studio .ctn-card-visual-top {
+  display: flex; justify-content: space-between; align-items: center;
+  font-size: 14px;
+  position: relative;
+}
+.fds-studio .ctn-card-visual-brand {
+  display: flex; align-items: center; gap: 7px;
+  font-weight: 600;
+  letter-spacing: -0.01em;
+}
+.fds-studio .ctn-card-visual-num {
+  font-family: var(--font-display);
+  font-weight: 600; font-size: 20px;
+  letter-spacing: 0.08em;
+  font-variant-numeric: tabular-nums;
+  position: relative;
+}
+.fds-studio .ctn-card-visual-foot {
+  display: flex; justify-content: space-between;
+  position: relative;
+}
+.fds-studio .ctn-card-visual-lbl {
+  font-size: 9px; font-weight: 600;
+  text-transform: uppercase; letter-spacing: 0.1em;
+  opacity: 0.7;
+}
+.fds-studio .ctn-card-visual-val {
+  font-family: var(--font-display);
+  font-weight: 600; font-size: 13px;
+  letter-spacing: -0.005em;
+  margin-top: 2px;
+}
+
+.fds-studio .ctn-card-info {
+  padding: 18px 22px 20px;
+  display: flex; flex-direction: column; gap: 14px;
+}
+.fds-studio .ctn-card-fatura {
+  display: flex; align-items: center; justify-content: space-between;
+  gap: 12px;
+}
+.fds-studio .ctn-card-fatura-val {
+  font-family: var(--font-display);
+  font-weight: 700; font-size: 26px;
+  letter-spacing: -0.025em;
+  color: var(--ink);
+  font-variant-numeric: tabular-nums;
+  line-height: 1.05;
+  margin-top: 2px;
+}
+.fds-studio .ctn-card-fatura-meta {
+  font-size: 11.5px; color: var(--muted);
+  margin-top: 3px;
+}
+
+.fds-studio .ctn-card-limit-track {
+  height: 6px;
+  background: var(--card-soft);
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  position: relative;
+  overflow: hidden;
+}
+.fds-studio .ctn-card-limit-fill {
+  position: absolute; left: 0; top: 0; bottom: 0;
+  background: linear-gradient(90deg, var(--accent-bright), var(--accent));
+  border-radius: 999px;
+  transition: width 600ms cubic-bezier(.2,.7,.2,1);
+  box-shadow: 0 0 8px color-mix(in oklab, var(--accent-bright) 50%, transparent);
+}
+.fds-studio .ctn-card-limit-fill.near {
+  background: linear-gradient(90deg, var(--warn), #DC2626);
+}
+.fds-studio .ctn-card-limit-meta {
+  display: flex; justify-content: space-between;
+  margin-top: 6px;
+  font-size: 11.5px;
+  color: var(--ink-2);
+}
+.fds-studio .ctn-card-limit-meta strong {
+  font-family: var(--font-display);
+  font-weight: 600;
+  color: var(--ink);
+  font-variant-numeric: tabular-nums;
+}
+
+/* Detalhes da fatura — expansível */
+.fds-studio .ctn-card-txs { margin-top: 4px; }
+.fds-studio .ctn-card-txs summary {
+  cursor: pointer;
+  list-style: none;
+  font-size: 11.5px; font-weight: 600;
+  color: var(--accent);
+  display: inline-flex; align-items: center; gap: 4px;
+  padding: 6px 8px;
+  border-radius: 7px;
+  user-select: none;
+  transition: background 0.12s;
+}
+.fds-studio .ctn-card-txs summary::-webkit-details-marker { display: none; }
+.fds-studio .ctn-card-txs summary::before {
+  content: '▸';
+  display: inline-block;
+  transition: transform 0.18s;
+  font-size: 10px;
+}
+.fds-studio .ctn-card-txs[open] summary::before { transform: rotate(90deg); }
+.fds-studio .ctn-card-txs summary:hover { background: var(--accent-soft); }
+
+.fds-studio .ctn-card-txs-list {
+  margin-top: 8px;
+  padding-top: 10px;
+  border-top: 1px dashed var(--border);
+  display: flex; flex-direction: column; gap: 6px;
+}
+.fds-studio .ctn-card-tx {
+  display: grid;
+  grid-template-columns: 22px 1fr auto auto 90px;
+  align-items: center; gap: 8px;
+  font-size: 12.5px;
+}
+.fds-studio .ctn-card-tx-desc {
+  color: var(--ink);
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+.fds-studio .ctn-card-tx-d {
+  font-family: var(--font-mono);
+  font-size: 10.5px;
+  color: var(--muted);
+}
+.fds-studio .ctn-card-tx-val {
+  text-align: right;
+  font-family: var(--font-display);
+  font-weight: 600;
+  color: var(--ink-2);
+  font-variant-numeric: tabular-nums;
+  letter-spacing: -0.01em;
+}
+.fds-studio .ctn-card-tx-more {
+  font-size: 11.5px; color: var(--muted);
+  font-style: italic;
+  text-align: center;
+  padding-top: 4px;
+}
+
+/* ─── Capítulo III · Distribuição ─── */
+.fds-studio .ctn-dist {
+  padding: 22px;
+}
+.fds-studio .ctn-dist-bar {
+  display: flex;
+  height: 16px;
+  border-radius: 8px;
+  overflow: hidden;
+  gap: 2px;
+  margin-bottom: 22px;
+}
+.fds-studio .ctn-dist-seg {
+  height: 100%;
+  transition: filter 0.15s;
+}
+.fds-studio .ctn-dist-seg:hover { filter: brightness(1.08); }
+.fds-studio .ctn-dist-rows {
+  display: flex; flex-direction: column; gap: 12px;
+}
+.fds-studio .ctn-dist-row {
+  display: grid;
+  grid-template-columns: 12px 140px 1fr 60px 140px;
+  align-items: center; gap: 14px;
+}
+.fds-studio .ctn-dist-dot {
+  width: 10px; height: 10px;
+  border-radius: 50%;
+}
+.fds-studio .ctn-dist-name {
+  font-size: 13.5px; font-weight: 550;
+  color: var(--ink);
+}
+.fds-studio .ctn-dist-track {
+  height: 6px;
+  background: var(--card-soft);
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  position: relative; overflow: hidden;
+}
+.fds-studio .ctn-dist-fill {
+  position: absolute; left: 0; top: 0; bottom: 0;
+  border-radius: 999px;
+  transition: width 600ms cubic-bezier(.2,.7,.2,1);
+}
+.fds-studio .ctn-dist-pct {
+  font-family: var(--font-display);
+  font-weight: 600; font-size: 13px;
+  color: var(--ink-2);
+  font-variant-numeric: tabular-nums;
+  text-align: right;
+  letter-spacing: -0.01em;
+}
+.fds-studio .ctn-dist-val {
+  font-family: var(--font-display);
+  font-weight: 700; font-size: 14px;
+  color: var(--ink);
+  font-variant-numeric: tabular-nums;
+  text-align: right;
+  letter-spacing: -0.02em;
+}
