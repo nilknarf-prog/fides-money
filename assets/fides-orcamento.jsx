@@ -321,4 +321,10 @@ function OrcamentoStudio({ onAdd }) {
             <div className="orc-history-foot-lbl">Maior estouro</div>
             <div className="orc-history-foot-val">Mar · +6%</div>
           </div>
-        
+        </div>
+      </div>
+    </div>
+  );
+}
+
+Object.assign(window, { OrcamentoStudio });
