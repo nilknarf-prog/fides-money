@@ -422,6 +422,9 @@
 .fds-studio .orc-legend-dot.real {
   background: linear-gradient(180deg, var(--accent-bright) 0%, var(--accent) 100%);
 }
+.fds-studio .orc-legend-dot.over {
+  background: linear-gradient(180deg, color-mix(in oklab, var(--bad) 80%, white) 0%, var(--bad) 100%);
+}
 
 /* ═══════════════════════════════════════════════════════════════
    RESPONSIVIDADE MOBILE / TABLET — fides-orcamento.css
@@ -578,10 +581,4 @@
   100% { background: transparent; }
 }
 .fds-studio tr.fds-tx-new td:first-child::before {
-  content: ''; display: inline-block;
-  width: 4px; height: 16px;
-  background: var(--accent);
-  border-radius: 2px;
-  margin-right: 6px;
-  vertical-align: middle;
-}
+  content: ''; display: in

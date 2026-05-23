@@ -273,6 +273,7 @@ function OrcamentoStudio({ onAdd }) {
                    action={<div className="orc-legend">
                      <span><span className="orc-legend-dot plan"/>Planejado</span>
                      <span><span className="orc-legend-dot real"/>Realizado</span>
+                     <span><span className="orc-legend-dot over"/>Estourado</span>
                    </div>}/>
       <div className="stu-card orc-history">
         <div className="orc-history-grid">
@@ -320,10 +321,4 @@ function OrcamentoStudio({ onAdd }) {
             <div className="orc-history-foot-lbl">Maior estouro</div>
             <div className="orc-history-foot-val">Mar · +6%</div>
           </div>
-        </div>
-      </div>
-    </div>
-  );
-}
-
-Object.assign(window, { OrcamentoStudio });
+        
