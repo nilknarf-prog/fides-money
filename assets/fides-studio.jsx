@@ -268,12 +268,32 @@ function SidebarSlim({ active, onNav }) {
 
 // ─── Editorial masthead ───────────────────────────────────────
 function StudioMasthead({ onAdd }) {
-  const { selectedMonth, setSelectedMonth, prevMonth, monthLabel, openAssistant } = useFides();
+  const { selectedMonth, setSelectedMonth, prevMonth, monthLabel, openAssistant, monthTransactions } = useFides();
   const [pickerOpen, setPickerOpen] = React.useState(false);
+  const pickerRef = React.useRef(null);
   const lbl = monthLabel(selectedMonth);
   const [y, m] = selectedMonth.split('-').map(s => parseInt(s, 10));
   const meses = ['Jan','Fev','Mar','Abr','Mai','Jun','Jul','Ago','Set','Out','Nov','Dez'];
   const monthsLong = ['Janeiro','Fevereiro','Março','Abril','Maio','Junho','Julho','Agosto','Setembro','Outubro','Novembro','Dezembro'];
+
+  // Fecha o picker ao clicar/tocar fora — corrige bug de touch no iPhone
+  React.useEffect(() => {
+    if (!pickerOpen) return;
+    const handler = (e) => {
+      if (pickerRef.current && !pickerRef.current.contains(e.target)) {
+        setPickerOpen(false);
+      }
+    };
+    document.addEventListener('mousedown', handler);
+    document.addEventListener('touchstart', handler);
+    return () => {
+      document.removeEventListener('mousedown', handler);
+      document.removeEventListener('touchstart', handler);
+    };
+  }, [pickerOpen]);
+
+  // Badge dinâmico do sininho — transações pendentes do mês atual
+  const pendingCount = monthTransactions.filter(t => t.status === 'pendente').length;
 
   // Próximo mês (avançar)
   const nextOf = (ym) => {
@@ -284,7 +304,15 @@ function StudioMasthead({ onAdd }) {
 
   // Issue numero: posição do mês (Jan = 01)
   const issueN = String(m).padStart(2, '0');
-  const semanaOfMonth = Math.ceil(((new Date(y, m - 1, 1).getDay() + 16) / 7)); // mock estável
+  // Semana ISO real do primeiro dia do mês selecionado
+  const getISOWeek = (date) => {
+    const d = new Date(date);
+    d.setHours(0, 0, 0, 0);
+    d.setDate(d.getDate() + 4 - (d.getDay() || 7));
+    const yearStart = new Date(d.getFullYear(), 0, 1);
+    return Math.ceil((((d - yearStart) / 86400000) + 1) / 7);
+  };
+  const semanaOfMonth = getISOWeek(new Date(y, m - 1, 1));
 
   return (
     <header className="stu-mast">
@@ -296,7 +324,7 @@ function StudioMasthead({ onAdd }) {
             <div className="stu-mast-eyebrow">
               <span>Edição de {monthsLong[m - 1]}</span>
               <span className="stu-mast-sep"/>
-              <span>{y} · semana {semanaOfMonth + 16}</span>
+              <span>{y} · semana {semanaOfMonth}</span>
               <span className="stu-mast-sep"/>
               <span className="stu-mast-issue">№ {issueN}</span>
             </div>
@@ -316,7 +344,7 @@ function StudioMasthead({ onAdd }) {
                 <Icon.Right size={16}/>
               </button>
               {pickerOpen && (
-                <div className="stu-mast-picker-dd" onMouseLeave={() => setPickerOpen(false)}>
+                <div className="stu-mast-picker-dd" ref={pickerRef}>
                   <div className="stu-mast-picker-yr">
                     <button onClick={() => setSelectedMonth(`${y - 1}-${String(m).padStart(2,'0')}`)}>
                       <Icon.Left size={14}/>
@@ -353,7 +381,13 @@ function StudioMasthead({ onAdd }) {
         <button className="fds-icon-btn" title="Conversar com o Fides" onClick={openAssistant}>
           <Icon.Sparkles size={16}/>
         </button>
-        <button className="fds-icon-btn"><Icon.Bell size={16}/><span className="fds-dot"/></button>
+        <button className="fds-icon-btn" title={pendingCount > 0 ? `${pendingCount} pendente${pendingCount > 1 ? 's' : ''}` : 'Notificações'}
+                style={{ position: 'relative' }}>
+          <Icon.Bell size={16}/>
+          {pendingCount > 0
+            ? <span className="fds-sb-slim-badge">{pendingCount}</span>
+            : <span className="fds-dot"/>}
+        </button>
         <button className="stu-mast-add" onClick={onAdd}>
           <Icon.Plus size={14}/> Lançar
         </button>

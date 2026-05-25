@@ -42,7 +42,7 @@ function FidesLogo({ size = 28, variant = 'v1', collapsed = false }) {
 // ─── Sidebar ──────────────────────────────────────────────────
 const NAV = [
   { id: 'dashboard',   label: 'Visão geral',  icon: Icon.Home },
-  { id: 'transacoes',  label: 'Transações',   icon: Icon.Receipt, badge: 3 },
+  { id: 'transacoes',  label: 'Transações',   icon: Icon.Receipt },
   { id: 'orcamento',   label: 'Planejamento', icon: Icon.Pie },
   { id: 'contas',      label: 'Contas & cartões', icon: Icon.Wallet },
   { id: 'metas',       label: 'Metas',        icon: Icon.Goal },

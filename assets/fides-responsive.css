@@ -321,6 +321,9 @@ img, svg, video { max-width: 100%; height: auto; }
   }
 
   /* ── 3. MASTHEAD ──────────────────────────────────────────── */
+  /* Oculta o pipe | entre logo e texto no mobile */
+  .stu-mast-divider { display: none; }
+
   .stu-mast {
     padding: 12px 16px 10px;
     gap: 8px;
