@@ -270,6 +270,7 @@ function SidebarSlim({ active, onNav }) {
 function StudioMasthead({ onAdd }) {
   const { selectedMonth, setSelectedMonth, prevMonth, monthLabel, openAssistant, monthTransactions } = useFides();
   const [pickerOpen, setPickerOpen] = React.useState(false);
+  const [pickerYear, setPickerYear] = React.useState(y);
   const pickerRef = React.useRef(null);
   const lbl = monthLabel(selectedMonth);
   const [y, m] = selectedMonth.split('-').map(s => parseInt(s, 10));
@@ -295,6 +296,54 @@ function StudioMasthead({ onAdd }) {
   // Badge dinâmico do sininho — transações pendentes do mês atual
   const pendingCount = monthTransactions.filter(t => t.status === 'pendente').length;
 
+  // Painel de notificações
+  const [bellOpen, setBellOpen] = React.useState(false);
+  const bellRef = React.useRef(null);
+
+  React.useEffect(() => {
+    if (!bellOpen) return;
+    const handler = (e) => {
+      if (bellRef.current && !bellRef.current.contains(e.target)) {
+        setBellOpen(false);
+      }
+    };
+    document.addEventListener('mousedown', handler);
+    document.addEventListener('touchstart', handler);
+    return () => {
+      document.removeEventListener('mousedown', handler);
+      document.removeEventListener('touchstart', handler);
+    };
+  }, [bellOpen]);
+
+  const notifications = React.useMemo(() => {
+    const items = [];
+    const pending = monthTransactions.filter(t => t.status === 'pendente' && t.val < 0);
+    if (pending.length > 0) {
+      items.push({
+        id: 'pending',
+        type: 'warning',
+        icon: '⏳',
+        title: `${pending.length} despesa${pending.length > 1 ? 's' : ''} em aberto`,
+        lede: pending.slice(0, 2).map(t => t.desc).join(', ') + (pending.length > 2 ? ` e mais ${pending.length - 2}` : ''),
+      });
+    }
+    const receitasPendentes = monthTransactions.filter(t => t.status === 'pendente' && t.val > 0);
+    if (receitasPendentes.length > 0) {
+      const total = receitasPendentes.reduce((s, t) => s + t.val, 0);
+      items.push({
+        id: 'receitas',
+        type: 'info',
+        icon: '💰',
+        title: `${receitasPendentes.length} receita${receitasPendentes.length > 1 ? 's' : ''} a receber`,
+        lede: `R$ ${total.toLocaleString('pt-BR', { minimumFractionDigits: 2 })} previstos para este mês`,
+      });
+    }
+    if (items.length === 0) {
+      items.push({ id: 'ok', type: 'ok', icon: '✅', title: 'Tudo em dia', lede: 'Nenhuma pendência neste mês.' });
+    }
+    return items;
+  }, [monthTransactions]);
+
   // Próximo mês (avançar)
   const nextOf = (ym) => {
     const [yy, mm] = ym.split('-').map(s => parseInt(s, 10));
@@ -304,15 +353,14 @@ function StudioMasthead({ onAdd }) {
 
   // Issue numero: posição do mês (Jan = 01)
   const issueN = String(m).padStart(2, '0');
-  // Semana ISO real do primeiro dia do mês selecionado
-  const getISOWeek = (date) => {
-    const d = new Date(date);
-    d.setHours(0, 0, 0, 0);
-    d.setDate(d.getDate() + 4 - (d.getDay() || 7));
-    const yearStart = new Date(d.getFullYear(), 0, 1);
-    return Math.ceil((((d - yearStart) / 86400000) + 1) / 7);
+  // Semana do ano reiniciando em Janeiro — evita "semana 53" confuso
+  const semanaDoAno = (ano, mes) => {
+    const primeiroDiaDoAno = new Date(ano, 0, 1);
+    const primeiroDiaDoMes = new Date(ano, mes - 1, 1);
+    const diasDecorridos = Math.floor((primeiroDiaDoMes - primeiroDiaDoAno) / 86400000);
+    return Math.ceil((diasDecorridos + primeiroDiaDoAno.getDay() + 1) / 7);
   };
-  const semanaOfMonth = getISOWeek(new Date(y, m - 1, 1));
+  const semanaOfMonth = semanaDoAno(y, m);
 
   return (
     <header className="stu-mast">
@@ -334,7 +382,7 @@ function StudioMasthead({ onAdd }) {
                       title="Mês anterior">
                 <Icon.Left size={16}/>
               </button>
-              <button className="stu-mast-title-btn" onClick={() => setPickerOpen(v => !v)}>
+              <button className="stu-mast-title-btn" onClick={() => { setPickerYear(y); setPickerOpen(v => !v); }}>
                 <h1 className="stu-mast-title">{monthsLong[m - 1]} · {y}</h1>
                 <Icon.Down size={16} style={{ opacity: 0.45 }}/>
               </button>
@@ -346,21 +394,27 @@ function StudioMasthead({ onAdd }) {
               {pickerOpen && (
                 <div className="stu-mast-picker-dd" ref={pickerRef}>
                   <div className="stu-mast-picker-yr">
-                    <button onClick={() => setSelectedMonth(`${y - 1}-${String(m).padStart(2,'0')}`)}>
+                    <button
+                      onMouseDown={e => e.stopPropagation()}
+                      onTouchStart={e => { e.stopPropagation(); }}
+                      onClick={e => { e.stopPropagation(); setPickerYear(v => v - 1); }}>
                       <Icon.Left size={14}/>
                     </button>
-                    <span>{y}</span>
-                    <button onClick={() => setSelectedMonth(`${y + 1}-${String(m).padStart(2,'0')}`)}>
+                    <span>{pickerYear}</span>
+                    <button
+                      onMouseDown={e => e.stopPropagation()}
+                      onTouchStart={e => { e.stopPropagation(); }}
+                      onClick={e => { e.stopPropagation(); setPickerYear(v => v + 1); }}>
                       <Icon.Right size={14}/>
                     </button>
                   </div>
                   <div className="stu-mast-picker-grid">
                     {meses.map((mn, i) => {
-                      const target = `${y}-${String(i + 1).padStart(2,'0')}`;
+                      const target = `${pickerYear}-${String(i + 1).padStart(2,'0')}`;
                       return (
                         <button key={mn}
                                 className={`stu-mast-picker-cell${target === selectedMonth ? ' on' : ''}`}
-                                onClick={() => { setSelectedMonth(target); setPickerOpen(false); }}>
+                                onClick={e => { e.stopPropagation(); setSelectedMonth(target); setPickerOpen(false); }}>
                           {mn}
                         </button>
                       );
@@ -381,13 +435,37 @@ function StudioMasthead({ onAdd }) {
         <button className="fds-icon-btn" title="Conversar com o Fides" onClick={openAssistant}>
           <Icon.Sparkles size={16}/>
         </button>
-        <button className="fds-icon-btn" title={pendingCount > 0 ? `${pendingCount} pendente${pendingCount > 1 ? 's' : ''}` : 'Notificações'}
-                style={{ position: 'relative' }}>
-          <Icon.Bell size={16}/>
-          {pendingCount > 0
-            ? <span className="fds-sb-slim-badge">{pendingCount}</span>
-            : <span className="fds-dot"/>}
-        </button>
+        <div style={{ position: 'relative' }}>
+          <button className="fds-icon-btn"
+                  title={pendingCount > 0 ? `${pendingCount} pendente${pendingCount > 1 ? 's' : ''}` : 'Notificações'}
+                  onClick={() => setBellOpen(v => !v)}>
+            <Icon.Bell size={16}/>
+            {pendingCount > 0
+              ? <span className="fds-sb-slim-badge">{pendingCount}</span>
+              : <span className="fds-dot"/>}
+          </button>
+          {bellOpen && (
+            <div className="fds-notif-panel" ref={bellRef} onClick={e => e.stopPropagation()}>
+              <div className="fds-notif-header">
+                <span className="fds-notif-title">Avisos</span>
+                <button className="fds-notif-close" onClick={() => setBellOpen(false)}>
+                  <Icon.X size={14}/>
+                </button>
+              </div>
+              <div className="fds-notif-list">
+                {notifications.map(n => (
+                  <div key={n.id} className={`fds-notif-item fds-notif-${n.type}`}>
+                    <span className="fds-notif-icon">{n.icon}</span>
+                    <div className="fds-notif-body">
+                      <p className="fds-notif-item-title">{n.title}</p>
+                      <p className="fds-notif-item-lede">{n.lede}</p>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+        </div>
         <button className="stu-mast-add" onClick={onAdd}>
           <Icon.Plus size={14}/> Lançar
         </button>
