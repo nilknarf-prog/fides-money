@@ -250,10 +250,10 @@ img, svg, video { max-width: 100%; height: auto; }
     bottom: 0; left: 0; right: 0;
     top: auto !important;
     width: 100% !important;
-    height: 60px;
+    height: 56px;
     flex-direction: row;
     justify-content: space-around;
-    align-items: flex-start;
+    align-items: center;
     padding: 0 4px env(safe-area-inset-bottom, 0);
     gap: 0;
     border-right: 0;
@@ -281,19 +281,15 @@ img, svg, video { max-width: 100%; height: auto; }
     gap: 0;
   }
 
-  /* Ícones + labels: flex-column com toque mínimo */
+  /* Ícones: 48px de toque mínimo, sem labels */
   .fds-sb-slim-item {
-    flex-direction: column;
-    gap: 3px;
-    width: auto;
-    min-width: 48px;
-    height: 60px;
-    padding: 8px 4px 6px;
+    width: 48px;
+    height: 48px;
     border-radius: 12px;
     position: relative;
   }
 
-  /* Indicador de ativo no TOPO (linha fina) em vez de lateral */
+  /* Indicador de ativo no TOPO do item (linha fina, cor accent) */
   .fds-sb-slim-item.on::before {
     display: block;
     content: '';
@@ -307,34 +303,21 @@ img, svg, video { max-width: 100%; height: auto; }
     border-radius: 0 0 3px 3px;
   }
 
-  /* Destaque sutil do item ativo */
+  /* Destaque do item ativo no bottom nav */
   .fds-sb-slim-item.on {
-    background: transparent;
-    border-radius: 0;
+    background: color-mix(in oklab, var(--accent) 10%, transparent);
+    border-radius: 10px;
   }
 
-  /* Labels visíveis abaixo dos ícones */
-  .fds-sb-slim-tip {
-    display: block;
-    font-size: 9.5px;
-    font-weight: 500;
-    line-height: 1;
-    color: inherit;
-    pointer-events: none;
-    position: static;
-    transform: none;
-    background: transparent;
-    padding: 0;
-    border-radius: 0;
-    opacity: 1;
-  }
+  /* Labels ocultas — 7 itens não cabem com texto no mobile */
+  .fds-sb-slim-tip { display: none !important; }
 
   /* Badge reposiciona */
   .fds-sb-slim-badge { top: 3px; right: 3px; }
 
   /* ── 2. CONTEÚDO PRINCIPAL: espaço p/ bottom nav ─────────── */
   .fds-main {
-    padding-bottom: calc(60px + env(safe-area-inset-bottom, 0px));
+    padding-bottom: calc(56px + env(safe-area-inset-bottom, 0px));
   }
 
   /* ── 3. MASTHEAD ──────────────────────────────────────────── */
@@ -889,8 +872,8 @@ img, svg, video { max-width: 100%; height: auto; }
   .fds-page { padding: 12px 12px 76px; }
 
   /* ── Bottom nav: altura mínima ────────────────────────────── */
-  .fds-sb-slim { height: 58px; }
-  .fds-main { padding-bottom: calc(58px + env(safe-area-inset-bottom, 0px)); }
+  .fds-sb-slim { height: 54px; }
+  .fds-main { padding-bottom: calc(54px + env(safe-area-inset-bottom, 0px)); }
 
   /* ── Hero KPIs: 2 → 1 col em telas muito estreitas ───────── */
   .fds-hero-kpis { grid-template-columns: 1fr; }
