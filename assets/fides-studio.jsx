@@ -392,35 +392,40 @@ function StudioMasthead({ onAdd }) {
                 <Icon.Right size={16}/>
               </button>
               {pickerOpen && (
-                <div className="stu-mast-picker-dd" ref={pickerRef}>
-                  <div className="stu-mast-picker-yr">
-                    <button
-                      onMouseDown={e => e.stopPropagation()}
-                      onTouchStart={e => { e.stopPropagation(); }}
-                      onClick={e => { e.stopPropagation(); setPickerYear(v => v - 1); }}>
-                      <Icon.Left size={14}/>
-                    </button>
-                    <span>{pickerYear}</span>
-                    <button
-                      onMouseDown={e => e.stopPropagation()}
-                      onTouchStart={e => { e.stopPropagation(); }}
-                      onClick={e => { e.stopPropagation(); setPickerYear(v => v + 1); }}>
-                      <Icon.Right size={14}/>
-                    </button>
+                <>
+                  <div className="fds-picker-backdrop"
+                       onMouseDown={() => setPickerOpen(false)}
+                       onTouchStart={() => setPickerOpen(false)} />
+                  <div className="stu-mast-picker-dd" ref={pickerRef}>
+                    <div className="stu-mast-picker-yr">
+                      <button
+                        onMouseDown={e => e.stopPropagation()}
+                        onTouchStart={e => { e.stopPropagation(); }}
+                        onClick={e => { e.stopPropagation(); setPickerYear(v => v - 1); }}>
+                        <Icon.Left size={14}/>
+                      </button>
+                      <span>{pickerYear}</span>
+                      <button
+                        onMouseDown={e => e.stopPropagation()}
+                        onTouchStart={e => { e.stopPropagation(); }}
+                        onClick={e => { e.stopPropagation(); setPickerYear(v => v + 1); }}>
+                        <Icon.Right size={14}/>
+                      </button>
+                    </div>
+                    <div className="stu-mast-picker-grid">
+                      {meses.map((mn, i) => {
+                        const target = `${pickerYear}-${String(i + 1).padStart(2,'0')}`;
+                        return (
+                          <button key={mn}
+                                  className={`stu-mast-picker-cell${target === selectedMonth ? ' on' : ''}`}
+                                  onClick={e => { e.stopPropagation(); setSelectedMonth(target); setPickerOpen(false); }}>
+                            {mn}
+                          </button>
+                        );
+                      })}
+                    </div>
                   </div>
-                  <div className="stu-mast-picker-grid">
-                    {meses.map((mn, i) => {
-                      const target = `${pickerYear}-${String(i + 1).padStart(2,'0')}`;
-                      return (
-                        <button key={mn}
-                                className={`stu-mast-picker-cell${target === selectedMonth ? ' on' : ''}`}
-                                onClick={e => { e.stopPropagation(); setSelectedMonth(target); setPickerOpen(false); }}>
-                          {mn}
-                        </button>
-                      );
-                    })}
-                  </div>
-                </div>
+                </>
               )}
             </div>
           </div>
@@ -445,25 +450,30 @@ function StudioMasthead({ onAdd }) {
               : <span className="fds-dot"/>}
           </button>
           {bellOpen && (
-            <div className="fds-notif-panel" ref={bellRef} onClick={e => e.stopPropagation()}>
-              <div className="fds-notif-header">
-                <span className="fds-notif-title">Avisos</span>
-                <button className="fds-notif-close" onClick={() => setBellOpen(false)}>
-                  <Icon.X size={14}/>
-                </button>
-              </div>
-              <div className="fds-notif-list">
-                {notifications.map(n => (
-                  <div key={n.id} className={`fds-notif-item fds-notif-${n.type}`}>
-                    <span className="fds-notif-icon">{n.icon}</span>
-                    <div className="fds-notif-body">
-                      <p className="fds-notif-item-title">{n.title}</p>
-                      <p className="fds-notif-item-lede">{n.lede}</p>
+            <>
+              <div className="fds-notif-backdrop"
+                   onMouseDown={() => setBellOpen(false)}
+                   onTouchStart={() => setBellOpen(false)} />
+              <div className="fds-notif-panel" ref={bellRef} onClick={e => e.stopPropagation()}>
+                <div className="fds-notif-header">
+                  <span className="fds-notif-title">Avisos</span>
+                  <button className="fds-notif-close" onClick={() => setBellOpen(false)}>
+                    <Icon.X size={14}/>
+                  </button>
+                </div>
+                <div className="fds-notif-list">
+                  {notifications.map(n => (
+                    <div key={n.id} className={`fds-notif-item fds-notif-${n.type}`}>
+                      <span className="fds-notif-icon">{n.icon}</span>
+                      <div className="fds-notif-body">
+                        <p className="fds-notif-item-title">{n.title}</p>
+                        <p className="fds-notif-item-lede">{n.lede}</p>
+                      </div>
                     </div>
-                  </div>
-                ))}
+                  ))}
+                </div>
               </div>
-            </div>
+            </>
           )}
         </div>
         <button className="stu-mast-add" onClick={onAdd}>

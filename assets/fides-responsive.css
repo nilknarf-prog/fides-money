@@ -773,12 +773,31 @@ img, svg, video { max-width: 100%; height: auto; }
   .stu-acct-bal { font-size: 17px; }
 
   /* ── 25. MISC ─────────────────────────────────────────────── */
-  /* Picker do masthead: clamp to viewport */
+  /* Picker do masthead: posição fixa centrada para escapar do overflow */
   .fds-studio .stu-mast-picker-dd {
-    left: 50%;
-    transform: translateX(-50%);
+    position: fixed;
+    top: 50vh;
+    left: 50vw;
+    transform: translate(-50%, -50%);
     min-width: 260px;
     max-width: min(320px, calc(100vw - 28px));
+    z-index: 9999;
+  }
+
+  /* Backdrops (picker e notificações) */
+  .fds-picker-backdrop {
+    display: block;
+    position: fixed;
+    inset: 0;
+    background: rgba(0,0,0,0.25);
+    z-index: 9998;
+  }
+  .fds-notif-backdrop {
+    display: block;
+    position: fixed;
+    inset: 0;
+    background: rgba(0,0,0,0.15);
+    z-index: 9998;
   }
 
   /* Tabs: permitir wrap */
@@ -800,8 +819,11 @@ img, svg, video { max-width: 100%; height: auto; }
   /* Old wide sidebar (fds-sb, 248px) must not render on mobile */
   .fds-sb { display: none !important; }
 
+  /* Masthead: remove backdrop-filter to avoid creating a fixed-position containing block */
+  .fds-studio .stu-mast { backdrop-filter: none; -webkit-backdrop-filter: none; }
+
   /* Masthead: left cluster must not push layout wider than viewport */
-  .stu-mast-l { max-width: calc(100vw - 80px); overflow: hidden; }
+  .stu-mast-l { max-width: calc(100vw - 80px); overflow: visible; }
   .stu-mast-title {
     white-space: nowrap;
     overflow: hidden;

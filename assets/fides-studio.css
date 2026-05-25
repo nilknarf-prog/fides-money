@@ -701,5 +701,13 @@
     right: 12px;
     left: 12px;
     width: auto;
+    max-height: calc(100vh - 56px - env(safe-area-inset-bottom, 0px) - 80px);
+    overflow-y: auto;
+    z-index: 9999;
+    transform: none;
   }
 }
+
+/* Backdrops ocultos no desktop; ativados via responsive.css no mobile */
+.fds-picker-backdrop { display: none; }
+.fds-notif-backdrop  { display: none; }
