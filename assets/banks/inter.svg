@@ -1,0 +1,6 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="#000000">
+  <!-- Banco Inter: laranja com círculo e "i" -->
+  <circle cx="12" cy="12" r="10" fill="none" stroke="#000" stroke-width="2"/>
+  <circle cx="12" cy="7" r="1.5"/>
+  <rect x="10.5" y="10" width="3" height="8" rx="1.5"/>
+</svg>

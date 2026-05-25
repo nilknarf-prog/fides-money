@@ -1,208 +1,112 @@
 // fides-contas.jsx — Studio "Contas & cartões" page
 
-// ─── Modal: Nova Conta ────────────────────────────────────────
-function NovaContaModal({ open, onClose }) {
-  const { addAccount } = useFides();
-  const [nome, setNome]     = React.useState('');
-  const [tipo, setTipo]     = React.useState('corrente');
-  const [banco, setBanco]   = React.useState('');
-  const [saldo, setSaldo]   = React.useState('');
+// ─── Logos bancárias ─────────────────────────────────────────
+const BANK_MAP = {
+  nubank:      { file: 'nubank.svg',      bg: '#820AD1' },
+  bradesco:    { file: 'bradesco.svg',    bg: '#CC092F' },
+  inter:       { file: 'inter.svg',       bg: '#FF6600' },
+  bancointer:  { file: 'inter.svg',       bg: '#FF6600' },
+  c6:          { file: 'c6bank.svg',      bg: '#242424' },
+  c6bank:      { file: 'c6bank.svg',      bg: '#242424' },
+  picpay:      { file: 'picpay.svg',      bg: '#21C25E' },
+  infinitepay: { file: 'infinitepay.svg', bg: '#00B14F' },
+  infinity:    { file: 'infinitepay.svg', bg: '#00B14F' },
+  caixa:       { file: 'caixa.svg',       bg: '#005CA9' },
+  itau:        { file: 'itau.svg',        bg: '#003087' },
+  santander:   { file: 'santander.svg',   bg: '#EC0000' },
+};
 
-  if (!open) return null;
+function BankLogo({ bank = '', name = '', size = 40 }) {
+  const key = (bank + name).toLowerCase().replace(/[\s\-_\.]/g, '');
+  const match = Object.entries(BANK_MAP).find(([k]) => key.includes(k));
+  const initials = (name || bank).trim().split(' ')
+    .map(w => w[0]).join('').slice(0, 2).toUpperCase();
 
-  const parseVal = (s) => {
-    if (!s) return 0;
-    return parseFloat(String(s).replace(/[^\d,.-]/g,'').replace(/\./g,'').replace(',','.')) || 0;
-  };
-
-  const canSave = nome.trim() && banco.trim();
-
-  const handleSave = () => {
-    if (!canSave) return;
-    const colors = ['#10B981','#0EA5E9','#8B5CF6','#F59E0B','#EF4444','#3B82F6'];
-    addAccount({
-      name: nome.trim(),
-      type: tipo,
-      bank: banco.trim(),
-      balance: parseVal(saldo),
-      color: colors[Math.floor(Math.random() * colors.length)],
-      tag: '••••',
-    });
-    setNome(''); setTipo('corrente'); setBanco(''); setSaldo('');
-    onClose?.();
-  };
-
-  return (
-    <div className="fds-modal-backdrop" onClick={onClose}>
-      <div className="fds-modal" onClick={(e) => e.stopPropagation()}>
-        <header className="fds-modal-head">
-          <div>
-            <div className="fds-modal-eyebrow">Nova</div>
-            <h2 className="fds-modal-title">Adicionar conta</h2>
-          </div>
-          <button className="fds-icon-btn" onClick={onClose}><Icon.X size={16}/></button>
-        </header>
-        <div className="fds-modal-body">
-          <div className="fds-modal-row two">
-            <label className="fds-field">
-              <span>Nome da conta</span>
-              <input className="fds-input" placeholder="ex: Nubank Conta" value={nome} onChange={(e) => setNome(e.target.value)}/>
-            </label>
-            <label className="fds-field">
-              <span>Banco</span>
-              <input className="fds-input" placeholder="ex: Nubank" value={banco} onChange={(e) => setBanco(e.target.value)}/>
-            </label>
-          </div>
-          <div className="fds-modal-row two">
-            <label className="fds-field">
-              <span>Tipo</span>
-              <div className="fds-input-select">
-                <select className="fds-select" value={tipo} onChange={(e) => setTipo(e.target.value)}>
-                  <option value="corrente">Corrente</option>
-                  <option value="poupança">Poupança</option>
-                  <option value="digital">Digital</option>
-                  <option value="investimento">Investimento</option>
-                </select>
-                <Icon.Down size={13} style={{ opacity: 0.5 }}/>
-              </div>
-            </label>
-            <label className="fds-field">
-              <span>Saldo inicial</span>
-              <div className="fds-input-money">
-                <span className="prefix">R$</span>
-                <input className="fds-input" placeholder="0,00" value={saldo} onChange={(e) => setSaldo(e.target.value)}/>
-              </div>
-            </label>
-          </div>
-        </div>
-        <footer className="fds-modal-foot">
-          <button className="fds-btn-ghost" onClick={onClose}>Cancelar</button>
-          <button className="fds-btn-primary" onClick={handleSave} disabled={!canSave}>
-            <Icon.Check size={14}/> Adicionar conta
-          </button>
-        </footer>
+  if (match) {
+    const { file, bg } = match[1];
+    return (
+      <div style={{
+        width: size, height: size, borderRadius: 10,
+        background: bg, display: 'flex',
+        alignItems: 'center', justifyContent: 'center',
+        flexShrink: 0, overflow: 'hidden',
+      }}>
+        <img
+          src={`assets/banks/${file}`}
+          alt={name || bank}
+          width={size * 0.62}
+          height={size * 0.62}
+          style={{ objectFit: 'contain', filter: 'brightness(0) invert(1)' }}
+          onError={e => { e.target.style.display = 'none'; }}
+        />
       </div>
-    </div>
-  );
-}
+    );
+  }
 
-// ─── Modal: Novo Cartão ───────────────────────────────────────
-function NovoCartaoModal({ open, onClose }) {
-  const { addCard } = useFides();
-  const [nome, setNome]           = React.useState('');
-  const [bandeira, setBandeira]   = React.useState('Visa');
-  const [limite, setLimite]       = React.useState('');
-  const [diaVenc, setDiaVenc]     = React.useState('');
-  const [diaFech, setDiaFech]     = React.useState('');
-
-  if (!open) return null;
-
-  const parseVal = (s) => parseFloat(String(s).replace(/[^\d,.-]/g,'').replace(/\./g,'').replace(',','.')) || 0;
-
-  // Melhor data de compra = dia seguinte ao fechamento
-  const melhorCompra = diaFech ? ((parseInt(diaFech, 10) % 30) + 1) : null;
-
-  const canSave = nome.trim() && diaVenc && diaFech;
-
-  const handleSave = () => {
-    if (!canSave) return;
-    addCard({
-      name: nome.trim(),
-      brand: bandeira,
-      limit: parseVal(limite),
-      due: `dia ${diaVenc}`,
-      diaFechamento: parseInt(diaFech, 10),
-      diaVencimento: parseInt(diaVenc, 10),
-      tag: bandeira,
-    });
-    setNome(''); setBandeira('Visa'); setLimite(''); setDiaVenc(''); setDiaFech('');
-    onClose?.();
-  };
-
+  // Fallback: iniciais com cor automática
+  const colors = ['#4F46E5','#0891B2','#059669','#D97706','#DC2626'];
+  const bg = colors[(initials.charCodeAt(0) || 0) % colors.length];
   return (
-    <div className="fds-modal-backdrop" onClick={onClose}>
-      <div className="fds-modal" onClick={(e) => e.stopPropagation()}>
-        <header className="fds-modal-head">
-          <div>
-            <div className="fds-modal-eyebrow">Novo</div>
-            <h2 className="fds-modal-title">Adicionar cartão</h2>
-          </div>
-          <button className="fds-icon-btn" onClick={onClose}><Icon.X size={16}/></button>
-        </header>
-        <div className="fds-modal-body">
-          <div className="fds-modal-row two">
-            <label className="fds-field">
-              <span>Nome do cartão</span>
-              <input className="fds-input" placeholder="ex: Nubank Ultravioleta" value={nome} onChange={(e) => setNome(e.target.value)}/>
-            </label>
-            <label className="fds-field">
-              <span>Bandeira</span>
-              <div className="fds-input-select">
-                <select className="fds-select" value={bandeira} onChange={(e) => setBandeira(e.target.value)}>
-                  <option value="Visa">Visa</option>
-                  <option value="Mastercard">Mastercard</option>
-                  <option value="Elo">Elo</option>
-                  <option value="Amex">Amex</option>
-                </select>
-                <Icon.Down size={13} style={{ opacity: 0.5 }}/>
-              </div>
-            </label>
-          </div>
-          <div className="fds-modal-row two">
-            <label className="fds-field">
-              <span>Limite total</span>
-              <div className="fds-input-money">
-                <span className="prefix">R$</span>
-                <input className="fds-input" placeholder="0,00" value={limite} onChange={(e) => setLimite(e.target.value)}/>
-              </div>
-            </label>
-            <div className="fds-field" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8 }}>
-              <label className="fds-field" style={{ margin: 0 }}>
-                <span>Dia vencimento</span>
-                <input className="fds-input" type="number" min={1} max={31} placeholder="1–31" value={diaVenc} onChange={(e) => setDiaVenc(e.target.value)}/>
-              </label>
-              <label className="fds-field" style={{ margin: 0 }}>
-                <span>Dia fechamento</span>
-                <input className="fds-input" type="number" min={1} max={31} placeholder="1–31" value={diaFech} onChange={(e) => setDiaFech(e.target.value)}/>
-              </label>
-            </div>
-          </div>
-          {melhorCompra && (
-            <div className="pln-info-banner" style={{ marginTop: 4 }}>
-              <div className="pln-info-icon"><Icon.Calendar size={14}/></div>
-              <div className="pln-info-body">
-                <div className="pln-info-title">
-                  Melhor data de compra: <strong>dia {melhorCompra}</strong>
-                  <span className="fds-muted" style={{ marginLeft: 8, fontWeight: 400, fontSize: 12 }}>
-                    (dia seguinte ao fechamento)
-                  </span>
-                </div>
-              </div>
-            </div>
-          )}
-        </div>
-        <footer className="fds-modal-foot">
-          <button className="fds-btn-ghost" onClick={onClose}>Cancelar</button>
-          <button className="fds-btn-primary" onClick={handleSave} disabled={!canSave}>
-            <Icon.Check size={14}/> Adicionar cartão
-          </button>
-        </footer>
-      </div>
+    <div style={{
+      width: size, height: size, borderRadius: 10,
+      background: bg, display: 'flex',
+      alignItems: 'center', justifyContent: 'center',
+      flexShrink: 0, color: '#fff',
+      fontFamily: 'var(--font-display)',
+      fontWeight: 700, fontSize: size * 0.35,
+    }}>
+      {initials || '?'}
     </div>
   );
 }
 
 function ContasStudio({ onAdd }) {
-  const { transactions, accounts, cards, payCartaoFatura, faturasPorCartao, selectedMonth, monthLabel } = useFides();
+  const { transactions, categories, payCartaoFatura, faturasPorCartao, selectedMonth, monthLabel } = useFides();
   const lbl = monthLabel(selectedMonth);
-  const [novaContaOpen, setNovaContaOpen]   = React.useState(false);
-  const [novoCartaoOpen, setNovoCartaoOpen] = React.useState(false);
 
-  // Totals from mock + computed sparkline data per account
-  const totalContas = accounts.reduce((s, a) => s + a.balance, 0);
-  const totalUsadoCartoes = cards.reduce((s, c) => s + c.used, 0);
-  const totalLimiteCartoes = cards.reduce((s, c) => s + c.limit, 0);
-  const proximaFatura = cards.reduce((m, c) =>
+  // ─── Local state extends ACCOUNTS / CARDS ─────────────────
+  const [localAccounts, setLocalAccounts] = React.useState(ACCOUNTS);
+  const [localCards, setLocalCards]       = React.useState(CARDS);
+  const [addModal, setAddModal]           = React.useState(null); // 'conta' | 'cartao'
+
+  const BANK_COLORS = ['#2D5A3D','#2C5282','#B45309','#7C3AED','#0F766E','#9B2C2C'];
+
+  function handleAddConta(e) {
+    e.preventDefault();
+    const fd = new FormData(e.target);
+    const newAcct = {
+      id:      'acct-' + Date.now(),
+      name:    fd.get('name') || 'Nova conta',
+      type:    fd.get('type') || 'corrente',
+      tag:     fd.get('tag') || '0000',
+      balance: parseFloat(fd.get('balance') || '0'),
+      color:   BANK_COLORS[localAccounts.length % BANK_COLORS.length],
+    };
+    setLocalAccounts(prev => [...prev, newAcct]);
+    setAddModal(null);
+  }
+
+  function handleAddCartao(e) {
+    e.preventDefault();
+    const fd = new FormData(e.target);
+    const newCard = {
+      id:            'card-' + Date.now(),
+      name:          fd.get('name') || 'Novo cartão',
+      tag:           fd.get('tag') || '0000',
+      limit:         parseFloat(fd.get('limit') || '0'),
+      used:          0,
+      due:           fd.get('due') || '10',
+      diaFechamento: fd.get('fechamento') || '03',
+    };
+    setLocalCards(prev => [...prev, newCard]);
+    setAddModal(null);
+  }
+
+  // ─── Totals use localAccounts / localCards ─────────────────
+  const totalContas = localAccounts.reduce((s, a) => s + a.balance, 0);
+  const totalUsadoCartoes = localCards.reduce((s, c) => s + c.used, 0);
+  const totalLimiteCartoes = localCards.reduce((s, c) => s + c.limit, 0);
+  const proximaFatura = localCards.reduce((m, c) =>
     (!m || c.due < m.due) ? c : m, null);
 
   // Account sparklines — fabricated stable historical balances
@@ -220,8 +124,91 @@ function ContasStudio({ onAdd }) {
   const txByCard = (id) => transactions.filter(t => t.acct === id);
 
   return (
-    <div className="fds-page stu-page">
-      <section className="stu-hero">
+    <div className="fds-page stu-page" data-od-id="contas">
+      {/* ─── Modals ─── */}
+      {addModal === 'conta' && (
+        <div className="fds-modal-backdrop" onClick={() => setAddModal(null)}>
+          <div className="fds-modal" style={{ maxWidth: 460 }} onClick={e => e.stopPropagation()}>
+            <div className="fds-modal-head">
+              <div className="fds-modal-title">Adicionar conta</div>
+              <button className="fds-icon-btn" onClick={() => setAddModal(null)}><Icon.X size={16}/></button>
+            </div>
+            <form className="fds-modal-body" onSubmit={handleAddConta} style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
+              <div className="fds-modal-row two" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
+                <label className="fds-field">
+                  <span>Nome do banco</span>
+                  <input className="fds-input" name="name" placeholder="Ex: Bradesco" required/>
+                </label>
+                <label className="fds-field">
+                  <span>Tipo</span>
+                  <select className="fds-input" name="type">
+                    <option value="corrente">Corrente</option>
+                    <option value="digital">Digital</option>
+                    <option value="poupança">Poupança</option>
+                  </select>
+                </label>
+              </div>
+              <div className="fds-modal-row two" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
+                <label className="fds-field">
+                  <span>Últimos 4 dígitos</span>
+                  <input className="fds-input" name="tag" placeholder="0000" maxLength={4}/>
+                </label>
+                <label className="fds-field">
+                  <span>Saldo inicial (R$)</span>
+                  <input className="fds-input" name="balance" type="number" step="0.01" placeholder="0,00"/>
+                </label>
+              </div>
+              <div className="fds-modal-foot" style={{ display: 'flex', justifyContent: 'flex-end', gap: 8, padding: '12px 0 0' }}>
+                <button type="button" className="fds-btn-ghost" onClick={() => setAddModal(null)}>Cancelar</button>
+                <button type="submit" className="fds-btn-primary"><Icon.Check size={13}/> Adicionar</button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {addModal === 'cartao' && (
+        <div className="fds-modal-backdrop" onClick={() => setAddModal(null)}>
+          <div className="fds-modal" style={{ maxWidth: 460 }} onClick={e => e.stopPropagation()}>
+            <div className="fds-modal-head">
+              <div className="fds-modal-title">Adicionar cartão</div>
+              <button className="fds-icon-btn" onClick={() => setAddModal(null)}><Icon.X size={16}/></button>
+            </div>
+            <form className="fds-modal-body" onSubmit={handleAddCartao} style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
+              <div className="fds-modal-row two" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
+                <label className="fds-field">
+                  <span>Nome do cartão</span>
+                  <input className="fds-input" name="name" placeholder="Ex: Nubank Roxinho" required/>
+                </label>
+                <label className="fds-field">
+                  <span>Últimos 4 dígitos</span>
+                  <input className="fds-input" name="tag" placeholder="0000" maxLength={4}/>
+                </label>
+              </div>
+              <div className="fds-modal-row two" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
+                <label className="fds-field">
+                  <span>Limite total (R$)</span>
+                  <input className="fds-input" name="limit" type="number" step="0.01" placeholder="0,00" required/>
+                </label>
+                <label className="fds-field">
+                  <span>Vencimento (dia)</span>
+                  <input className="fds-input" name="due" type="number" min={1} max={31} placeholder="10"/>
+                </label>
+              </div>
+              <label className="fds-field">
+                <span>Fechamento da fatura (dia)</span>
+                <input className="fds-input" name="fechamento" type="number" min={1} max={31} placeholder="03"/>
+              </label>
+              <div className="fds-modal-foot" style={{ display: 'flex', justifyContent: 'flex-end', gap: 8, padding: '12px 0 0' }}>
+                <button type="button" className="fds-btn-ghost" onClick={() => setAddModal(null)}>Cancelar</button>
+                <button type="submit" className="fds-btn-primary"><Icon.Check size={13}/> Adicionar</button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      <section className="stu-hero" data-od-id="ctn-hero">
         <div className="stu-hero-eyebrow">
           <Icon.Wallet size={11}/>
           patrimônio líquido · maio · 2026
@@ -236,14 +223,14 @@ function ContasStudio({ onAdd }) {
           distribuídos.
         </h2>
         <p className="stu-hero-lede">
-          <strong className="stu-num">{accounts.length} contas</strong> ativas e{' '}
-          <strong className="stu-num">{cards.length} cartões</strong> abertos. Você comprometeu{' '}
+          <strong className="stu-num">{localAccounts.length} contas</strong> ativas e{' '}
+          <strong className="stu-num">{localCards.length} cartões</strong> abertos. Você comprometeu{' '}
           <strong className="stu-num">{fmtBRL(totalUsadoCartoes)}</strong> de{' '}
           <strong className="stu-num">{fmtBRL(totalLimiteCartoes)}</strong> em limite — {((totalUsadoCartoes/totalLimiteCartoes)*100).toFixed(0)}%.
           {proximaFatura && <> Próxima fatura: <strong className="stu-num">{proximaFatura.name}</strong> vence em <em>{proximaFatura.due}</em>.</>}
         </p>
 
-        <div className="stu-hero-strip">
+        <div className="stu-hero-strip" data-od-id="ctn-hero-strip">
           <div className="stu-metric">
             <div className="stu-metric-lbl">Saldo em contas</div>
             <div className="stu-metric-val pos">{fmtBRL(totalContas)}</div>
@@ -278,10 +265,10 @@ function ContasStudio({ onAdd }) {
 
       {/* ─── Capítulo I · Contas ─── */}
       <ChapterMark roman="I" title="Contas"
-                   caption={`${accounts.length} contas correntes e digitais`}
-                   action={<button className="stu-link" onClick={() => setNovaContaOpen(true)}><Icon.Plus size={12}/> Adicionar conta</button>}/>
-      <div className="ctn-accounts">
-        {accounts.map(a => {
+                   caption={`${localAccounts.length} contas correntes e digitais`}
+                   action={<button className="stu-link" onClick={() => setAddModal('conta')}><Icon.Plus size={12}/> Adicionar conta</button>}/>
+      <div className="ctn-accounts" data-od-id="ctn-lista-contas">
+        {localAccounts.map(a => {
           const txs = txByAcct(a.id);
           const last = lastByAcct(a.id);
           const last7 = acctHistory[a.id] || [a.balance];
@@ -290,9 +277,7 @@ function ContasStudio({ onAdd }) {
           return (
             <div className="ctn-account" key={a.id}>
               <div className="ctn-account-head">
-                <div className="ctn-account-mark" style={{ background: a.color }}>
-                  <Icon.Bank size={20}/>
-                </div>
+                <BankLogo bank={a.bank || ''} name={a.name || ''} size={40}/>
                 <div className="ctn-account-meta">
                   <div className="ctn-account-name">{a.name}</div>
                   <div className="ctn-account-tag">
@@ -351,10 +336,10 @@ function ContasStudio({ onAdd }) {
 
       {/* ─── Capítulo II · Cartões ─── */}
       <ChapterMark roman="II" title="Cartões de crédito"
-                   caption={`${cards.length} cartões · ${fmtBRL(totalUsadoCartoes)} de fatura aberta`}
-                   action={<button className="stu-link" onClick={() => setNovoCartaoOpen(true)}><Icon.Plus size={12}/> Adicionar cartão</button>}/>
-      <div className="ctn-cards">
-        {cards.map(c => {
+                   caption={`${localCards.length} cartões · ${fmtBRL(totalUsadoCartoes)} de fatura aberta`}
+                   action={<button className="stu-link" onClick={() => setAddModal('cartao')}><Icon.Plus size={12}/> Adicionar cartão</button>}/>
+      <div className="ctn-cards" data-od-id="ctn-lista-cartoes">
+        {localCards.map(c => {
           const pct = c.used / c.limit;
           const over = pct > 0.85;
           // Encontra a fatura corrente para este cartão (mês de fatura = selectedMonth)
@@ -376,7 +361,7 @@ function ContasStudio({ onAdd }) {
               }}>
                 <div className="ctn-card-visual-top">
                   <div className="ctn-card-visual-brand">
-                    <Icon.Card size={18}/>
+                    <BankLogo bank={c.bank || ''} name={c.name || ''} size={28}/>
                     <span>{c.name}</span>
                   </div>
                   <Icon.Wifi size={16}/>
@@ -457,9 +442,9 @@ function ContasStudio({ onAdd }) {
       {/* ─── Capítulo III · Distribuição ─── */}
       <ChapterMark roman="III" title="Distribuição"
                    caption="Como seu dinheiro está dividido entre as contas"/>
-      <div className="stu-card ctn-dist">
+      <div className="stu-card ctn-dist" data-od-id="ctn-distribuicao">
         <div className="ctn-dist-bar">
-          {accounts.map(a => {
+          {ACCOUNTS.map(a => {
             const w = (a.balance / totalContas) * 100;
             return (
               <div key={a.id} className="ctn-dist-seg"
@@ -469,7 +454,7 @@ function ContasStudio({ onAdd }) {
           })}
         </div>
         <div className="ctn-dist-rows">
-          {accounts.map(a => {
+          {ACCOUNTS.map(a => {
             const pct = (a.balance / totalContas) * 100;
             return (
               <div className="ctn-dist-row" key={a.id}>
@@ -485,11 +470,8 @@ function ContasStudio({ onAdd }) {
           })}
         </div>
       </div>
-
-      <NovaContaModal  open={novaContaOpen}  onClose={() => setNovaContaOpen(false)}/>
-      <NovoCartaoModal open={novoCartaoOpen} onClose={() => setNovoCartaoOpen(false)}/>
     </div>
   );
 }
 
-Object.assign(window, { ContasStudio, NovaContaModal, NovoCartaoModal });
+Object.assign(window, { ContasStudio });
