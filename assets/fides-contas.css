@@ -3,7 +3,7 @@
 /* ─── Capítulo I · Contas (large cards) ─── */
 .fds-studio .ctn-accounts {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(420px, 1fr));
+  grid-template-columns: repeat(auto-fill, minmax(min(420px, 100%), 1fr));
   gap: 14px;
 }
 .fds-studio .ctn-account {
@@ -54,7 +54,7 @@
 }
 .fds-studio .ctn-account-bal {
   font-family: var(--font-display);
-  font-weight: 700; font-size: clamp(1.75rem, 6vw, 3rem);
+  font-weight: 700; font-size: 32px;
   letter-spacing: -0.03em;
   color: var(--ink);
   font-variant-numeric: tabular-nums;
@@ -124,7 +124,7 @@
 /* ─── Capítulo II · Cartões ─── */
 .fds-studio .ctn-cards {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(440px, 1fr));
+  grid-template-columns: repeat(auto-fill, minmax(min(440px, 100%), 1fr));
   gap: 16px;
 }
 .fds-studio .ctn-card {
@@ -199,7 +199,7 @@
 }
 .fds-studio .ctn-card-fatura-val {
   font-family: var(--font-display);
-  font-weight: 700; font-size: clamp(1.25rem, 4vw, 1.625rem);
+  font-weight: 700; font-size: 26px;
   letter-spacing: -0.025em;
   color: var(--ink);
   font-variant-numeric: tabular-nums;
@@ -362,47 +362,3 @@
   text-align: right;
   letter-spacing: -0.02em;
 }
-
-/* ═══════════════════════════════════════════════════════════════
-   RESPONSIVIDADE MOBILE / TABLET — fides-contas.css
-   Adicionado: mai 2026
-   ═══════════════════════════════════════════════════════════════ */
-
-/* ── Tablet (≤ 1024px) ──────────────────────────────────────── */
-@media (max-width: 1024px) {
-  .fds-studio .ctn-accounts {
-    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
-  }
-  .fds-studio .ctn-cards {
-    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
-  }
-}
-
-/* ── Mobile (≤ 768px) ──────────────────────────────────────── */
-@media (max-width: 768px) {
-  /* Cards de conta e cartão: 1 coluna */
-  .fds-studio .ctn-accounts { grid-template-columns: 1fr; }
-  .fds-studio .ctn-cards { grid-template-columns: 1fr; }
-
-  /* Cartão visual: altura mínima reduzida */
-  .fds-studio .ctn-card-visual { min-height: 140px; padding: 16px; }
-
-  /* Distribuição: scroll horizontal (grid tem colunas fixas) */
-  .fds-studio .ctn-dist { overflow-x: auto; -webkit-overflow-scrolling: touch; }
-  .fds-studio .ctn-dist-rows { min-width: 460px; }
-
-  /* Stats de conta: 2 colunas */
-  .fds-studio .ctn-account-stats { grid-template-columns: 1fr 1fr; }
-
-  /* Transações do cartão: scroll */
-  .fds-studio .ctn-card-txs-list { overflow-x: auto; -webkit-overflow-scrolling: touch; }
-  .fds-studio .ctn-card-tx { min-width: 380px; }
-}
-
-/* ── Mobile pequeno (≤ 480px) ──────────────────────────────── */
-@media (max-width: 480px) {
-  .fds-studio .ctn-account-stats { grid-template-columns: 1fr 1fr; }
-  .fds-studio .ctn-account { padding: 16px; }
-  .fds-studio .ctn-card-info { padding: 14px 16px 16px; }
-}
-  

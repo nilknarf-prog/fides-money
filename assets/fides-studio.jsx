@@ -65,50 +65,101 @@ function TransacoesStudio({ onAdd }) {
   const empty = monthTransactions.length === 0;
   return (
     <div className="fds-page stu-page">
-      {/* Editorial hero (compact) */}
-      <section className="stu-hero" style={{ paddingBottom: 22 }}>
-        <div className="stu-hero-eyebrow">
-          <Icon.Receipt size={11}/>
-          movimento · {lbl.long.toLowerCase()}
-        </div>
-        {empty ? (
-          <>
-            <h2 className="stu-hero-headline" style={{ fontSize: 32, maxWidth: 820 }}>
-              Nenhum lançamento em {lbl.long.split(' de ')[0]}.
-            </h2>
-            <p className="stu-hero-lede">
-              Adicione uma transação clicando em <strong>Lançar transação</strong> ou troque o mês no topo da página.
-            </p>
-          </>
-        ) : (
-          <>
-            <h2 className="stu-hero-headline" style={{ fontSize: 32, maxWidth: 820 }}>
-              {monthTransactions.length} lançamentos em {lbl.long.split(' de ')[0]}
+      {/* Editorial hero (compact) — via EditorialHero */}
+      <EditorialHero
+        eyebrow={<><Icon.Receipt size={11}/> movimento · {lbl.long.toLowerCase()}</>}
+        headline={empty
+          ? `Nenhum lançamento em ${lbl.long.split(' de ')[0]}.`
+          : <>{monthTransactions.length} lançamentos em {lbl.long.split(' de ')[0]}
               {prevMonthTransactions.length > 0 && (
-                <>, <span className={delta >= 0 ? 'stu-pos' : 'stu-pos'}>
-                  {Math.abs(delta)} {delta >= 0 ? 'acima' : 'abaixo'}
-                </span> de {prevLbl.long.split(' de ')[0]}</>
-              )}.
-            </h2>
-            <p className="stu-hero-lede">
-              Foram <strong className="stu-num">{rec} receitas</strong> e <strong className="stu-num">{des} despesas</strong>.
+                <>, <span className="stu-pos">{Math.abs(delta)} {delta >= 0 ? 'acima' : 'abaixo'}</span>{' '}
+                de {prevLbl.long.split(' de ')[0]}</>
+              )}.</>
+        }
+        headlineStyle={{ fontSize: 32, maxWidth: 820 }}
+        lede={empty
+          ? <>Adicione uma transação clicando em <strong>Lançar transação</strong> ou troque o mês no topo da página.</>
+          : <>Foram <strong className="stu-num">{rec} receitas</strong> e <strong className="stu-num">{des} despesas</strong>.
               {maior.val !== 0 && <> O maior lançamento do mês foi <strong className="stu-num">{maior.desc}</strong>{' '}
               em <em>R$&nbsp;{Math.abs(maior.val).toLocaleString('pt-BR',{minimumFractionDigits:2})}</em>.</>}
               {pend.length > 0 && <> {pend.length} {pend.length === 1 ? 'item ainda pendente, somando' : 'itens ainda pendentes, somando'}{' '}
-              <strong className="stu-num">{fmtBRL(pendSoma)}</strong>.</>}
-            </p>
-          </>
-        )}
-      </section>
+              <strong className="stu-num">{fmtBRL(pendSoma)}</strong>.</>}</>
+        }
+        style={{ paddingBottom: 22 }}
+      />
 
-      {/* Chapter mark + universal Transacoes table */}
-      <ChapterMark roman="I" title="Todos os lançamentos"
-                   caption="Filtre, busque e edite em massa · clique numa linha para ver detalhes"
-                   action={<button className="stu-link" onClick={onAdd}><Icon.Plus size={12}/> Lançar transação</button>}/>
-      <div className="orc-tx-wrap">
-        <Transacoes variant="v3" onAdd={onAdd}/>
-      </div>
+      {/* Chapter mark + table — ou empty state se mês vazio */}
+      {empty ? (
+        <div className="fds-empty-state">
+          <div className="fds-empty-state-icon">📋</div>
+          <h2 className="fds-empty-state-title">
+            Nenhuma transação em {lbl.long}
+          </h2>
+          <p className="fds-empty-state-lede">
+            Comece registrando uma receita ou despesa.
+          </p>
+          <button className="fds-empty-state-btn" onClick={onAdd}>
+            + Adicionar lançamento
+          </button>
+        </div>
+      ) : (
+        <>
+          <ChapterMark roman="I" title="Todos os lançamentos"
+                       caption="Filtre, busque e edite em massa · clique numa linha para ver detalhes"
+                       action={<button className="stu-link" onClick={onAdd}><Icon.Plus size={12}/> Lançar transação</button>}/>
+          <div className="orc-tx-wrap">
+            <Transacoes variant="v3" onAdd={onAdd}/>
+          </div>
+        </>
+      )}
     </div>
+  );
+}
+
+// ─── EditorialHero — card editorial compartilhado ──────────────
+// Elimina duplicação da estrutura stu-hero entre Dashboard e Transações.
+// Props:
+//   eyebrow:        string | JSX   — linha de eyebrow acima do título
+//   headline:       string | JSX   — manchete principal (renderizada em <h2>)
+//   lede?:          string | JSX   — parágrafo explicativo (opcional)
+//   headlineStyle?: object         — style extra para o <h2> (ex: fontSize, maxWidth)
+//   metrics?:  Array<{             — strip horizontal de métricas (0–4 itens)
+//     label:    string
+//     value:    string | JSX       — conteúdo do valor (ex: "+R$ 9.948,66")
+//     sub?:     string | JSX | null — terceira linha (tag, mini-chart, ProgressBar…)
+//     accent?:  boolean            — aplica .stu-metric-val.pos (verde)
+//     warn?:    boolean            — aplica .stu-metric-val.warn (laranja)
+//   }>
+//   style?:     object    — style extra para o <section>
+//   className?: string    — classe extra para o <section>
+function EditorialHero({ eyebrow, headline, lede, headlineStyle, metrics, style, className }) {
+  const hasMetrics = metrics && metrics.length > 0;
+  return (
+    <section className={`stu-hero${className ? ' ' + className : ''}`} style={style}>
+      {eyebrow != null && (
+        <div className="stu-hero-eyebrow">{eyebrow}</div>
+      )}
+      <h2 className="stu-hero-headline" style={headlineStyle}>{headline}</h2>
+      {lede != null && (
+        <p className="stu-hero-lede">{lede}</p>
+      )}
+      {hasMetrics && (
+        <div className="stu-hero-strip">
+          {metrics.map((m, i) => (
+            <React.Fragment key={i}>
+              {i > 0 && <div className="stu-metric-sep"/>}
+              <div className="stu-metric">
+                <div className="stu-metric-lbl">{m.label}</div>
+                <div className={`stu-metric-val${m.accent ? ' pos' : m.warn ? ' warn' : ''}`}>
+                  {m.value}
+                </div>
+                {m.sub != null && m.sub}
+              </div>
+            </React.Fragment>
+          ))}
+        </div>
+      )}
+    </section>
   );
 }
 
@@ -139,24 +190,24 @@ function StudioStub({ page }) {
 // Rounded squircle in deep green with a soft "F" formed by pill strokes,
 // plus a subtle upward tick at the base of the stem suggesting growth.
 function StudioMark({ size = 32 }) {
+  // useId gives a stable unique ID per instance — prevents the duplicate
+  // gradient bug when both sidebar and masthead render StudioMark on the
+  // same page (one hidden on mobile breaks fill="url(#...)" on the other).
+  const uid = (React.useId ? React.useId() : Math.random().toString(36).slice(2)).replace(/:/g, '');
+  const gradId = `smg-${uid}`;
   return (
     <svg width={size} height={size} viewBox="0 0 36 36" style={{ display: 'block', flex: 'none' }}>
       <defs>
-        <linearGradient id="stu-mark-bg" x1="0" y1="0" x2="1" y2="1">
+        <linearGradient id={gradId} x1="0" y1="0" x2="1" y2="1">
           <stop offset="0%"  stopColor="#3B7350"/>
           <stop offset="100%" stopColor="#1F4029"/>
         </linearGradient>
       </defs>
-      {/* squircle background */}
       <path d="M 0 14 C 0 4, 4 0, 14 0 L 22 0 C 32 0, 36 4, 36 14 L 36 22 C 36 32, 32 36, 22 36 L 14 36 C 4 36, 0 32, 0 22 Z"
-            fill="url(#stu-mark-bg)"/>
-      {/* F: vertical stem (rounded pill) */}
+            fill={`url(#${gradId})`}/>
       <rect x="11" y="9" width="4" height="18" rx="2" fill="#FFFFFF"/>
-      {/* F: top arm */}
       <rect x="11" y="9" width="15" height="4" rx="2" fill="#FFFFFF"/>
-      {/* F: middle arm */}
       <rect x="11" y="16" width="11" height="4" rx="2" fill="#FFFFFF"/>
-      {/* growth tick at the bottom of the stem */}
       <path d="M 13 26.5 L 17 22.5" stroke="#86E0A0" strokeWidth="2.4" strokeLinecap="round" fill="none" opacity="0.9"/>
     </svg>
   );
@@ -300,7 +351,7 @@ function StudioMasthead({ onAdd }) {
           <kbd className="fds-kbd">⌘K</kbd>
         </div>
         <button className="fds-icon-btn" title="Conversar com o Fides" onClick={openAssistant}>
-          <FidesMark size={16}/>
+          <Icon.Sparkles size={16}/>
         </button>
         <button className="fds-icon-btn"><Icon.Bell size={16}/><span className="fds-dot"/></button>
         <button className="stu-mast-add" onClick={onAdd}>
@@ -313,7 +364,7 @@ function StudioMasthead({ onAdd }) {
 
 // ─── Studio dashboard ─────────────────────────────────────────
 function DashboardStudio({ onAdd, onNav }) {
-  const { monthTransactions, prevMonthTransactions, categories, spendByCategory, budgetGroups, openCategoryModal, selectedMonth, monthLabel, prevMonth, accounts, cards } = useFides();
+  const { monthTransactions, prevMonthTransactions, categories, spendByCategory, budgetGroups, openCategoryModal, selectedMonth, monthLabel, prevMonth } = useFides();
   const lbl = monthLabel(selectedMonth);
   const prevLbl = monthLabel(prevMonth(selectedMonth));
 
@@ -346,82 +397,81 @@ function DashboardStudio({ onAdd, onNav }) {
   const recent = monthTransactions.slice(0, 8);
   const empty = monthTransactions.length === 0;
 
+  // ── Empty state: mês sem lançamentos ──────────────────────────
+  if (empty) return (
+    <div className="fds-page stu-page">
+      <div className="fds-empty-state">
+        <div className="fds-empty-state-icon">📋</div>
+        <h2 className="fds-empty-state-title">
+          {lbl.long.split(' de ')[0]} ainda não tem lançamentos
+        </h2>
+        <p className="fds-empty-state-lede">
+          Adicione sua primeira receita ou despesa para ver o resumo do mês.
+        </p>
+        <button className="fds-empty-state-btn" onClick={onAdd}>
+          + Adicionar lançamento
+        </button>
+      </div>
+    </div>
+  );
+
   return (
     <div className="fds-page stu-page">
-      {/* ─── Editorial hero ─── */}
-      <section className="stu-hero">
-        <div className="stu-hero-eyebrow">
-          <span className="fds-pulse-dot"/>
-          {empty ? 'sem movimento' : `${monthTransactions.length} lançamentos · ${lbl.long}`}
-        </div>
-        {empty ? (
-          <>
-            <h2 className="stu-hero-headline">
-              {lbl.long} ainda está em branco.
-            </h2>
-            <p className="stu-hero-lede">
-              Lance sua primeira transação clicando em <strong>Lançar</strong> no topo,
-              ou navegue por outro mês usando as setas ao lado do título.
-            </p>
-          </>
-        ) : (
-          <>
-            <h2 className="stu-hero-headline">
-              {saldoFinal >= 0 ? 'Você terminará' : 'Você fechará'} {lbl.long.split(' de ')[0]} com{' '}
-              <span className="stu-hero-amt" style={{ color: saldoFinal < 0 ? 'var(--bad)' : 'var(--accent)' }}>
-                <span className="cur">{saldoFinal < 0 ? '−R$' : 'R$'}</span>
-                <span className="int">{int}</span>
-                <span className="dec">,{dec}</span>
-              </span>{' '}
-              {saldoFinal >= 0 ? 'livre' : 'no vermelho'}.
-            </h2>
-            <p className="stu-hero-lede">
-              Chegam <strong className="stu-num">{fmtBRL(receitas, { compact: true })}</strong> em receitas. {salarioInfo}
-              {' '}Saem <strong className="stu-num">{fmtBRL(despesas + pendentes, { compact: true })}</strong> em despesas previstas, sendo{' '}
-              <em>{fmtBRL(pendentes)} ainda em aberto</em>.
-              {prevReceitas > 0 && <> {prevLbl.long.split(' de ')[0]} fechou em <strong className="stu-num">{fmtBRL(prevSaldo, { compact: true })}</strong> — você está{' '}
-                <span className="stu-pos">{deltaSaldo >= 0 ? '+' : '−'}{fmtBRL(Math.abs(deltaSaldo), { compact: true })}</span> em relação ao mês passado.</>}
-            </p>
-          </>
-        )}
-
-        {/* Inline metrics — single horizontal strip, not isolated tiles */}
-        <div className="stu-hero-strip">
-          <div className="stu-metric">
-            <div className="stu-metric-lbl">Receitas</div>
-            <div className="stu-metric-val pos">+{fmtBRL(receitas)}</div>
-            {prevReceitas > 0 && (
+      {/* ─── Editorial hero — via EditorialHero ─── */}
+      {/* empty === false aqui: o early return acima já tratou o mês vazio */}
+      <EditorialHero
+        eyebrow={<><span className="fds-pulse-dot"/> {monthTransactions.length} lançamentos · {lbl.long}</>}
+        headline={<>
+          {saldoFinal >= 0 ? 'Você terminará' : 'Você fechará'} {lbl.long.split(' de ')[0]} com{' '}
+          <span className="stu-hero-amt" style={{ color: saldoFinal < 0 ? 'var(--bad)' : 'var(--accent)' }}>
+            <span className="cur">{saldoFinal < 0 ? '−R$' : 'R$'}</span>
+            <span className="int">{int}</span>
+            <span className="dec">,{dec}</span>
+          </span>{' '}
+          {saldoFinal >= 0 ? 'livre' : 'no vermelho'}.
+        </>}
+        lede={<>
+          Chegam <strong className="stu-num">{fmtBRL(receitas, { compact: true })}</strong> em receitas. {salarioInfo}
+          {' '}Saem <strong className="stu-num">{fmtBRL(despesas + pendentes, { compact: true })}</strong> em despesas previstas, sendo{' '}
+          <em>{fmtBRL(pendentes)} ainda em aberto</em>.
+          {prevReceitas > 0 && <> {prevLbl.long.split(' de ')[0]} fechou em <strong className="stu-num">{fmtBRL(prevSaldo, { compact: true })}</strong> — você está{' '}
+            <span className="stu-pos">{deltaSaldo >= 0 ? '+' : '−'}{fmtBRL(Math.abs(deltaSaldo), { compact: true })}</span> em relação ao mês passado.</>}
+        </>}
+        metrics={[
+          {
+            label: 'Receitas',
+            value: `+${fmtBRL(receitas)}`,
+            accent: true,
+            sub: prevReceitas > 0 ? (
               <div className="stu-metric-tag" style={{ color: deltaReceitas >= 0 ? 'var(--ok)' : 'var(--bad)' }}>
                 {deltaReceitas >= 0 ? <Icon.ArrowUp size={11}/> : <Icon.ArrowDown size={11}/>}
                 {fmtBRL(Math.abs(deltaReceitas))} vs. mês passado
               </div>
-            )}
-          </div>
-          <div className="stu-metric-sep"/>
-          <div className="stu-metric">
-            <div className="stu-metric-lbl">Despesas pagas</div>
-            <div className="stu-metric-val">−{fmtBRL(despesas)}</div>
-            {prevDespesas > 0 && (
+            ) : null,
+          },
+          {
+            label: 'Despesas pagas',
+            value: `−${fmtBRL(despesas)}`,
+            sub: prevDespesas > 0 ? (
               <div className="stu-metric-tag" style={{ color: deltaDespesas <= 0 ? 'var(--ok)' : 'var(--warn)' }}>
                 {deltaDespesas <= 0 ? <Icon.ArrowDown size={11}/> : <Icon.ArrowUp size={11}/>}
                 {fmtBRL(Math.abs(deltaDespesas))} vs. mês passado
               </div>
-            )}
-          </div>
-          <div className="stu-metric-sep"/>
-          <div className="stu-metric">
-            <div className="stu-metric-lbl">Em aberto</div>
-            <div className="stu-metric-val warn">−{fmtBRL(pendentes)}</div>
-            <div className="stu-metric-tag"><Icon.Clock size={11}/> {pendCount} {pendCount === 1 ? 'item' : 'itens'}</div>
-          </div>
-          <div className="stu-metric-sep"/>
-          <div className="stu-metric">
-            <div className="stu-metric-lbl">Meta poupança</div>
-            <div className="stu-metric-val">R$ 668 <span className="stu-metric-of">/ 1.560</span></div>
-            <ProgressBar value={668/1560} tint="var(--accent)" glow/>
-          </div>
-        </div>
-      </section>
+            ) : null,
+          },
+          {
+            label: 'Em aberto',
+            value: `−${fmtBRL(pendentes)}`,
+            warn: true,
+            sub: <div className="stu-metric-tag"><Icon.Clock size={11}/> {pendCount} {pendCount === 1 ? 'item' : 'itens'}</div>,
+          },
+          {
+            label: 'Meta poupança',
+            value: <>R$ 668 <span className="stu-metric-of">/ 1.560</span></>,
+            sub: <ProgressBar value={668/1560} tint="var(--accent)" glow/>,
+          },
+        ]}
+      />
 
       {/* ─── Capítulo I · Fluxo do mês ─── */}
       <ChapterMark roman="I" title="Fluxo do mês" caption={`Receitas vs. despesas · últimos 7 meses · 2026`}/>
@@ -547,10 +597,10 @@ function DashboardStudio({ onAdd, onNav }) {
 
       {/* ─── Capítulo IV · Contas & cartões ─── */}
       <ChapterMark roman="IV" title="Contas & cartões"
-                   caption={`${accounts.length} contas conectadas · ${cards.length} cartões abertos`}
+                   caption={`${ACCOUNTS.length} contas conectadas · ${CARDS.length} cartões abertos`}
                    action={<button className="stu-link" onClick={() => onNav?.('contas')}>Ver tudo <Icon.Right size={12}/></button>}/>
       <div className="stu-accounts-strip">
-        {accounts.map(a => (
+        {ACCOUNTS.map(a => (
           <div className="stu-acct" key={a.id}>
             <div className="stu-acct-h">
               <div className="stu-acct-mark" style={{ background: a.color }}>
@@ -565,7 +615,7 @@ function DashboardStudio({ onAdd, onNav }) {
             <Sparkline values={[3,4,3.5,4.2,5,4.7,5.3]} width={180} height={32} accent="var(--accent)" glow fill={false}/>
           </div>
         ))}
-        {cards.map(c => {
+        {CARDS.map(c => {
           const pct = c.used / c.limit;
           return (
             <div className="stu-acct stu-cc" key={c.id}>
@@ -608,4 +658,4 @@ function ChapterMark({ roman, title, caption, action }) {
   );
 }
 
-Object.assign(window, { FidesStudio, DashboardStudio, TransacoesStudio, StudioStub, StudioMark, StudioLogo, ChapterMark });
+Object.assign(window, { FidesStudio, DashboardStudio, TransacoesStudio, StudioStub, StudioMark, StudioLogo, ChapterMark, EditorialHero });

@@ -1,0 +1,984 @@
+/* ═══════════════════════════════════════════════════════════════════
+   fides-responsive.css — Camada responsiva mobile-first
+   Breakpoints:
+     ≤480px  → mobile pequeno
+     ≤768px  → mobile
+     ≤1024px → tablet
+   Carregar APÓS todos os outros CSS para sobrescrever com mesma
+   especificidade via ordem de cascata.
+═══════════════════════════════════════════════════════════════════ */
+
+/* ─────────────────────────────────────────────────────────────────
+   CATEGORY PICKER DROPDOWN + ROW MENU (all breakpoints)
+   ───────────────────────────────────────────────────────────────── */
+.fds-cat-picker-dd {
+  position: absolute;
+  top: calc(100% + 6px);
+  left: 0;
+  z-index: 200;
+  min-width: 220px;
+  max-width: 280px;
+  max-height: 320px;
+  overflow-y: auto;
+  background: var(--card, #fff);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  box-shadow: 0 8px 24px -8px rgba(0,0,0,.18);
+  padding: 4px;
+  display: flex;
+  flex-direction: column;
+}
+.fds-cat-picker-dd--sub {
+  top: 0;
+  left: calc(100% + 6px);
+  min-width: 200px;
+}
+.fds-cat-picker-head {
+  font-size: 10.5px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: .07em;
+  color: var(--muted);
+  padding: 6px 10px 4px;
+}
+.fds-cat-picker-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  padding: 7px 10px;
+  border: 0;
+  background: transparent;
+  font-family: inherit;
+  font-size: 13px;
+  color: var(--ink);
+  border-radius: 8px;
+  cursor: pointer;
+  text-align: left;
+  transition: background .1s;
+}
+.fds-cat-picker-item:hover { background: var(--card-soft, oklch(96% .005 240)); }
+.fds-cat-picker-item.on   { background: var(--accent-soft); color: var(--accent); font-weight: 600; }
+.fds-cat-picker-item .fds-chip-count {
+  margin-left: auto;
+  font-size: 11px;
+  color: var(--muted);
+}
+
+/* Per-row context menu */
+.fds-row-menu {
+  position: absolute;
+  top: 0;
+  right: calc(100% + 4px);
+  z-index: 200;
+  min-width: 200px;
+  background: var(--card, #fff);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  box-shadow: 0 8px 24px -8px rgba(0,0,0,.18);
+  padding: 4px;
+  display: flex;
+  flex-direction: column;
+}
+.fds-row-menu button {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  padding: 8px 12px;
+  border: 0;
+  background: transparent;
+  font-family: inherit;
+  font-size: 13px;
+  color: var(--ink);
+  border-radius: 8px;
+  cursor: pointer;
+  text-align: left;
+  transition: background .1s;
+}
+.fds-row-menu button:hover { background: var(--card-soft, oklch(96% .005 240)); }
+.fds-row-menu button.danger { color: var(--bad); }
+.fds-row-menu button.danger:hover { background: var(--bad-soft, oklch(96% .01 25)); }
+
+/* ─────────────────────────────────────────────────────────────────
+   BASE — corrige vazamentos globais em qualquer tamanho
+   ───────────────────────────────────────────────────────────────── */
+*, *::before, *::after { box-sizing: border-box; }
+
+html {
+  -webkit-text-size-adjust: 100%;
+  text-size-adjust: 100%;
+  /* Viewport-level overflow lock — must be on html, not just body */
+  overflow-x: hidden;
+  max-width: 100vw;
+}
+
+img, svg, video { max-width: 100%; height: auto; }
+
+/* Prevent text overflow on any small element */
+.fds-recent-desc,
+.stu-tx-desc,
+.fds-account-name,
+.stu-acct-name { word-break: break-word; }
+
+/* ─────────────────────────────────────────────────────────────────
+   GLOBAL ANTI-OVERFLOW GUARDS (all breakpoints)
+   Applied everywhere — contains decorative blobs, flex children,
+   and any fixed-width legacy wrapper that could leak into mobile.
+   ───────────────────────────────────────────────────────────────── */
+
+/* Old 1440px app wrapper: must respect viewport */
+.fds-app { max-width: 100vw !important; }
+
+/* All flex / grid children inside the studio must be shrinkable */
+.fds-studio .fds-shell,
+.fds-studio .fds-main { min-width: 0; }
+.fds-studio .stu-page > *,
+.fds-studio .fds-page > * { min-width: 0; }
+
+/* Absolute-positioned decorative blobs clip at their parents.
+   The hero already has overflow:hidden on desktop; keep it stable. */
+.fds-hero-main { overflow: hidden; }
+.fds-studio .orc-rule-col { overflow: hidden; }
+.fds-studio .met-card { overflow: hidden; }
+
+/* Headings that can expand a container past its width */
+.stu-mast-title,
+.fds-top-title { min-width: 0; }
+
+/* Tab row buttons must shrink, not push the row wider */
+.fds-studio .fds-tabs button { flex-shrink: 1; }
+
+/* Botões de ação da tabela de transações não devem encolher
+   (evita clip de texto pelo overflow:hidden do card pai) */
+.fds-tx-actions { flex-shrink: 0; }
+
+/* Transaction table: sempre scrollável em qualquer viewport —
+   evita que a coluna STATUS (e Valor) sejam clipadas pelo
+   overflow:hidden herdado de .fds-card */
+.fds-tx-table-card {
+  overflow: auto;
+  -webkit-overflow-scrolling: touch;
+}
+
+/* Scrollbar oculta mas funcional (para containers c/ overflow-x) */
+.fds-tx-months,
+.fds-tx-filter-row,
+.stu-hero-strip,
+.fds-studio .orc-cats,
+.fds-studio .met-done-list {
+  scrollbar-width: none;
+}
+.fds-tx-months::-webkit-scrollbar,
+.fds-tx-filter-row::-webkit-scrollbar,
+.stu-hero-strip::-webkit-scrollbar,
+.fds-studio .orc-cats::-webkit-scrollbar,
+.fds-studio .met-done-list::-webkit-scrollbar { display: none; }
+
+
+/* ─────────────────────────────────────────────────────────────────
+   TABLET — ≤1024px
+   ───────────────────────────────────────────────────────────────── */
+@media (max-width: 1024px) {
+
+  /* Masthead: reduz padding e fonte */
+  .stu-mast { padding: 20px 24px 14px; gap: 12px; }
+  .stu-mast-title { font-size: 28px; }
+  .stu-mast-search { width: 220px; }
+
+  /* Page: padding menor */
+  .stu-page { padding: 22px 24px 40px; gap: 10px; }
+
+  /* Hero headline: escala */
+  .stu-hero-headline { font-size: clamp(26px, 4vw, 36px); }
+
+  /* Orcamento regra 50/30/20: 3 → 2 col */
+  .fds-studio .orc-rule { grid-template-columns: 1fr 1fr; }
+
+  /* Metas grid: 2 cols → OK, metas tips: 3 → 2 */
+  .fds-studio .met-tips { grid-template-columns: 1fr 1fr; }
+
+  /* Accounts strip: 5 → 3 */
+  .stu-accounts-strip { grid-template-columns: repeat(3, 1fr); }
+
+  /* Contas grids: minmax menor */
+  .fds-studio .ctn-accounts {
+    grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+  }
+  .fds-studio .ctn-cards {
+    grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+  }
+
+  /* Done list: simplifica colunas */
+  .fds-studio .met-done-row {
+    grid-template-columns: 32px 1.2fr 100px 0.8fr 110px;
+    gap: 10px;
+    padding: 12px 16px;
+  }
+
+  /* TX KPIs: 4 → 2+2 */
+  .fds-tx-kpis { grid-template-columns: repeat(2, 1fr); }
+
+  /* Hero dashboard: empilha sparkline + KPIs verticalmente no tablet,
+     dando largura total para o grid 2×2 dos KPI tiles */
+  .fds-hero { gap: 12px; grid-template-columns: 1fr; }
+
+  /* Hero metric strip (Orçamento / Contas): 7-col (4 métricas + 3 sep)
+     → 2×2 grid no tablet para que valores monetários não sejam truncados */
+  .stu-hero-strip {
+    grid-template-columns: 1fr 1fr;
+    gap: 10px 24px;
+  }
+  .stu-metric-sep { display: none; }
+
+  /* Distribuição contas: remove coluna de progresso estreita */
+  .fds-studio .ctn-dist-row {
+    grid-template-columns: 12px 1.2fr 1fr 60px 120px;
+    gap: 10px;
+  }
+}
+
+
+/* ─────────────────────────────────────────────────────────────────
+   MOBILE — ≤768px
+   ───────────────────────────────────────────────────────────────── */
+@media (max-width: 768px) {
+
+  /* ── 1. SIDEBAR SLIM → BOTTOM TAB BAR ─────────────────────── */
+  .fds-sb-slim {
+    position: fixed !important;
+    bottom: 0; left: 0; right: 0;
+    top: auto !important;
+    width: 100% !important;
+    height: 60px;
+    flex-direction: row;
+    justify-content: space-around;
+    align-items: flex-start;
+    padding: 0 4px env(safe-area-inset-bottom, 0);
+    gap: 0;
+    border-right: 0;
+    border-top: 1px solid var(--border);
+    z-index: 100;
+    /* Frosted glass */
+    background: color-mix(in oklab, var(--bg) 88%, transparent);
+    backdrop-filter: blur(16px);
+    -webkit-backdrop-filter: blur(16px);
+    /* Override align-self: flex-start */
+    align-self: auto;
+  }
+
+  /* Esconde logo e rodapé da sidebar no bottom nav */
+  .fds-sb-slim-head,
+  .fds-sb-slim-foot { display: none !important; }
+
+  /* Nav items ficam em linha */
+  .fds-sb-slim-nav {
+    flex-direction: row;
+    flex: 1;
+    width: 100%;
+    justify-content: space-around;
+    align-items: center;
+    gap: 0;
+  }
+
+  /* Ícones + labels: flex-column com toque mínimo */
+  .fds-sb-slim-item {
+    flex-direction: column;
+    gap: 3px;
+    width: auto;
+    min-width: 48px;
+    height: 60px;
+    padding: 8px 4px 6px;
+    border-radius: 12px;
+    position: relative;
+  }
+
+  /* Indicador de ativo no TOPO (linha fina) em vez de lateral */
+  .fds-sb-slim-item.on::before {
+    display: block;
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 20px;
+    height: 2.5px;
+    background: var(--accent);
+    border-radius: 0 0 3px 3px;
+  }
+
+  /* Destaque sutil do item ativo */
+  .fds-sb-slim-item.on {
+    background: transparent;
+    border-radius: 0;
+  }
+
+  /* Labels visíveis abaixo dos ícones */
+  .fds-sb-slim-tip {
+    display: block;
+    font-size: 9.5px;
+    font-weight: 500;
+    line-height: 1;
+    color: inherit;
+    pointer-events: none;
+    position: static;
+    transform: none;
+    background: transparent;
+    padding: 0;
+    border-radius: 0;
+    opacity: 1;
+  }
+
+  /* Badge reposiciona */
+  .fds-sb-slim-badge { top: 3px; right: 3px; }
+
+  /* ── 2. CONTEÚDO PRINCIPAL: espaço p/ bottom nav ─────────── */
+  .fds-main {
+    padding-bottom: calc(60px + env(safe-area-inset-bottom, 0px));
+  }
+
+  /* ── 3. MASTHEAD ──────────────────────────────────────────── */
+  .stu-mast {
+    padding: 12px 16px 10px;
+    gap: 8px;
+    flex-wrap: wrap;
+    position: relative;
+  }
+
+  .stu-mast-l { gap: 2px; }
+  .stu-mast-brand { gap: 10px; }
+  .stu-mast-divider { height: 26px; }
+  .stu-mast-title { font-size: 20px; letter-spacing: -0.02em; }
+  .stu-mast-eyebrow { font-size: 9.5px; }
+  .stu-mast-issue { font-size: 11px; }
+
+  /* Esconde search no masthead */
+  .stu-mast-search { display: none !important; }
+
+  /* Botão Lançar: ícone somente */
+  .stu-mast-add span { display: none; }
+  .stu-mast-add {
+    padding: 9px;
+    min-width: 38px;
+    min-height: 38px;
+    justify-content: center;
+  }
+
+  .stu-mast-r { gap: 6px; flex-shrink: 0; }
+
+  /* ── 4. PAGE PADDING ──────────────────────────────────────── */
+  .stu-page { padding: 14px 14px 80px; gap: 10px; }
+  .fds-page { padding: 14px 14px 80px; gap: 14px; }
+
+  /* ── 5. EDITORIAL HERO ────────────────────────────────────── */
+  .stu-hero {
+    padding: 18px 18px 16px;
+    gap: 10px;
+    border-radius: 14px;
+    /* clip instead of hidden so stu-hero-strip can scroll horizontally */
+    overflow: clip;
+  }
+
+  .stu-hero-headline {
+    font-size: clamp(20px, 6vw, 30px);
+    max-width: 100%;
+  }
+
+  .stu-hero-lede { font-size: 13.5px; }
+
+  /* Metric strip: 2×2 grid — sem scroll horizontal */
+  .stu-hero-strip {
+    display: grid !important;
+    grid-template-columns: 1fr 1fr;
+    overflow-x: visible !important;
+    flex-wrap: wrap;
+    gap: 10px 16px;
+    padding-bottom: 0;
+    margin-left: 0;
+    padding-left: 0;
+  }
+  /* Métricas preenchem célula do grid */
+  .stu-metric {
+    flex-shrink: 1;
+    min-width: 0;
+  }
+  /* Separadores escondidos no grid */
+  .stu-metric-sep { display: none !important; }
+
+  .stu-metric-val { font-size: 17px; }
+
+  /* ── 6. CHAPTER MARKS ─────────────────────────────────────── */
+  .stu-chapter { flex-wrap: wrap; gap: 6px; margin: 12px 0 2px; }
+  .stu-chapter-l { gap: 10px; }
+  .stu-chapter-title { font-size: 17px; }
+  .stu-chapter-caption { font-size: 11.5px; }
+
+  /* ── 7. DASHBOARD HERO: 2 col → 1 col ────────────────────── */
+  .fds-hero {
+    grid-template-columns: 1fr;
+    gap: 10px;
+  }
+
+  /* Hero amount: escala fluida */
+  .fds-hero-amount.v1 .int,
+  .fds-hero-amount.v2 .int,
+  .fds-hero-amount.v3 .int { font-size: clamp(40px, 12vw, 64px); }
+
+  .fds-hero-amount .cur { font-size: 15px; }
+  .fds-hero-amount .dec { font-size: 20px; }
+
+  /* Hero: colapsa o layout de 2 colunas (main + kpis) para 1 coluna no mobile */
+  .fds-hero { grid-template-columns: 1fr; }
+
+  .fds-hero-main { padding: 18px 20px; gap: 12px; }
+
+  /* Hero KPIs: 2x2 grid — todos os 4 tiles visíveis sem scroll */
+  .fds-hero-kpis { grid-template-columns: 1fr 1fr; gap: 8px; }
+
+  /* Sparkline do hero: escala com container */
+  .fds-hero-spark svg { width: 100% !important; }
+
+  /* ── 8. GRIDS MULTI-COLUNA → 1 COL ───────────────────────── */
+  .fds-grid-3 { grid-template-columns: 1fr; }
+  .fds-grid-accounts { grid-template-columns: 1fr; }
+  .stu-2col { grid-template-columns: 1fr; }
+
+  /* ── 9. CONTAS GRIDS ──────────────────────────────────────── */
+  .fds-studio .ctn-accounts { grid-template-columns: 1fr; }
+  .fds-studio .ctn-cards { grid-template-columns: 1fr; }
+
+  /* ── 10. ACCOUNTS STRIP: 5 → 2 cols ──────────────────────── */
+  .stu-accounts-strip { grid-template-columns: repeat(2, 1fr); gap: 8px; }
+
+  /* ── 11. ORCAMENTO REGRA 50/30/20: 3 → 1 col ─────────────── */
+  .fds-studio .orc-rule { grid-template-columns: 1fr; gap: 10px; }
+  .fds-studio .orc-rule-pct { font-size: 40px; }
+
+  /* ── 12. METAS ────────────────────────────────────────────── */
+  .fds-studio .met-grid { grid-template-columns: 1fr; }
+  .fds-studio .met-tips { grid-template-columns: 1fr; }
+  .fds-studio .met-card { border-radius: 14px; padding: 18px; }
+  .fds-studio .met-card-int { font-size: 26px; }
+
+  /* Done goals: card layout on mobile */
+  .fds-studio .met-done-list { overflow: visible; }
+  .fds-studio .met-done-row {
+    min-width: 0;
+    display: grid;
+    grid-template:
+      "emoji name  tag" auto
+      "emoji val  date" auto
+      / 36px 1fr auto;
+    gap: 2px 10px;
+    padding: 12px 14px;
+  }
+  .fds-studio .met-done-emoji { grid-area: emoji; align-self: center; font-size: 22px; }
+  .fds-studio .met-done-name  { grid-area: name;  align-self: end; font-size: 13.5px; min-width: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .fds-studio .met-done-val   { grid-area: val;   align-self: start; font-size: 12.5px; }
+  .fds-studio .met-done-date  { grid-area: date;  align-self: start; font-size: 11px; }
+  .fds-studio .met-done-tag   { grid-area: tag;   align-self: end; }
+
+  /* ── 13. TX KPIs: 4 → 2 col ──────────────────────────────── */
+  .fds-tx-kpis { grid-template-columns: 1fr 1fr; gap: 8px; }
+
+  /* ── 14. TRANSACTION TABLE: card-layout mobile ────────────── */
+  /* Remove min-width que forçava 600px — layout block não precisa */
+  .fds-tx-table { min-width: 0; }
+
+  /* Quebra o algoritmo de tabela nativo do browser */
+  .fds-tx-table,
+  .fds-tx-table tbody { display: block; width: 100%; }
+
+  /* Cabeçalhos de coluna ocultados — labels substituídas pelo layout visual */
+  .fds-tx-table thead { display: none; }
+
+  /* Cada linha = card 2 linhas × 3 colunas
+     col1(32px) | col2(1fr)              | col3(auto)
+     ────────────────────────────────────────────────
+     checkbox   | descrição              | valor
+     —          | data (esq) status (dir)| ⋯ ações
+  */
+  .fds-tx-table tbody tr {
+    display: grid;
+    grid-template-columns: 32px 1fr auto;
+    grid-template-rows: auto auto;
+    column-gap: 10px;
+    row-gap: 3px;
+    padding: 10px 12px;
+    border-bottom: 1px solid var(--border);
+    background: transparent;
+    align-items: center;
+  }
+  .fds-tx-table tbody tr.sel {
+    background: color-mix(in oklab, var(--accent-soft) 50%, var(--card));
+  }
+
+  /* Reset geral das células */
+  .fds-tx-table tbody td {
+    padding: 0;
+    display: block;
+    border: none;
+    vertical-align: unset;
+  }
+
+  /* Checkbox — col1, abrange as 2 linhas */
+  .fds-tx-table tbody td:nth-child(1) {
+    grid-column: 1; grid-row: 1 / 3;
+    display: flex; align-items: center; justify-content: center;
+    align-self: stretch;
+  }
+
+  /* Data — col2, linha 2, texto muted — ancorado à esquerda da célula */
+  .fds-tx-table tbody td:nth-child(2) {
+    grid-column: 2; grid-row: 2;
+    font-size: 11.5px; color: var(--muted);
+    align-self: center;
+    justify-self: start;
+  }
+
+  /* Descrição + emoji — col2, linha 1 */
+  .fds-tx-table tbody td:nth-child(3) {
+    grid-column: 2; grid-row: 1;
+    min-width: 0;
+    align-self: center;
+  }
+
+  /* Categoria pill — oculto (emoji já visível no avatar da descrição) */
+  .fds-tx-table tbody td:nth-child(4) { display: none; }
+
+  /* Conta pill — oculto */
+  .fds-tx-table tbody td:nth-child(5) { display: none; }
+
+  /* Status — col2, linha 2, ancorado à direita (divide célula com a data) */
+  .fds-tx-table tbody td:nth-child(6) {
+    grid-column: 2; grid-row: 2;
+    align-self: center;
+    justify-self: end;
+    display: flex; align-items: center;
+  }
+
+  /* Valor — col3, linha 1 */
+  .fds-tx-table tbody td:nth-child(7) {
+    grid-column: 3; grid-row: 1;
+    text-align: right; white-space: nowrap;
+    font-size: 13px; align-self: center;
+  }
+
+  /* Botão ações — col3, linha 2; sempre visível no mobile */
+  .fds-tx-table tbody td:nth-child(8) {
+    grid-column: 3; grid-row: 2;
+    display: flex; align-items: center; justify-content: flex-end;
+    min-width: 44px; min-height: 44px;
+  }
+  .fds-tx-table tbody td:nth-child(8) .fds-tx-row-act {
+    opacity: 1 !important;   /* no mobile sem hover — sempre visível */
+    width: 32px;
+    min-height: 44px;        /* touch target mínimo iOS/Android */
+    display: flex; align-items: center; justify-content: center;
+    border-radius: 8px;
+  }
+
+  /* Descrição: texto principal expande, tags quebram para linha 2 */
+  .fds-tx-desc { flex-wrap: wrap; gap: 4px 6px; align-items: center; }
+  .fds-tx-desc-main {
+    flex: 1 1 auto;
+    min-width: 0;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  /* Filtros de transações */
+  .fds-tx-filters { padding: 10px 12px; gap: 8px; }
+
+  .fds-tx-filter-row {
+    flex-wrap: nowrap;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    gap: 8px;
+    padding-bottom: 2px;
+  }
+
+  /* Meses: scroll horizontal */
+  .fds-tx-months {
+    flex-wrap: nowrap;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    flex-shrink: 0;
+  }
+
+  .fds-tx-actions { flex-shrink: 0; }
+
+  /* Search de transações: full width */
+  .fds-tx-search { width: 100%; min-width: 0; }
+
+  /* Chips: wrap normal */
+  .fds-tx-chips { flex-wrap: wrap; }
+
+  /* ── 15. ORCAMENTO CATEGORIAS: layout de card adaptativo ──── */
+  /* Remove o scroll horizontal com min-width fixo.
+     Converte cada linha em layout de 2 linhas:
+     L1: [ícone+nome] [chevron]
+     L2: [Orçado] [Gasto] [Restante]
+     L3: [barra de progresso — largura total]
+  */
+  .fds-studio .orc-cats { overflow: visible; }
+  .fds-studio .orc-cats-head { display: none !important; }
+  .fds-studio .orc-cats-group {
+    min-width: 0;
+    padding: 10px 14px 6px;
+    font-size: 12px;
+  }
+  .fds-studio .orc-cats-group-meta { display: none; }
+
+  .fds-studio .orc-cat-row {
+    display: grid;
+    grid-template:
+      "name name name act" auto
+      "plan spnt rest  act" auto
+      "bar  bar  bar   bar" auto
+      / 1fr 1fr 1fr 32px;
+    gap: 6px 10px;
+    min-width: 0;
+    padding: 10px 14px;
+    align-items: start;
+  }
+
+  .fds-studio .orc-cat-cell-name { grid-area: name; }
+  .fds-studio .orc-cat-cell-plan  { grid-area: plan; display: flex; flex-direction: column; align-items: flex-start; gap: 1px; margin-left: 0; }
+  .fds-studio .orc-cat-cell-spent { grid-area: spnt; display: flex; flex-direction: column; align-items: flex-start; gap: 1px; }
+  .fds-studio .orc-cat-cell-rest  { grid-area: rest; display: flex; flex-direction: column; align-items: flex-start; gap: 1px; }
+  .fds-studio .orc-cat-cell-bar   { grid-area: bar; }
+  .fds-studio .orc-cat-cell-act   { grid-area: act; align-self: start; justify-content: flex-end; }
+
+  /* Mini labels above each stat value */
+  .fds-studio .orc-cat-cell-plan::before { content: "Orçado"; display: block; font-size: 9px; font-weight: 700; text-transform: uppercase; letter-spacing: .06em; color: var(--muted); }
+  .fds-studio .orc-cat-cell-spent::before { content: "Gasto"; display: block; font-size: 9px; font-weight: 700; text-transform: uppercase; letter-spacing: .06em; color: var(--muted); }
+  .fds-studio .orc-cat-cell-rest::before { content: "Restante"; display: block; font-size: 9px; font-weight: 700; text-transform: uppercase; letter-spacing: .06em; color: var(--muted); }
+
+  /* Scale down numeric values in the secondary row */
+  .fds-studio .orc-cat-plan-val { font-size: 12.5px; }
+  .fds-studio .orc-cat-cell-spent .orc-cat-spent-val { font-size: 12.5px; }
+  .fds-studio .orc-cat-cell-rest { font-size: 12.5px; }
+  .fds-studio .orc-cat-edit-input { width: 60px; font-size: 12.5px; }
+
+  /* Detail expand: normal padding */
+  .fds-studio .orc-cat-detail { padding: 10px 14px 14px; }
+  .fds-studio .orc-cat-detail-tx {
+    grid-template-columns: 40px 1fr auto;
+    gap: 8px;
+  }
+  /* Hide pill and status columns in detail on mobile */
+  .fds-studio .orc-cat-detail-tx .fds-acct-pill { display: none; }
+  .fds-studio .orc-cat-detail-tx .fds-status { display: none; }
+
+  /* Histórico: 3 cols (de 6) */
+  .fds-studio .orc-history { padding: 16px 16px 18px; }
+  .fds-studio .orc-history-grid {
+    grid-template-columns: repeat(3, 1fr);
+    height: 180px;
+    gap: 6px;
+  }
+  .fds-studio .orc-history-bars { height: 140px; gap: 3px; }
+  .fds-studio .orc-history-foot {
+    grid-template-columns: 1fr 1fr;
+    gap: 12px;
+    padding-top: 14px;
+  }
+  .fds-studio .orc-history-foot-val { font-size: 15px; }
+
+  /* ── 16. CONTAS DISTRIBUIÇÃO ──────────────────────────────── */
+  .fds-studio .ctn-dist-row {
+    grid-template-columns: 10px 1fr 48px 90px;
+    gap: 8px;
+    min-width: 0;
+  }
+  .fds-studio .ctn-dist-name { font-size: 13px; min-width: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  /* Oculta coluna de barra de progresso inline (muito estreita) */
+  .fds-studio .ctn-dist-track { display: none; }
+
+  /* ── 17. CATEGORIAS DONUT: vertical stack ─────────────────── */
+  .fds-cats-body { flex-direction: column; gap: 12px; align-items: flex-start; }
+  .stu-cats-body { flex-direction: column; gap: 12px; align-items: flex-start; }
+
+  /* ── 18. CARD CABEÇALHO ───────────────────────────────────── */
+  .fds-card-head {
+    padding: 12px 14px 8px;
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+
+  /* ── 19. MODAL: bottom sheet em mobile ────────────────────── */
+  .fds-modal-backdrop {
+    padding: 0;
+    align-items: flex-end;
+  }
+  .fds-modal {
+    width: 100% !important;
+    max-width: 100% !important;
+    border-radius: 20px 20px 0 0;
+    max-height: 94svh;
+  }
+  .fds-modal-row.two { grid-template-columns: 1fr; }
+  .fds-modal-body { padding: 14px 16px; }
+  .fds-modal-head { padding: 16px 16px 0; }
+  .fds-modal-title { font-size: 22px; }
+  .fds-modal-foot { padding: 12px 16px; }
+
+  /* Previne auto-zoom do iOS em inputs dentro de modais */
+  .fds-modal input,
+  .fds-modal select,
+  .fds-modal textarea { font-size: 16px; }
+
+  /* ── 20. TOPBAR CLÁSSICO (fds-top) ───────────────────────── */
+  .fds-top {
+    padding: 10px 14px 8px;
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+  .fds-top-title { font-size: 20px; }
+  .fds-top .fds-search { display: none !important; }
+  .fds-top .fds-period { font-size: 12px; padding: 5px 8px; }
+  .fds-top-r { gap: 6px; flex-wrap: wrap; }
+
+  /* ── 21. TAMANHOS DE TOQUE MÍNIMOS ───────────────────────── */
+  .fds-btn-primary,
+  .fds-btn-secondary,
+  .fds-btn-ghost {
+    min-height: 40px;
+    padding: 8px 12px;
+  }
+  .fds-icon-btn { width: 40px; height: 40px; }
+  .fds-nav-item { padding: 10px 10px; min-height: 44px; }
+
+  /* ── 22. CHART SVG: largura fluida ───────────────────────── */
+  .fds-flow > svg { padding: 0 12px 14px; }
+  .stu-flow > svg { padding: 0 12px 14px; }
+
+  /* ── 23. ACCOUNT CARD (contas) ────────────────────────────── */
+  .fds-studio .ctn-account { padding: 16px 18px; gap: 14px; }
+  .fds-studio .ctn-account-bal { font-size: clamp(20px, 6vw, 26px); }
+  .fds-studio .ctn-account-stats { grid-template-columns: 1fr 1fr 1fr; gap: 10px; }
+  .fds-studio .ctn-card-visual { min-height: 160px; }
+  .fds-studio .ctn-card-visual-num { font-size: 16px; }
+  /* Sparkline: scale down so bal-row doesn't overflow */
+  .fds-studio .ctn-account-spark svg { width: 120px !important; }
+  .fds-studio .ctn-account-bal-row { gap: 10px; }
+  /* Card transaction list: responsive columns */
+  .fds-studio .ctn-card-tx {
+    grid-template-columns: 22px 1fr auto;
+    gap: 6px;
+  }
+  .fds-studio .ctn-card-tx .fds-mini-tag { display: none; }
+  .fds-studio .ctn-card-tx-d { display: none; }
+
+  /* ── 23b. CREDIT CARD LIMIT META: prevent overflow ────────── */
+  .fds-studio .ctn-card-limit-meta {
+    flex-wrap: wrap;
+    gap: 4px 10px;
+  }
+  .fds-studio .ctn-card-fatura {
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+
+  /* ── 24. ACCT SLIM ────────────────────────────────────────── */
+  .stu-acct { padding: 12px; }
+  .stu-acct-bal { font-size: 17px; }
+
+  /* ── 25. MISC ─────────────────────────────────────────────── */
+  /* Picker do masthead: clamp to viewport */
+  .fds-studio .stu-mast-picker-dd {
+    left: 50%;
+    transform: translateX(-50%);
+    min-width: 260px;
+    max-width: min(320px, calc(100vw - 28px));
+  }
+
+  /* Tabs: permitir wrap */
+  .fds-tabs { flex-wrap: wrap; }
+
+  /* Insight banner */
+  .fds-studio .stu-insight { flex-direction: column; gap: 10px; padding: 12px 14px; }
+  .fds-studio .stu-insight-icon { flex-shrink: 0; }
+
+  /* Flow legend: wrap */
+  .fds-legend { flex-wrap: wrap; gap: 10px; padding: 0 14px 6px; }
+
+  /* TX bulk bar */
+  .fds-tx-table-head { padding: 10px 12px; flex-wrap: wrap; gap: 6px; }
+  .fds-tx-foot { padding: 10px 12px; flex-wrap: wrap; gap: 6px; }
+
+  /* ── 26. OVERFLOW ELIMINATION — remaining sources ─────────── */
+
+  /* Old wide sidebar (fds-sb, 248px) must not render on mobile */
+  .fds-sb { display: none !important; }
+
+  /* Masthead: left cluster must not push layout wider than viewport */
+  .stu-mast-l { max-width: calc(100vw - 80px); overflow: hidden; }
+  .stu-mast-title {
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    max-width: 100%;
+  }
+
+  /* Account card: last transactions row 4 → 3 cols (drop status badge) */
+  .fds-studio .ctn-account-last-row {
+    grid-template-columns: 28px 1fr auto !important;
+    gap: 8px;
+  }
+  .fds-studio .ctn-account-last-row > *:nth-child(4) { display: none; }
+
+  /* Store: category modal — emoji grid 12 → 8 cols */
+  .fds-studio .cat-emoji-grid { grid-template-columns: repeat(8, 1fr); }
+
+  /* Store: category group selector 4 → 2 cols */
+  .fds-studio .cat-groups { grid-template-columns: repeat(2, 1fr); }
+
+  /* Store: category modal padding */
+  .fds-studio .cat-modal-body { padding: 14px 16px; }
+  .fds-studio .cat-tabs { padding: 0 16px; overflow-x: auto; flex-wrap: nowrap; }
+
+  /* Row context menu: alinha a borda direita do menu à borda direita do
+     ancestral posicionado (td com position:relative na col3) — o menu abre
+     para a ESQUERDA e não ultrapassa o viewport */
+  .fds-row-menu {
+    right: 0;
+    left: auto;
+    min-width: 180px;
+    max-width: calc(100vw - 32px);
+  }
+
+  /* Category picker sub-menu: show below instead of to the right */
+  .fds-cat-picker-dd--sub {
+    top: calc(100% + 6px);
+    left: 0;
+    right: auto;
+  }
+
+  /* Orcamento history: contain padding to prevent horizontal push */
+  .fds-studio .orc-history { padding: 14px 14px 16px; overflow: hidden; }
+
+  /* Distribuição: contain row and name */
+  .fds-studio .ctn-dist { padding: 14px 14px; overflow: hidden; }
+  .fds-studio .ctn-dist-rows { overflow: hidden; }
+  .fds-studio .ctn-dist-name {
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  /* Parcelamento: stepper must not push modal wider */
+  .fds-studio .parc-row { grid-template-columns: 1fr; }
+  .fds-studio .parc-stepper { margin-left: 0; }
+
+  /* Hero main card: ensure pseudo-element is clipped */
+  .fds-hero-main { overflow: hidden; }
+}
+
+
+/* ─────────────────────────────────────────────────────────────────
+   MOBILE PEQUENO — ≤480px
+   ───────────────────────────────────────────────────────────────── */
+@media (max-width: 480px) {
+
+  /* ── Page: padding mínimo ─────────────────────────────────── */
+  .stu-page { padding: 12px 12px 76px; }
+  .fds-page { padding: 12px 12px 76px; }
+
+  /* ── Bottom nav: altura mínima ────────────────────────────── */
+  .fds-sb-slim { height: 58px; }
+  .fds-main { padding-bottom: calc(58px + env(safe-area-inset-bottom, 0px)); }
+
+  /* ── Hero KPIs: 2 → 1 col em telas muito estreitas ───────── */
+  .fds-hero-kpis { grid-template-columns: 1fr; }
+
+  /* ── TX KPIs: 2 → 1 col ───────────────────────────────────── */
+  .fds-tx-kpis { grid-template-columns: 1fr; }
+
+  /* ── Accounts strip: 2 → 1 col ───────────────────────────── */
+  .stu-accounts-strip { grid-template-columns: 1fr; }
+
+  /* ── Hero amount: menor ───────────────────────────────────── */
+  .fds-hero-amount.v1 .int,
+  .fds-hero-amount.v2 .int,
+  .fds-hero-amount.v3 .int { font-size: clamp(34px, 11vw, 50px); }
+
+  /* ── Hero card ────────────────────────────────────────────── */
+  .stu-hero { padding: 14px 14px 12px; border-radius: 12px; }
+  .stu-hero-headline { font-size: clamp(18px, 6vw, 24px); }
+  .stu-hero-lede { font-size: 13px; line-height: 1.55; }
+
+  /* ── Masthead ─────────────────────────────────────────────── */
+  .stu-mast-title { font-size: 17px; }
+
+  /* ── Metas: met-card-stats 3 → 2 cols ────────────────────── */
+  .fds-studio .met-card-stats { grid-template-columns: 1fr 1fr; }
+
+  /* ── Metas: met-tips agora 1 col (já definido em 768px) ───── */
+
+  /* ── Orcamento: regra pct: ainda menor ───────────────────── */
+  .fds-studio .orc-rule-pct { font-size: 34px; }
+
+  /* ── Picker: 4 → 3 cols para caber melhor ────────────────── */
+  .fds-studio .stu-mast-picker-grid { grid-template-columns: repeat(3, 1fr); }
+
+  /* ── Metric strip: even tighter on XS ───────────────────── */
+  .stu-metric { min-width: 96px; }
+  .stu-metric-val { font-size: 15px; }
+
+  /* ── Tabs: fonte menor para evitar texto cortado ─────────── */
+  .fds-tabs button { font-size: 10px; padding: 5px 8px; }
+  .fds-tabs { gap: 2px; }
+
+  /* ── Chapter mark: texto menor ───────────────────────────── */
+  .stu-chapter-title { font-size: 15px; }
+  .stu-chapter-roman { font-size: 12px; padding: 5px 8px; }
+
+  /* ── Card head: fonte menor ───────────────────────────────── */
+  .fds-h3 { font-size: 14px; }
+  .fds-card-sub { font-size: 11.5px; }
+
+  /* ── Contas account card ──────────────────────────────────── */
+  .fds-studio .ctn-account-bal { font-size: 22px; }
+  .fds-studio .ctn-account-stats { grid-template-columns: 1fr 1fr; }
+
+  /* ── Sparkline: oculta em telas muito pequenas ────────────── */
+  .fds-studio .ctn-account-spark { display: none; }
+
+  /* ── Orc-cat-row: simplifica ainda mais ──────────────────── */
+  .fds-studio .orc-cat-cell-name { font-size: 12.5px; }
+  .fds-studio .orc-cat-plan-val,
+  .fds-studio .orc-cat-cell-spent .orc-cat-spent-val,
+  .fds-studio .orc-cat-cell-rest { font-size: 12px; }
+
+  /* ── Met-done-row: fonte menor ───────────────────────────── */
+  .fds-studio .met-done-name { font-size: 13px; }
+  .fds-studio .met-done-val  { font-size: 12px; }
+
+  /* ── OVERFLOW ELIMINATION AT 480px ─────────────────────── */
+
+  /* Orc history: 3 → 2 meses visíveis */
+  .fds-studio .orc-history-grid { grid-template-columns: repeat(2, 1fr); }
+
+  /* Orc history footer: 4 → 2 cols */
+  .fds-studio .orc-history-foot { grid-template-columns: 1fr 1fr; }
+
+  /* Store: emoji grid 8 → 6 cols */
+  .fds-studio .cat-emoji-grid { grid-template-columns: repeat(6, 1fr); }
+
+  /* Store: category modal create row: stack */
+  .fds-studio .cat-create-row { flex-direction: column; gap: 10px; }
+
+  /* Dist row: remove pct column to save space */
+  .fds-studio .ctn-dist-row {
+    grid-template-columns: 10px 1fr 90px;
+    gap: 6px;
+  }
+  .fds-studio .ctn-dist-pct { display: none; }
+
+  /* Masthead title: tighter at 480px */
+  .stu-mast-l { max-width: calc(100vw - 70px); }
+}

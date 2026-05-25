@@ -27,7 +27,7 @@
 }
 .fds-studio .orc-rule-pct {
   font-family: var(--font-display);
-  font-weight: 700; font-size: clamp(1.75rem, 6vw, 3rem);
+  font-weight: 700; font-size: 52px;
   letter-spacing: -0.04em; line-height: 1;
   font-variant-numeric: tabular-nums;
 }
@@ -406,63 +406,28 @@
 
 /* ─── Legend in chapter mark ─── */
 .fds-studio .orc-legend {
-  display: flex; align-items: center; gap: 14px;
+  display: flex; flex-wrap: wrap; align-items: center;
+  gap: 8px 16px;
   font-size: 11.5px; color: var(--muted);
+  padding: 0 0 4px;
 }
-.fds-studio .orc-legend span {
+.fds-studio .orc-legend-item {
   display: inline-flex; align-items: center; gap: 6px;
+  white-space: nowrap;
 }
 .fds-studio .orc-legend-dot {
-  width: 10px; height: 10px; border-radius: 3px;
+  width: 10px; height: 10px; border-radius: 2px;
+  flex-shrink: 0;
 }
 .fds-studio .orc-legend-dot.plan {
-  background: var(--accent-soft);
-  border: 1px solid color-mix(in oklab, var(--accent) 22%, var(--border));
+  background: color-mix(in oklab, var(--accent) 30%, white);
+  border: 1.5px solid color-mix(in oklab, var(--accent) 50%, white);
 }
 .fds-studio .orc-legend-dot.real {
-  background: linear-gradient(180deg, var(--accent-bright) 0%, var(--accent) 100%);
+  background: var(--accent);
 }
 .fds-studio .orc-legend-dot.over {
-  background: linear-gradient(180deg, color-mix(in oklab, var(--bad) 80%, white) 0%, var(--bad) 100%);
-}
-
-/* ═══════════════════════════════════════════════════════════════
-   RESPONSIVIDADE MOBILE / TABLET — fides-orcamento.css
-   Adicionado: mai 2026
-   ═══════════════════════════════════════════════════════════════ */
-
-/* ── Tablet (≤ 1024px) ──────────────────────────────────────── */
-@media (max-width: 1024px) {
-  .fds-studio .orc-rule { grid-template-columns: 1fr 1fr; }
-  .fds-studio .orc-history-foot { grid-template-columns: repeat(2, 1fr); }
-}
-
-/* ── Mobile (≤ 768px) ──────────────────────────────────────── */
-@media (max-width: 768px) {
-  /* Regra 50/30/20: 1 coluna */
-  .fds-studio .orc-rule { grid-template-columns: 1fr; }
-
-  /* Tabela de categorias: scroll horizontal (evita refatoração estrutural) */
-  .fds-studio .orc-cats { overflow-x: auto; -webkit-overflow-scrolling: touch; }
-  .fds-studio .orc-cats-head,
-  .fds-studio .orc-cat-row { min-width: 600px; }
-
-  /* Detalhes expandidos: scroll */
-  .fds-studio .orc-cat-detail { overflow-x: auto; -webkit-overflow-scrolling: touch; }
-  .fds-studio .orc-cat-detail-tx { min-width: 500px; }
-
-  /* Histórico */
-  .fds-studio .orc-history { padding: 16px 12px; }
-  .fds-studio .orc-history-foot { grid-template-columns: repeat(2, 1fr); }
-  .fds-studio .orc-history-grid { overflow-x: auto; -webkit-overflow-scrolling: touch; }
-
-  /* Info banner */
-  .fds-studio .pln-info-title { flex-direction: column; align-items: flex-start; gap: 6px; }
-}
-
-/* ── Mobile pequeno (≤ 480px) ──────────────────────────────── */
-@media (max-width: 480px) {
-  .fds-studio .orc-history-foot { grid-template-columns: 1fr 1fr; }
+  background: var(--bad);
 }
 
 /* ─── Insight banner (for Transações in Studio) ─── */
@@ -581,4 +546,108 @@
   100% { background: transparent; }
 }
 .fds-studio tr.fds-tx-new td:first-child::before {
-  content: ''; display: in
+  content: ''; display: inline-block;
+  width: 4px; height: 16px;
+  background: var(--accent);
+  border-radius: 2px;
+  margin-right: 6px;
+  vertical-align: middle;
+}
+
+/* ─── Mobile responsive (≤768px) ─── */
+@media (max-width: 768px) {
+  /* Problema 1: cards de categoria não vazam */
+  .fds-studio .orc-cat-row,
+  .fds-studio .orc-cat-card,
+  .fds-studio .orc-cat-list {
+    min-width: 0;
+    max-width: 100%;
+    overflow: hidden;
+  }
+
+  .fds-studio .orc-cat-bar-track {
+    min-width: 0;
+    flex: 1;
+    overflow: hidden;
+  }
+
+  .fds-studio .orc-cat-bar-fill {
+    max-width: 100%;
+  }
+
+  .fds-studio .orc-cat-values {
+    flex-wrap: wrap;
+    gap: 4px 12px;
+  }
+
+  .fds-studio .orc-cat-val {
+    white-space: nowrap;
+    font-size: clamp(10px, 2.5vw, 13px);
+  }
+
+  /* Fix: gráfico cabe na largura do card sem scroll horizontal —
+     6 colunas em flex:1 dividem igualmente o espaço disponível (~52px cada) */
+  .fds-studio .orc-history-wrap {
+    overflow-x: hidden;   /* sem scrollbar */
+    padding-bottom: 0;
+  }
+
+  .fds-studio .orc-history-grid {
+    display: flex;
+    flex-direction: row;
+    align-items: flex-end;
+    gap: 6px;             /* gap menor que os 12px originais para caber 6 colunas */
+    min-width: 0;         /* permite encolher (era max-content) */
+    width: 100%;          /* ocupa toda a largura disponível */
+    padding: 0;
+    height: auto;
+  }
+
+  .fds-studio .orc-history-col {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 4px;
+    flex: 1;              /* distribui igualmente (era min-width:56px flex-shrink:0) */
+    min-width: 0;
+    height: auto;
+    justify-content: flex-end;
+  }
+
+  .fds-studio .orc-history-bars {
+    height: 120px;
+    gap: 3px;
+    padding: 0;
+    overflow: hidden;
+    width: 100%;          /* ocupa toda a largura da coluna */
+  }
+
+  .fds-studio .orc-history-bar {
+    flex: 1;              /* barra preenche a coluna (era width:20px flex:none) */
+    min-width: 0;
+    min-height: 4px;
+    max-height: 100%;
+  }
+
+  .fds-studio .orc-history-month {
+    font-size: 10px;      /* 11px → 10px para caber melhor nas colunas menores */
+    white-space: nowrap;
+  }
+
+  .fds-studio .orc-history-pct {
+    font-size: 9px;       /* 10px → 9px proporcional */
+  }
+
+  .fds-studio .orc-history-foot {
+    grid-template-columns: 1fr 1fr;
+    gap: 8px;
+    margin-top: 12px;
+    padding-top: 14px;
+  }
+}
+
+@media (max-width: 480px) {
+  .fds-studio .orc-history-foot {
+    grid-template-columns: 1fr;
+  }
+}

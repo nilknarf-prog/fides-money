@@ -90,9 +90,6 @@
   --cat-investimento:#0F766E;
 }
 
-/* ─── Global box-sizing reset ────────────────────────────── */
-*, *::before, *::after { box-sizing: border-box; }
-
 /* ─── Tabular nums utility ────────────────────────────────── */
 .tabular { font-variant-numeric: tabular-nums; }
 

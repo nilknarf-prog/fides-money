@@ -52,12 +52,12 @@ const NAV = [
 
 function Sidebar({ active, onNav, variant }) {
   return (
-    <aside className="fds-sb">
-      <div className="fds-sb-head">
+    <aside className="fds-sb" data-od-id="sidebar">
+      <div className="fds-sb-head" data-od-id="sidebar-logo">
         <FidesLogo size={28} variant={variant}/>
       </div>
 
-      <div className="fds-sb-section">
+      <div className="fds-sb-section" data-od-id="sidebar-workspace">
         <div className="fds-sb-section-label">Workspace</div>
         <button className="fds-workspace">
           <div className="fds-workspace-mark" style={{ background: 'var(--accent)' }}>
@@ -71,7 +71,7 @@ function Sidebar({ active, onNav, variant }) {
         </button>
       </div>
 
-      <nav className="fds-sb-nav">
+      <nav className="fds-sb-nav" data-od-id="sidebar-nav">
         {NAV.map((n) => {
           const Ic = n.icon;
           const on = active === n.id;
@@ -85,7 +85,7 @@ function Sidebar({ active, onNav, variant }) {
         })}
       </nav>
 
-      <div className="fds-sb-foot">
+      <div className="fds-sb-foot" data-od-id="sidebar-footer">
         <div className="fds-sb-hint">
           <Icon.Sparkles size={14} style={{ color: 'var(--accent)' }}/>
           <div>
@@ -109,7 +109,7 @@ function Sidebar({ active, onNav, variant }) {
 // ─── Topbar ───────────────────────────────────────────────────
 function Topbar({ title, subtitle, onAdd, period = 'Maio · 2026', actions, hideTitle = false }) {
   return (
-    <header className="fds-top">
+    <header className="fds-top" data-od-id="topbar">
       <div className="fds-top-l">
         {!hideTitle && (
           <>

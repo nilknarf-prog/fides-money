@@ -10,15 +10,17 @@
 const FidesStoreContext = React.createContext(null);
 
 function FidesProvider({ children }) {
-  const [transactions, setTransactions] = React.useState(() => TRANSACTIONS.slice());
-  const [accounts, setAccounts]         = React.useState(() => ACCOUNTS.slice());
-  const [cards, setCards]               = React.useState(() => CARDS.slice());
+  const [transactions, setTransactions] = React.useState(() =>
+    TRANSACTIONS.slice().map((t, i) => ({ ...t, _id: t._id ?? `tx-${i}` }))
+  );
   const [categories, setCategories]     = React.useState(() => ({ ...CATEGORIES }));
   const [plannedOverrides, setPlannedOverrides] = React.useState({});
   const [categoryModalOpen, setCategoryModalOpen] = React.useState(false);
   // Mês selecionado em todas as telas (formato 'YYYY-MM'). Default: mês dos mocks.
   const [selectedMonth, setSelectedMonth] = React.useState('2026-05');
   const [assistantOpen, setAssistantOpen] = React.useState(false);
+  const [accounts, setAccounts] = React.useState(() => ACCOUNTS.slice());
+  const [cards, setCards]       = React.useState(() => CARDS.slice());
 
   // ─── Helpers ───────────────────────────────────────────────
   const ensureMes = (tx) => ({ ...tx, mes: tx.mes || `2026-${String(tx.d).split('/')[1]}` });
@@ -45,13 +47,19 @@ function FidesProvider({ children }) {
       return t;
     }));
   }, []);
+  const updateTransaction = React.useCallback((id, patch) => {
+    setTransactions(prev => prev.map(t => t._id === id ? { ...t, ...patch } : t));
+  }, []);
+  const deleteTransaction = React.useCallback((id) => {
+    setTransactions(prev => prev.filter(t => t._id !== id));
+  }, []);
+
   const addAccount = React.useCallback((acct) => {
     setAccounts(prev => [
       { ...acct, id: acct.id ?? ('acct_' + Date.now()), _new: true },
       ...prev,
     ]);
   }, []);
-
   const addCard = React.useCallback((card) => {
     setCards(prev => [
       { ...card, id: card.id ?? ('card_' + Date.now()), used: 0, _new: true },
@@ -93,31 +101,9 @@ function FidesProvider({ children }) {
   // No Fides, gastos no cartão entram no orçamento do mês em que
   // foram feitos — não no mês da fatura. Isso evita o "bug do
   // PlannerFin" onde compras de fim de mês inflavam o mês seguinte.
-  //
-  // Propagação de parcelamentos e recorrências:
-  //   • Transação com parcelas = N (campo sub "k/N"): aparece nos meses
-  //     mes, mes+1, ..., mes+N-1 com base no campo grupo para agrupamento.
-  //     Na prática cada parcela já é gerada como uma transação separada
-  //     com seu próprio campo `mes`, então o filtro por mes direto funciona.
-  //   • Transação com recur: 'mensal' e sem sub (gasto fixo "único"):
-  //     deve aparecer em todos os meses a partir do seu mes de origem.
-  //     Transações recorrentes com sub já têm mes próprio (geradas pelo buildTxs).
-  const monthTransactions = React.useMemo(() => {
-    const [selY, selM] = selectedMonth.split('-').map(s => parseInt(s, 10));
-    return transactions.filter(t => {
-      const tMes = txMonth(t);
-      // Transação pertence ao mês exato
-      if (tMes === selectedMonth) return true;
-      // Recorrência mensal "fixa" (sem sub = sem agrupamento de N meses):
-      // aparece em todos os meses >= mês de origem (até 120 meses à frente)
-      if (t.recur === 'mensal' && !t.sub) {
-        const [tY, tM] = tMes.split('-').map(s => parseInt(s, 10));
-        const diffMonths = (selY - tY) * 12 + (selM - tM);
-        return diffMonths >= 0 && diffMonths < 120;
-      }
-      return false;
-    });
-  }, [transactions, selectedMonth]);
+  const monthTransactions = React.useMemo(() =>
+    transactions.filter(t => txMonth(t) === selectedMonth),
+  [transactions, selectedMonth]);
 
   const prevMonthTransactions = React.useMemo(() => {
     const pm = prevMonth(selectedMonth);
@@ -177,6 +163,7 @@ function FidesProvider({ children }) {
 
   const value = {
     transactions, addTransaction, addTransactions, payCartaoFatura,
+    updateTransaction, deleteTransaction,
     accounts, addAccount,
     cards, addCard,
     categories, addCategory, updateCategory, deleteCategory,
@@ -209,6 +196,7 @@ function useFides() {
     monthTransactions: TRANSACTIONS,
     prevMonthTransactions: [],
     addTransaction: () => {}, addTransactions: () => {}, payCartaoFatura: () => {},
+    updateTransaction: () => {}, deleteTransaction: () => {},
     accounts: ACCOUNTS, addAccount: () => {},
     cards: CARDS, addCard: () => {},
     categories: CATEGORIES,
@@ -293,7 +281,7 @@ function CategoriaModal({ open, onClose }) {
   };
 
   return (
-    <div className="fds-modal-backdrop" onClick={onClose} style={{ position: 'fixed', inset: 0 }}>
+    <div className="fds-modal-backdrop" onClick={onClose} style={{ position: 'fixed', inset: 0, zIndex: 200 }}>
       <div className="fds-modal cat-modal" onClick={e => e.stopPropagation()} style={{ maxWidth: 720 }}>
         <header className="fds-modal-head">
           <div>

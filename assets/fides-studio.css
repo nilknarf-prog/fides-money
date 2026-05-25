@@ -41,7 +41,8 @@
 
   color: var(--ink);
   background: var(--bg);
-  width: 1440px; min-height: 100%;
+  width: 100%;        /* sobrescreve 1440px fixo — o HTML já forçava 100% !important */
+  min-height: 100%;
   display: flex;
   font-family: var(--font-sans);
   font-feature-settings: 'cv01','cv02','cv05','cv11','ss03';
@@ -66,7 +67,10 @@
   padding: 14px 0 14px;
   display: flex; flex-direction: column; align-items: center;
   gap: 16px;
-  position: sticky; top: 0; align-self: flex-start;
+  position: sticky; top: 0;
+  align-self: flex-start;
+  z-index: 1; /* cria stacking context para o tooltip pintar acima do conteúdo */
+  /* mobile: overridden to fixed bottom bar via fides-responsive.css */
 }
 .fds-sb-slim-head { padding: 0; }
 .fds-sb-slim-nav {
@@ -166,7 +170,7 @@
 }
 .stu-mast-title {
   font-family: var(--font-display);
-  font-weight: 700; font-size: clamp(1.25rem, 4vw, 2.25rem);
+  font-weight: 700; font-size: 36px;
   letter-spacing: -0.025em;
   color: var(--ink); margin: 0;
   line-height: 1;
@@ -316,7 +320,7 @@
 }
 .stu-hero-headline {
   font-family: var(--font-display);
-  font-weight: 600; font-size: clamp(1.75rem, 6vw, 3rem);
+  font-weight: 600; font-size: 40px;
   line-height: 1.15; letter-spacing: -0.028em;
   color: var(--ink);
   margin: 0;
@@ -360,7 +364,7 @@
 }
 .stu-metric-val {
   font-family: var(--font-display);
-  font-weight: 700; font-size: clamp(1rem, 3vw, 1.375rem);
+  font-weight: 700; font-size: 22px;
   letter-spacing: -0.025em;
   color: var(--ink);
   line-height: 1.1;
@@ -401,7 +405,7 @@
 .stu-chapter-text { display: flex; flex-direction: column; gap: 2px; }
 .stu-chapter-title {
   font-family: var(--font-display);
-  font-weight: 600; font-size: clamp(1rem, 3vw, 1.375rem);
+  font-weight: 600; font-size: 22px;
   letter-spacing: -0.025em;
   color: var(--ink); margin: 0;
   line-height: 1.1;
@@ -542,7 +546,7 @@
 .stu-acct-tag { font-size: 10.5px; color: var(--muted); font-family: var(--font-mono); margin-top: 1px; }
 .stu-acct-bal {
   font-family: var(--font-display);
-  font-weight: 700; font-size: clamp(1rem, 2.5vw, 1.375rem);
+  font-weight: 700; font-size: 20px;
   color: var(--ink); letter-spacing: -0.025em;
   line-height: 1.1;
   font-variant-numeric: tabular-nums;
@@ -552,151 +556,71 @@
   font-size: 10.5px; color: var(--muted);
 }
 
-/* ═══════════════════════════════════════════════════════════════
-   RESPONSIVIDADE MOBILE / TABLET — fides-studio.css
-   Adicionado: mai 2026
-   ═══════════════════════════════════════════════════════════════ */
-
-/* ── Tablet (≤ 1024px) ──────────────────────────────────────── */
-@media (max-width: 1024px) {
-  /* Sobrescreve width: 1440px do estilo base — necessário porque
-     fides-studio.css carrega DEPOIS de fides.css e vence na cascata */
-  .fds-studio {
-    width: 100%;
-    max-width: 100%;
-    overflow-x: hidden;
-  }
-  .stu-accounts-strip {
-    grid-template-columns: repeat(3, 1fr);
-  }
-  .stu-2col {
-    grid-template-columns: 1fr;
-  }
+/* ─── Empty States ───────────────────────────────────────────────
+   Usado nas 3 telas principais quando o mês não tem transações.
+   Tokens: --card, --border, --ink, --muted, --accent, --accent-2
+   ─────────────────────────────────────────────────────────────── */
+.fds-empty-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  padding: 32px 24px;
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  gap: 12px;
+  max-width: 520px;
+  margin: 32px auto;
+  box-shadow: 0 1px 0 rgba(15,26,20,.04), 0 8px 24px -16px rgba(45,90,61,.12);
 }
-
-/* ── Mobile (≤ 767px) ──────────────────────────────────────── */
-@media (max-width: 767px) {
-  /* Container raiz mantém flex mas empilha verticalmente */
-  .fds-studio {
-    flex-direction: column;
-    width: 100%;
-    max-width: 100%;
-    overflow-x: hidden;
-  }
-
-  /* Sidebar vira bottom nav fixa */
-  .fds-studio .fds-sb-slim {
-    position: fixed;
-    bottom: 0;
-    left: 0;
-    right: 0;
-    width: 100%;
-    height: calc(60px + env(safe-area-inset-bottom, 0px));
-    flex-direction: row;
-    padding: 6px 8px env(safe-area-inset-bottom, 0px);
-    border-right: none;
-    border-top: 1px solid var(--border);
-    justify-content: space-around;
-    align-items: flex-start;
-    z-index: 200;
-    align-self: auto;
-    gap: 0;
-    background: color-mix(in oklab, var(--bg-elev) 92%, transparent);
-    -webkit-backdrop-filter: blur(12px);
-    backdrop-filter: blur(12px);
-  }
-  .fds-sb-slim-head,
-  .fds-sb-slim-foot { display: none; }
-  .fds-sb-slim-nav {
-    flex-direction: row;
-    gap: 0;
-    flex: 1;
-    justify-content: space-around;
-    align-items: flex-start;
-  }
-  .fds-sb-slim-item {
-    flex-direction: column;
-    gap: 2px;
-    min-width: 48px;
-    padding: 4px 4px 2px;
-    justify-content: center;
-    align-items: center;
-    height: auto;
-    width: auto;
-  }
-  /* Indicador ativo: linha superior em vez de esquerda */
-  .fds-sb-slim-item.on::before {
-    left: 50%;
-    top: 0;
-    bottom: auto;
-    width: 24px;
-    height: 2.5px;
-    transform: translateX(-50%);
-    border-radius: 0 0 3px 3px;
-  }
-  .fds-sb-slim-tip {
-    display: block;
-    font-size: 9px;
-    font-weight: 600;
-    color: inherit;
-    line-height: 1.2;
-    white-space: nowrap;
-    pointer-events: none;
-    position: static;
-    transform: none;
-    background: transparent;
-    padding: 0;
-    border-radius: 0;
-    opacity: 1;
-  }
-
-  /* Conteúdo principal recupera largura e espaço para a bottom nav */
-  .fds-studio .fds-main,
-  .fds-studio .stu-page {
-    width: 100%;
-    max-width: 100%;
-    padding-bottom: calc(76px + env(safe-area-inset-bottom, 0px));
-  }
-
-  /* Masthead permanece visível */
-  .fds-studio .stu-mast {
-    width: 100%;
-    position: sticky;
-    top: 0;
-    z-index: 20;
-  }
-
-  /* Masthead compacto */
-  .stu-mast {
-    flex-wrap: wrap;
-    padding: 12px 14px 10px;
-    gap: 10px;
-  }
-  .stu-mast-r {
-    width: 100%;
-    justify-content: flex-end;
-  }
-  .stu-mast-search { display: none; }
-
-  /* Página: padding reduzido */
-  .stu-page { padding: 14px 12px 20px; }
-
-  /* Hero: padding reduzido */
-  .stu-hero { padding: 18px 14px 14px; }
-
-  /* Hero strip: 2 colunas, ocultar separadores */
-  .stu-hero-strip {
-    grid-template-columns: 1fr 1fr;
-    gap: 14px;
-  }
-  .stu-metric-sep { display: none; }
-
-  /* Contas strip: 2 colunas */
-  .stu-accounts-strip { grid-template-columns: repeat(2, 1fr); }
-
-  /* Transações: scroll horizontal na tabela */
-  .fds-studio .fds-tx-table-card { overflow-x: auto; -webkit-overflow-scrolling: touch; }
-  .fds-studio .fds-tx-table { min-width: 580px; }
-
-  /* Filtros wrap */
-  
+.fds-empty-state-icon {
+  font-size: 44px;
+  line-height: 1;
+  margin-bottom: 4px;
+  filter: drop-shadow(0 2px 6px rgba(45,90,61,.18));
+}
+.fds-empty-state-title {
+  font-family: var(--font-sans);
+  font-weight: 700;
+  font-size: 20px;
+  color: var(--ink);
+  letter-spacing: -0.022em;
+  line-height: 1.25;
+  margin: 0;
+  text-wrap: balance;
+}
+.fds-empty-state-lede {
+  font-family: var(--font-sans);
+  font-weight: 400;
+  font-size: 14.5px;
+  color: var(--muted);
+  line-height: 1.6;
+  margin: 0;
+  max-width: 360px;
+  text-wrap: pretty;
+}
+.fds-empty-state-btn {
+  margin-top: 8px;
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 10px 20px;
+  background: var(--accent);
+  color: white;
+  border: 0;
+  border-radius: 10px;
+  cursor: pointer;
+  font-family: var(--font-sans);
+  font-size: 14px;
+  font-weight: 600;
+  letter-spacing: -0.01em;
+  transition: all 0.15s;
+  box-shadow: 0 1px 0 rgba(255,255,255,0.12) inset, 0 2px 6px rgba(0,0,0,0.14);
+}
+.fds-empty-state-btn:hover {
+  background: var(--accent-2);
+  transform: translateY(-0.5px);
+  box-shadow: 0 1px 0 rgba(255,255,255,0.12) inset, 0 4px 10px rgba(0,0,0,0.18);
+}

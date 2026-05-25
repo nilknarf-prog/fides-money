@@ -1,14 +1,27 @@
 // fides-transacoes.jsx — Transações list + filters + Nova Transação modal
 
 function Transacoes({ variant, onAdd }) {
-  const { monthTransactions, transactions, categories, selectedMonth, setSelectedMonth, monthLabel } = useFides();
-  const [selectedMonthChip, setSelectedMonthChip] = React.useState(null); // local filter (sobrepõe global se setado)
+  const { monthTransactions, transactions, categories, selectedMonth, setSelectedMonth, monthLabel, updateTransaction, deleteTransaction } = useFides();
+  const [selectedMonthChip, setSelectedMonthChip] = React.useState(null);
   const [filter, setFilter] = React.useState('todas');
+  const [catFilter, setCatFilter] = React.useState(null);    // category key or null
+  const [catDropdownOpen, setCatDropdownOpen] = React.useState(false);
   const [search, setSearch] = React.useState('');
   const [selected, setSelected] = React.useState(new Set());
   const [hoverRow, setHoverRow] = React.useState(null);
   const [visibleCount, setVisibleCount] = React.useState(20);
+  const [rowMenu, setRowMenu] = React.useState(null);         // index of open row menu
+  const [rowCatPicker, setRowCatPicker] = React.useState(null); // tx _id being re-categorised
+  const [bulkCatPicker, setBulkCatPicker] = React.useState(false);
+  const [confirmDelete, setConfirmDelete] = React.useState(false);
   const lbl = monthLabel(selectedMonth);
+
+  // Close menus when clicking outside
+  React.useEffect(() => {
+    const close = () => { setRowMenu(null); setCatDropdownOpen(false); };
+    document.addEventListener('click', close);
+    return () => document.removeEventListener('click', close);
+  }, []);
 
   const months = ['Jan','Fev','Mar','Abr','Mai','Jun','Jul','Ago','Set','Out','Nov','Dez'];
   const currentMonthIdx = parseInt(selectedMonth.split('-')[1], 10) - 1;
@@ -20,6 +33,7 @@ function Transacoes({ variant, onAdd }) {
     if (filter === 'receitas' && t.val < 0) return false;
     if (filter === 'despesas' && t.val > 0) return false;
     if (filter === 'pendentes' && t.status !== 'pendente') return false;
+    if (catFilter && t.cat !== catFilter) return false;
     if (search && !t.desc.toLowerCase().includes(search.toLowerCase())) return false;
     return true;
   });
@@ -40,10 +54,36 @@ function Transacoes({ variant, onAdd }) {
     setSelected(s);
   };
 
+  // ── Bulk action helpers ───────────────────────────────────────
+  const selTxs = () => [...selected].map(i => filtered[i]).filter(Boolean);
+
+  const bulkMarkPaid = () => {
+    selTxs().forEach(t => updateTransaction(t._id, { status: 'pago' }));
+    setSelected(new Set());
+    setConfirmDelete(false);
+  };
+  const bulkDelete = () => {
+    selTxs().forEach(t => deleteTransaction(t._id));
+    setSelected(new Set());
+    setConfirmDelete(false);
+  };
+  const bulkCategorize = (catKey) => {
+    selTxs().forEach(t => updateTransaction(t._id, { cat: catKey }));
+    setSelected(new Set());
+    setBulkCatPicker(false);
+  };
+
+  // Unique categories present in the current month list (for the dropdown)
+  const catsInList = [...new Set(baseList.map(t => t.cat))].sort((a, b) => {
+    const la = categories[a]?.label || a;
+    const lb = categories[b]?.label || b;
+    return la.localeCompare(lb, 'pt-BR');
+  });
+
   return (
-    <div className="fds-page">
+    <div className="fds-page" data-od-id="transacoes">
       {/* KPI Strip */}
-      <section className="fds-tx-kpis">
+      <section className="fds-tx-kpis" data-od-id="tx-kpis">
         <TxKpi label="Saldo do mês"    value={saldo}        accent="var(--ink)"  variant={variant}/>
         <TxKpi label="Receitas"        value={tot.receitas} accent="var(--ok)"   delta={+8.2} variant={variant} spark={[6,8,7,9,10,11,12]}/>
         <TxKpi label="Despesas pagas"  value={-tot.despesas} accent="var(--bad)" delta={-6.3} variant={variant} spark={[10,9,11,8,9,7,6]}/>
@@ -51,7 +91,7 @@ function Transacoes({ variant, onAdd }) {
       </section>
 
       {/* Filter Bar */}
-      <section className="fds-card fds-tx-filters">
+      <section className="fds-card fds-tx-filters" data-od-id="tx-filtros">
         <div className="fds-tx-filter-row">
           <div className="fds-tx-year">
             <span>{selectedMonth.split('-')[0]}</span>
@@ -86,7 +126,42 @@ function Transacoes({ variant, onAdd }) {
               </button>
             ))}
             <span className="fds-chip-sep"/>
-            <button className="fds-chip"><Icon.Filter size={13}/> Categoria</button>
+            <div style={{ position: 'relative', display: 'inline-flex' }}>
+              <button className={`fds-chip${catFilter ? ' on' : ''}`}
+                      onClick={(e) => { e.stopPropagation(); setCatDropdownOpen(v => !v); }}>
+                <Icon.Filter size={13}/>
+                {catFilter ? (categories[catFilter]?.label || catFilter) : 'Categoria'}
+                {catFilter && (
+                  <span style={{ marginLeft: 4, opacity: 0.7, lineHeight: 1 }}
+                        onClick={(e) => { e.stopPropagation(); setCatFilter(null); setCatDropdownOpen(false); }}>
+                    ×
+                  </span>
+                )}
+              </button>
+              {catDropdownOpen && (
+                <div className="fds-cat-picker-dd" onClick={(e) => e.stopPropagation()}>
+                  <div className="fds-cat-picker-head">Filtrar por categoria</div>
+                  <button className={`fds-cat-picker-item${!catFilter ? ' on' : ''}`}
+                          onClick={() => { setCatFilter(null); setCatDropdownOpen(false); }}>
+                    <span style={{ width: 18, height: 18, display: 'inline-block' }}/>
+                    <span>Todas as categorias</span>
+                    <span className="fds-chip-count">{baseList.length}</span>
+                  </button>
+                  {catsInList.map(k => {
+                    const c = categories[k] || { label: k, tint: '#888' };
+                    const cnt = baseList.filter(t => t.cat === k).length;
+                    return (
+                      <button key={k} className={`fds-cat-picker-item${catFilter === k ? ' on' : ''}`}
+                              onClick={() => { setCatFilter(k); setCatDropdownOpen(false); }}>
+                        <CategoryAvatar cat={k} size={18}/>
+                        <span>{c.label}</span>
+                        <span className="fds-chip-count">{cnt}</span>
+                      </button>
+                    );
+                  })}
+                </div>
+              )}
+            </div>
             <button className="fds-chip"><Icon.Wallet size={13}/> Conta</button>
             <button className="fds-chip"><Icon.Tag size={13}/> Etiquetas</button>
           </div>
@@ -100,7 +175,7 @@ function Transacoes({ variant, onAdd }) {
       </section>
 
       {/* Table */}
-      <section className="fds-card fds-tx-table-card">
+      <section className="fds-card fds-tx-table-card" data-od-id="tx-tabela">
         <div className="fds-tx-table-head">
           <div className="fds-tx-bulk">
             <input type="checkbox" className="fds-cbx"
@@ -110,11 +185,35 @@ function Transacoes({ variant, onAdd }) {
                      else setSelected(new Set(filtered.map((_,i) => i)));
                    }}/>
             {selected.size > 0 ? (
-              <span className="fds-tx-bulk-info">
+              <span className="fds-tx-bulk-info" style={{ position: 'relative' }}>
                 {selected.size} selecionada{selected.size>1?'s':''}
-                <button className="fds-tx-bulk-act">Marcar pago</button>
-                <button className="fds-tx-bulk-act">Categorizar</button>
-                <button className="fds-tx-bulk-act danger">Excluir</button>
+                <button className="fds-tx-bulk-act" onClick={bulkMarkPaid}>Marcar pago</button>
+                <button className="fds-tx-bulk-act" onClick={(e) => { e.stopPropagation(); setBulkCatPicker(v => !v); setConfirmDelete(false); }}>
+                  Categorizar
+                </button>
+                {bulkCatPicker && (
+                  <div className="fds-cat-picker-dd" onClick={(e) => e.stopPropagation()}>
+                    <div className="fds-cat-picker-head">Selecionar categoria</div>
+                    {catsInList.map(k => {
+                      const c = categories[k] || { label: k, tint: '#888' };
+                      return (
+                        <button key={k} className="fds-cat-picker-item" onClick={() => bulkCategorize(k)}>
+                          <CategoryAvatar cat={k} size={18}/>
+                          <span>{c.label}</span>
+                        </button>
+                      );
+                    })}
+                  </div>
+                )}
+                {!confirmDelete ? (
+                  <button className="fds-tx-bulk-act danger" onClick={() => { setConfirmDelete(true); setBulkCatPicker(false); }}>Excluir</button>
+                ) : (
+                  <>
+                    <span style={{ color: 'var(--bad)', fontSize: 12 }}>Excluir {selected.size}?</span>
+                    <button className="fds-tx-bulk-act danger" onClick={bulkDelete}>Confirmar</button>
+                    <button className="fds-tx-bulk-act" onClick={() => setConfirmDelete(false)}>Cancelar</button>
+                  </>
+                )}
               </span>
             ) : (
               <span className="fds-tx-count">
@@ -183,8 +282,40 @@ function Transacoes({ variant, onAdd }) {
                   <td className={`fds-tx-amt ${neg ? 'neg' : 'pos'}`}>
                     {neg ? '−' : '+'}R$&nbsp;{Math.abs(t.val).toLocaleString('pt-BR', {minimumFractionDigits:2})}
                   </td>
-                  <td>
-                    <button className="fds-tx-row-act"><Icon.Dots size={15}/></button>
+                  <td style={{ position: 'relative' }}>
+                    <button className="fds-tx-row-act"
+                            onClick={(e) => { e.stopPropagation(); setRowMenu(rowMenu === i ? null : i); setRowCatPicker(null); }}>
+                      <Icon.Dots size={15}/>
+                    </button>
+                    {rowMenu === i && (
+                      <div className="fds-row-menu" onClick={(e) => e.stopPropagation()}>
+                        <button onClick={() => {
+                          updateTransaction(t._id, { status: t.status === 'pago' ? 'pendente' : 'pago' });
+                          setRowMenu(null);
+                        }}>
+                          <Icon.Check size={13}/>
+                          {t.status === 'pago' ? 'Marcar como pendente' : 'Marcar como pago'}
+                        </button>
+                        <button onClick={(e) => { e.stopPropagation(); setRowCatPicker(rowCatPicker === t._id ? null : t._id); }}>
+                          <Icon.Tag size={13}/> Categorizar
+                        </button>
+                        {rowCatPicker === t._id && (
+                          <div className="fds-cat-picker-dd fds-cat-picker-dd--sub" onClick={(e) => e.stopPropagation()}>
+                            <div className="fds-cat-picker-head">Nova categoria</div>
+                            {catsInList.map(k => (
+                              <button key={k} className={`fds-cat-picker-item${t.cat === k ? ' on' : ''}`}
+                                      onClick={() => { updateTransaction(t._id, { cat: k }); setRowMenu(null); setRowCatPicker(null); }}>
+                                <CategoryAvatar cat={k} size={16}/>
+                                <span>{categories[k]?.label || k}</span>
+                              </button>
+                            ))}
+                          </div>
+                        )}
+                        <button className="danger" onClick={() => { deleteTransaction(t._id); setRowMenu(null); }}>
+                          <Icon.X size={13}/> Excluir
+                        </button>
+                      </div>
+                    )}
                   </td>
                 </tr>
               );
@@ -305,15 +436,8 @@ function NovaTransacaoModal({ open, onClose, onSave, variant }) {
     const numeric = parseVal(val);
     let N = 1;
     let modo = 'unica';
-    if (canParcelar && parcelas > 1) {
-      N = parcelas; modo = 'parcela';
-    } else if (recur && pay === 'debito') {
-      if (recurMode === 'fixo') {
-        N = 120; modo = 'fixo'; // teto de 120 meses para não explodir o array
-      } else if (typeof recurMode === 'number' && recurMode >= 1) {
-        N = recurMode; modo = 'recur';
-      }
-    }
+    if (canParcelar && parcelas > 1) { N = parcelas; modo = 'parcela'; }
+    else if (recur && pay === 'debito' && typeof recurMode === 'number' && recurMode > 1) { N = recurMode; modo = 'recur'; }
 
     // Para parcelamento: divide o valor pelas parcelas; para recorrência débito: cada mês mantém o valor completo
     const each = modo === 'parcela' ? numeric / N : numeric;
@@ -341,12 +465,10 @@ function NovaTransacaoModal({ open, onClose, onSave, variant }) {
         acct: acctId,
         val: signed,
         status: i === 0 && paid ? 'pago' : 'pendente',
-        // fixo e recur: marca recur: 'mensal' em cada transação
-        ...((modo === 'fixo' || modo === 'recur') ? { recur: 'mensal' } : {}),
-        // unica com toggle recur ligado: marca sem gerar múltiplas
-        ...(modo === 'unica' && recur ? { recur: 'mensal' } : {}),
+        // Único caso "fixo" também marca recur, sem gerar mais transações
+        ...((recur && (modo === 'unica' || modo === 'recur')) ? { recur: 'mensal' } : {}),
         ...(modo === 'parcela' ? { sub: `${i+1}/${N}`, grupo: groupId } : {}),
-        ...(modo === 'recur'   ? { sub: `${i+1}/${N}`, grupo: groupId } : {}),
+        ...(modo === 'recur' ? { sub: `${i+1}/${N}`, grupo: groupId } : {}),
       };
     });
   };
@@ -584,36 +706,24 @@ function NovaTransacaoModal({ open, onClose, onSave, variant }) {
                           onClick={() => setRecurMode('fixo')}>
                     Fixo <span className="parc-chip-x">∞</span>
                   </button>
-                  {[3, 6, 12, 24].map(n => (
+                  {[3, 6, 12, 24, 48].map(n => (
                     <button key={n} type="button"
                             className={`parc-chip${recurMode === n ? ' on' : ''}`}
                             onClick={() => setRecurMode(n)}>
                       {n}<span className="parc-chip-x">m</span>
                     </button>
                   ))}
-                  <div className="parc-stepper">
-                    <button type="button" className="parc-step-btn"
-                            onClick={() => setRecurMode(p => typeof p === 'number' ? Math.max(1, p - 1) : 12)}
-                            disabled={typeof recurMode === 'number' && recurMode <= 1}>−</button>
-                    <input
-                      type="number"
-                      min={1}
-                      max={120}
-                      className="parc-step-val"
-                      style={{ width: 42, textAlign: 'center', border: 'none', background: 'transparent', fontWeight: 600, fontSize: 14, color: 'var(--ink)' }}
-                      value={typeof recurMode === 'number' ? recurMode : ''}
-                      placeholder="—"
-                      onChange={(e) => {
-                        const v = parseInt(e.target.value, 10);
-                        if (!isNaN(v) && v >= 1) setRecurMode(Math.min(120, v));
-                        else if (e.target.value === '') setRecurMode('fixo');
-                      }}
-                      onClick={(e) => { if (recurMode === 'fixo') { setRecurMode(12); e.target.select(); } }}
-                    />
-                    <button type="button" className="parc-step-btn"
-                            onClick={() => setRecurMode(p => typeof p === 'number' ? Math.min(120, p + 1) : 12)}
-                            disabled={typeof recurMode === 'number' && recurMode >= 120}>+</button>
-                  </div>
+                  {typeof recurMode === 'number' && (
+                    <div className="parc-stepper">
+                      <button type="button" className="parc-step-btn"
+                              onClick={() => setRecurMode(p => Math.max(2, p - 1))}
+                              disabled={recurMode <= 2}>−</button>
+                      <span className="parc-step-val">{recurMode}</span>
+                      <button type="button" className="parc-step-btn"
+                              onClick={() => setRecurMode(p => Math.min(120, p + 1))}
+                              disabled={recurMode >= 120}>+</button>
+                    </div>
+                  )}
                 </div>
                 <div className={`parc-preview${recurMode === 'fixo' ? ' parc-preview-empty' : ''}`}>
                   {recurMode === 'fixo' ? (

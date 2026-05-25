@@ -6,8 +6,34 @@ function MetasStudio({ onAdd }) {
   const meses = ['jan','fev','mar','abr','mai','jun','jul','ago','set','out','nov','dez'];
   const lbl = monthLabel(selectedMonth);
 
+  // ─── Local state extends METAS ──────────────────────────────
+  const [localMetas, setLocalMetas] = React.useState(METAS);
+  const [addMetaOpen, setAddMetaOpen] = React.useState(false);
+
+  function handleAddMeta(e) {
+    e.preventDefault();
+    const fd = new FormData(e.target);
+    const alvo = parseFloat(fd.get('alvo') || '0');
+    const atual = parseFloat(fd.get('atual') || '0');
+    const contrib = parseFloat(fd.get('contribuicao') || '0');
+    const hoje = today.getMonth() + 1 + '/' + today.getFullYear();
+    const newMeta = {
+      id:           'meta-' + Date.now(),
+      nome:         fd.get('nome') || 'Nova meta',
+      descricao:    fd.get('descricao') || '',
+      emoji:        fd.get('emoji') || '🎯',
+      tint:         '#2D5A3D',
+      alvo,
+      atual,
+      contribuicao: contrib,
+      criadaEm:     hoje,
+    };
+    setLocalMetas(prev => [...prev, newMeta]);
+    setAddMetaOpen(false);
+  }
+
   // Project end-date by ceil((alvo - atual)/contribuicao) months from today
-  const computed = METAS.map(m => {
+  const computed = localMetas.map(m => {
     const faltam = Math.max(0, m.alvo - m.atual);
     const pct = m.alvo ? Math.min(1, m.atual / m.alvo) : 0;
     const mesesAteFim = m.contribuicao > 0 ? Math.ceil(faltam / m.contribuicao) : Infinity;
@@ -21,9 +47,9 @@ function MetasStudio({ onAdd }) {
   });
 
   // ─── Totals ────────────────────────────────────────────────
-  const totalGuardado = METAS.reduce((s, m) => s + m.atual, 0);
-  const totalAlvo     = METAS.reduce((s, m) => s + m.alvo, 0);
-  const totalAporte   = METAS.reduce((s, m) => s + m.contribuicao, 0);
+  const totalGuardado = localMetas.reduce((s, m) => s + m.atual, 0);
+  const totalAlvo     = localMetas.reduce((s, m) => s + m.alvo, 0);
+  const totalAporte   = localMetas.reduce((s, m) => s + m.contribuicao, 0);
   const pctMedio = totalAlvo ? (totalGuardado / totalAlvo) : 0;
   const maior = [...computed].sort((a, b) => b.alvo - a.alvo)[0];
   const proxima = [...computed].sort((a, b) => a.mesesAteFim - b.mesesAteFim)[0];
@@ -31,12 +57,58 @@ function MetasStudio({ onAdd }) {
   const { int, dec } = splitBRL(totalGuardado);
 
   return (
-    <div className="fds-page stu-page">
+    <div className="fds-page stu-page" data-od-id="metas">
+      {/* ─── Nova Meta modal ─── */}
+      {addMetaOpen && (
+        <div className="fds-modal-backdrop" onClick={() => setAddMetaOpen(false)}>
+          <div className="fds-modal" style={{ maxWidth: 460 }} onClick={e => e.stopPropagation()}>
+            <div className="fds-modal-head">
+              <div className="fds-modal-title">Nova meta</div>
+              <button className="fds-icon-btn" onClick={() => setAddMetaOpen(false)}><Icon.X size={16}/></button>
+            </div>
+            <form className="fds-modal-body" onSubmit={handleAddMeta} style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
+              <div style={{ display: 'grid', gridTemplateColumns: '48px 1fr', gap: 12 }}>
+                <label className="fds-field">
+                  <span>Emoji</span>
+                  <input className="fds-input" name="emoji" placeholder="🎯" maxLength={2} style={{ textAlign: 'center', fontSize: 20 }}/>
+                </label>
+                <label className="fds-field">
+                  <span>Nome da meta</span>
+                  <input className="fds-input" name="nome" placeholder="Ex: Viagem para Europa" required/>
+                </label>
+              </div>
+              <label className="fds-field">
+                <span>Descrição (opcional)</span>
+                <input className="fds-input" name="descricao" placeholder="Ex: Férias de julho 2027"/>
+              </label>
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
+                <label className="fds-field">
+                  <span>Valor alvo (R$)</span>
+                  <input className="fds-input" name="alvo" type="number" step="0.01" min="0" placeholder="0,00" required/>
+                </label>
+                <label className="fds-field">
+                  <span>Já guardado (R$)</span>
+                  <input className="fds-input" name="atual" type="number" step="0.01" min="0" placeholder="0,00"/>
+                </label>
+              </div>
+              <label className="fds-field">
+                <span>Aporte mensal (R$)</span>
+                <input className="fds-input" name="contribuicao" type="number" step="0.01" min="0" placeholder="0,00" required/>
+              </label>
+              <div className="fds-modal-foot" style={{ display: 'flex', justifyContent: 'flex-end', gap: 8, paddingTop: 12 }}>
+                <button type="button" className="fds-btn-ghost" onClick={() => setAddMetaOpen(false)}>Cancelar</button>
+                <button type="submit" className="fds-btn-primary"><Icon.Check size={13}/> Criar meta</button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
       {/* ─── Editorial hero ─── */}
-      <section className="stu-hero">
+      <section className="stu-hero" data-od-id="met-hero">
         <div className="stu-hero-eyebrow">
           <Icon.Goal size={11}/>
-          metas · {METAS.length} em curso
+          metas · {localMetas.length} em curso
         </div>
         <h2 className="stu-hero-headline">
           Você guardou{' '}
@@ -48,7 +120,7 @@ function MetasStudio({ onAdd }) {
           para os seus sonhos.
         </h2>
         <p className="stu-hero-lede">
-          São <strong className="stu-num">{METAS.length} metas ativas</strong> somando{' '}
+          São <strong className="stu-num">{localMetas.length} metas ativas</strong> somando{' '}
           <strong className="stu-num">{fmtBRL(totalAlvo)}</strong> de alvo —{' '}
           <strong className="stu-num">{Math.round(pctMedio * 100)}% do caminho</strong> já foi.
           Você reserva <strong className="stu-num">{fmtBRL(totalAporte)}</strong> por mês para isso.
@@ -56,7 +128,7 @@ function MetasStudio({ onAdd }) {
           <span className="stu-pos">{proxima?.mesesAteFim} {proxima?.mesesAteFim === 1 ? 'mês' : 'meses'}</span>.
         </p>
 
-        <div className="stu-hero-strip">
+        <div className="stu-hero-strip" data-od-id="met-hero-strip">
           <div className="stu-metric">
             <div className="stu-metric-lbl">Guardado</div>
             <div className="stu-metric-val pos">{fmtBRL(totalGuardado)}</div>
@@ -93,10 +165,10 @@ function MetasStudio({ onAdd }) {
 
       {/* ─── Capítulo I · Em curso ─── */}
       <ChapterMark roman="I" title="Em curso"
-                   caption={`${METAS.length} metas com aporte regular`}
-                   action={<button className="stu-link"><Icon.Plus size={12}/> Nova meta</button>}/>
-      <div className="met-grid">
-        {computed.map(m => {
+                   caption={`${localMetas.length} metas com aporte regular`}
+                   action={<button className="stu-link" onClick={() => setAddMetaOpen(true)}><Icon.Plus size={12}/> Nova meta</button>}/>
+      <div className="met-grid" data-od-id="met-grid">
+        {computed.map((m) => {
           const aporteOk = m.atual >= m.aporteEsperado * 0.9;
           return (
             <div className="met-card" key={m.id}>
@@ -173,7 +245,7 @@ function MetasStudio({ onAdd }) {
       {/* ─── Capítulo II · Como acelerar ─── */}
       <ChapterMark roman="II" title="Como acelerar"
                    caption={`Sugestões inteligentes baseadas em ${lbl.long}`}/>
-      <div className="met-tips">
+      <div className="met-tips" data-od-id="met-dicas">
         {(() => {
           // Cada dica é { id, icon, color, title, desc, amt, cta }
           const tips = [];
@@ -249,7 +321,7 @@ function MetasStudio({ onAdd }) {
           // 5) Aumentar aporte se sobra > 0
           const receitas = monthTransactions.filter(t => t.val > 0).reduce((s,t) => s + t.val, 0);
           const despesas = monthTransactions.filter(t => t.val < 0).reduce((s,t) => s + Math.abs(t.val), 0);
-          const sobra = receitas - despesas - METAS.reduce((s,m) => s + m.contribuicao, 0);
+          const sobra = receitas - despesas - localMetas.reduce((s,m) => s + m.contribuicao, 0);
           if (sobra > 200 && tips.length < 3) {
             tips.push({
               id: 'aporte',
@@ -285,7 +357,7 @@ function MetasStudio({ onAdd }) {
       {/* ─── Capítulo III · Já atingidas ─── */}
       <ChapterMark roman="III" title="Já atingidas"
                    caption="Suas conquistas — para lembrar"/>
-      <div className="stu-card met-done">
+      <div className="stu-card met-done" data-od-id="met-concluidas">
         {METAS_ATINGIDAS.length === 0 ? (
           <div className="met-done-empty">Nenhuma meta concluída ainda. A primeira está chegando!</div>
         ) : (

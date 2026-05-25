@@ -1,6 +1,7 @@
 // fides-claude.jsx — Assistente conversacional com Claude
-// Usa fetch direto à API Anthropic. Injeta resumo do mês selecionado
-// como contexto pro modelo dar conselhos relevantes.
+// Usa window.claude.complete (haiku 4.5, 1024 tokens). Injeta resumo
+// do mês selecionado como contexto pro modelo dar conselhos relevantes.
+// parseTxJson: detecta JSON de transação sugerida e oferece confirmação.
 
 function FidesAssistant() {
   const { assistantOpen, closeAssistant, monthTransactions, spendByCategory, budgetGroups, selectedMonth, monthLabel, addTransaction } = useFides();
@@ -70,7 +71,7 @@ Preencha os campos com os dados interpretados da mensagem. O campo "tipo" deve s
 
 Quando o usuário perguntar se deve comprar algo no crédito ou débito, analise o saldo disponível em conta, o limite disponível no cartão e a proximidade do vencimento da fatura. Recomende a opção mais vantajosa com justificativa objetiva, comparando os valores reais das contas e cartões do contexto.`;
 
-  // Detecta e extrai JSON de transação da resposta do modelo
+  // ─── Detecta e extrai JSON de transação da resposta do modelo ─
   const parseTxJson = (text) => {
     try {
       const match = text.match(/\{"acao"\s*:\s*"lancar_transacao"[^}]*\}/);
@@ -84,17 +85,6 @@ Quando o usuário perguntar se deve comprar algo no crédito ou débito, analise
     if (!question || thinking) return;
     setInput('');
     setError(null);
-
-    // Verifica chave da API
-    const apiKey = window.FIDES_CLAUDE_KEY;
-    if (!apiKey) {
-      setMessages(prev => [...prev,
-        { role: 'user', content: question, ts: Date.now() },
-        { role: 'assistant', content: 'Configure sua chave da API Anthropic em window.FIDES_CLAUDE_KEY para ativar o assistente.', ts: Date.now() },
-      ]);
-      return;
-    }
-
     const userMsg = { role: 'user', content: question, ts: Date.now() };
     setMessages(prev => [...prev, userMsg]);
     setThinking(true);
@@ -104,39 +94,17 @@ Quando o usuário perguntar se deve comprar algo no crédito ou débito, analise
         role: m.role, content: m.content,
       }));
       const ctx = buildContext();
-      // Injeta contexto como primeira troca para não poluir o system prompt repetindo
-      const apiMessages = [
-        { role: 'user', content: `[contexto financeiro do usuário]\n${ctx}\n\nA partir daqui, responda as perguntas do usuário.` },
-        { role: 'assistant', content: 'Entendido. Estou pronto para responder com base nesses dados.' },
-        ...history,
-      ];
-
-      const res = await fetch('https://api.anthropic.com/v1/messages', {
-        method: 'POST',
-        headers: {
-          'x-api-key': apiKey,
-          'anthropic-version': '2023-06-01',
-          'content-type': 'application/json',
-        },
-        body: JSON.stringify({
-          model: 'claude-opus-4-5',
-          max_tokens: 1024,
-          system: SYSTEM,
-          messages: apiMessages,
-        }),
+      const reply = await window.claude.complete({
+        messages: [
+          { role: 'user', content: `[contexto] ${ctx}\n\n[instruções do sistema] ${SYSTEM}\n\nA partir daqui é a conversa.` },
+          { role: 'assistant', content: 'Entendi. Vou responder com base nesses dados.' },
+          ...history,
+        ],
       });
 
-      if (!res.ok) {
-        const errBody = await res.json().catch(() => ({}));
-        throw new Error(errBody?.error?.message || `Erro HTTP ${res.status}`);
-      }
-
-      const data = await res.json();
-      const reply = data?.content?.[0]?.text || '';
-
-      // Tenta parsear JSON de transação
+      // Tenta parsear JSON de transação sugerida pelo modelo
       const txJson = parseTxJson(reply);
-      // Remove a linha JSON da exibição, deixando só o texto
+      // Remove a linha JSON da exibição, deixando só o texto em prosa
       const displayText = reply.replace(/\{"acao"\s*:\s*"lancar_transacao"[^}]*\}\n?/, '').trim();
 
       setMessages(prev => [...prev, {
@@ -166,7 +134,7 @@ Quando o usuário perguntar se deve comprar algo no crédito ou débito, analise
       <aside className="cla-panel" role="dialog" aria-label="Assistente Fides">
         <header className="cla-head">
           <div className="cla-head-l">
-            <div className="cla-head-mark"><FidesMark size={16}/></div>
+            <div className="cla-head-mark"><Icon.Sparkles size={16}/></div>
             <div>
               <div className="cla-head-eyebrow">Conversar com</div>
               <div className="cla-head-title">Assistente Fides</div>
@@ -186,7 +154,7 @@ Quando o usuário perguntar se deve comprar algo no crédito ou débito, analise
           {messages.map((m, i) => (
             <div key={i} className={`cla-msg cla-msg-${m.role}`}>
               {m.role === 'assistant' && (
-                <div className="cla-msg-avatar"><FidesMark size={16}/></div>
+                <div className="cla-msg-avatar"><Icon.Sparkles size={12}/></div>
               )}
               <div className="cla-msg-bubble">
                 {m.content.split('\n').map((line, j) => (
@@ -231,7 +199,7 @@ Quando o usuário perguntar se deve comprar algo no crédito ou débito, analise
           ))}
           {thinking && (
             <div className="cla-msg cla-msg-assistant">
-              <div className="cla-msg-avatar"><FidesMark size={12}/></div>
+              <div className="cla-msg-avatar"><Icon.Sparkles size={12}/></div>
               <div className="cla-msg-bubble cla-thinking">
                 <span/><span/><span/>
               </div>
@@ -280,8 +248,8 @@ function FidesAssistantFAB() {
   const { openAssistant, assistantOpen } = useFides();
   if (assistantOpen) return null;
   return (
-    <button className="cla-fab" onClick={openAssistant} title="Conversar com o Fides">
-      <FidesMark size={20}/>
+    <button className="cla-fab" onClick={openAssistant} title="Conversar com o Fides (Claude)">
+      <Icon.Sparkles size={20}/>
       <span className="cla-fab-pulse"/>
     </button>
   );

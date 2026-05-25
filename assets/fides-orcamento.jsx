@@ -4,7 +4,7 @@
 // Reuses ProgressBar from fides-charts, tokens from fides-studio.css
 
 function OrcamentoStudio({ onAdd }) {
-  const { transactions, monthTransactions, categories, budgetGroups, plannedOverrides, setPlanned, openCategoryModal, selectedMonth, monthLabel } = useFides();
+  const { transactions, categories, budgetGroups, plannedOverrides, setPlanned, openCategoryModal, selectedMonth, monthLabel } = useFides();
   const lbl = monthLabel(selectedMonth);
   const [showHelp, setShowHelp] = React.useState(false);
 
@@ -16,6 +16,7 @@ function OrcamentoStudio({ onAdd }) {
   }, { planned: 0, spent: 0 });
   const pctSpent = totals.planned ? totals.spent / totals.planned : 0;
   const sobra = totals.planned - totals.spent;
+  const hasSpend = totals.spent > 0; // false → Capítulo II mostra empty state
   // crude projection: current burn extrapolated to end of month
   const dayOfMonth = 16, daysInMonth = 31;
   const projecaoFinal = totals.spent * (daysInMonth / dayOfMonth);
@@ -36,9 +37,9 @@ function OrcamentoStudio({ onAdd }) {
   ];
 
   return (
-    <div className="fds-page stu-page">
+    <div className="fds-page stu-page" data-od-id="orcamento">
       {/* ─── Editorial hero ─── */}
-      <section className="stu-hero">
+      <section className="stu-hero" data-od-id="orc-hero">
         <div className="stu-hero-eyebrow">
           <Icon.Pie size={11}/>
           planejamento · 50·30·20 · {lbl.long}
@@ -56,7 +57,7 @@ function OrcamentoStudio({ onAdd }) {
           Até hoje, comprometeu <strong className="stu-num">R$&nbsp;{totals.spent.toLocaleString('pt-BR',{minimumFractionDigits:2})}</strong> — {(pctSpent*100).toFixed(0)}% do total. No ritmo atual, fechará Maio em <strong className="stu-num">R$&nbsp;{Math.round(projecaoFinal).toLocaleString('pt-BR')}</strong>, sobrando <span className="stu-pos">R$&nbsp;{Math.round(sobraProjetada).toLocaleString('pt-BR')}</span>. <em>Dívidas estouraram 25% acima do limite</em> — Ádria pesa.
         </p>
 
-        <div className="stu-hero-strip">
+        <div className="stu-hero-strip" data-od-id="orc-hero-strip">
           <div className="stu-metric">
             <div className="stu-metric-lbl">Planejado</div>
             <div className="stu-metric-val">{fmtBRL(totals.planned)}</div>
@@ -90,7 +91,7 @@ function OrcamentoStudio({ onAdd }) {
       </section>
 
       {/* ─── Info: como o crédito conta no Planejamento ─── */}
-      <div className={`pln-info-banner${showHelp ? ' expanded' : ''}`}>
+      <div className={`pln-info-banner${showHelp ? ' expanded' : ''}`} data-od-id="orc-info-banner">
         <div className="pln-info-icon"><Icon.Sparkles size={16}/></div>
         <div className="pln-info-body">
           <div className="pln-info-title">
@@ -113,7 +114,7 @@ function OrcamentoStudio({ onAdd }) {
       {/* ─── Capítulo I · A regra ─── */}
       <ChapterMark roman="I" title="A regra 50·30·20"
                    caption="Como seu plano se divide entre essencial, estilo e dívidas"/>
-      <div className="orc-rule">
+      <div className="orc-rule" data-od-id="orc-regra-502030">
         {budgetGroups.map((g, idx) => {
           const tint = g.id === 'essencial' ? 'var(--ok)' : g.id === 'estilo' ? 'var(--info)' : 'var(--bad)';
           const pct = g.limit ? g.spent / g.limit : 0;
@@ -146,11 +147,22 @@ function OrcamentoStudio({ onAdd }) {
         })}
       </div>
 
-      {/* ─── Capítulo II · Por categoria ─── */}
+      {/* ─── Capítulo II · Por categoria — ou empty state se sem gastos ─── */}
       <ChapterMark roman="II" title="Por categoria"
                    caption="Clique no valor planejado para editar · clique na linha para ver as transações"
                    action={<button className="stu-link" onClick={openCategoryModal}><Icon.Plus size={12}/> Gerenciar categorias</button>}/>
-      <div className="stu-card orc-cats">
+      {!hasSpend ? (
+        <div className="fds-empty-state">
+          <div className="fds-empty-state-icon">🗂️</div>
+          <h2 className="fds-empty-state-title">
+            Sem gastos registrados para planejar este mês.
+          </h2>
+          <p className="fds-empty-state-lede">
+            Adicione uma despesa e ela aparecerá aqui distribuída por categoria.
+          </p>
+        </div>
+      ) : (
+      <div className="stu-card orc-cats" data-od-id="orc-categorias">
         <div className="orc-cats-head">
           <div>Categoria</div>
           <div>Planejado</div>
@@ -178,7 +190,7 @@ function OrcamentoStudio({ onAdd }) {
                 const over = pct > 1;
                 const isEditing = editing === c.cat;
                 const isExpanded = expanded === c.cat;
-                const txs = monthTransactions.filter(t => t.cat === c.cat);
+                const txs = transactions.filter(t => t.cat === c.cat);
                 return (
                   <React.Fragment key={c.cat}>
                     <div className={`orc-cat-row ${isExpanded ? 'expanded' : ''}`}
@@ -230,11 +242,11 @@ function OrcamentoStudio({ onAdd }) {
                     {isExpanded && (
                       <div className="orc-cat-detail">
                         {txs.length === 0 ? (
-                          <div className="orc-cat-empty">Nenhuma transação em {lbl.long.split(' de ')[0].toLowerCase()} para {cat.label}.</div>
+                          <div className="orc-cat-empty">Nenhuma transação em maio para {cat.label}.</div>
                         ) : (
                           <>
                             <div className="orc-cat-detail-head">
-                              {txs.length} {txs.length === 1 ? 'transação' : 'transações'} em {lbl.long.split(' de ')[0].toLowerCase()} · {fmtBRL(c.spent)}
+                              {txs.length} {txs.length === 1 ? 'transação' : 'transações'} em maio · {fmtBRL(c.spent)}
                             </div>
                             <div className="orc-cat-detail-list">
                               {txs.map((t, i) => {
@@ -266,16 +278,27 @@ function OrcamentoStudio({ onAdd }) {
           );
         })}
       </div>
+      )}
 
       {/* ─── Capítulo III · Comparação ─── */}
       <ChapterMark roman="III" title="Plano vs. realizado"
                    caption="Últimos 6 meses · barras escuras = realizado, claras = planejado"
                    action={<div className="orc-legend">
-                     <span><span className="orc-legend-dot plan"/>Planejado</span>
-                     <span><span className="orc-legend-dot real"/>Realizado</span>
-                     <span><span className="orc-legend-dot over"/>Estourado</span>
+                     <span className="orc-legend-item">
+                       <span className="orc-legend-dot plan"/>
+                       Planejado
+                     </span>
+                     <span className="orc-legend-item">
+                       <span className="orc-legend-dot real"/>
+                       Realizado
+                     </span>
+                     <span className="orc-legend-item">
+                       <span className="orc-legend-dot over"/>
+                       Estourado
+                     </span>
                    </div>}/>
-      <div className="stu-card orc-history">
+      <div className="stu-card orc-history" data-od-id="orc-historico">
+        <div className="orc-history-wrap">
         <div className="orc-history-grid">
           {history.map(h => {
             const max = Math.max(...history.flatMap(x => [x.plan, x.real])) * 1.1;
@@ -304,6 +327,7 @@ function OrcamentoStudio({ onAdd }) {
             );
           })}
         </div>
+        </div>{/* /orc-history-wrap */}
         <div className="orc-history-foot">
           <div className="orc-history-foot-stat">
             <div className="orc-history-foot-lbl">Média realizado</div>
