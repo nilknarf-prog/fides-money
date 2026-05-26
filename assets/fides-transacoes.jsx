@@ -424,7 +424,7 @@ function Transacoes({ variant, onAdd }) {
               )}
             </div>
           </div>
-          <div className="fds-tx-search">
+          <div className="fds-tx-search" style={{ order: 2 }}>
             <Icon.Search size={14} style={{ opacity: 0.5 }}/>
             <input placeholder="Buscar descrição, valor, categoria…"
                    value={search} onChange={(e) => setSearch(e.target.value)}/>
@@ -434,6 +434,8 @@ function Transacoes({ variant, onAdd }) {
           {/* ── Importar / Exportar ── */}
           <div style={{
             display: 'flex', gap: 8,
+            width: '100%',
+            order: 3,
             borderTop: '1px solid var(--border)',
             paddingTop: 10, marginTop: 2
           }}>
