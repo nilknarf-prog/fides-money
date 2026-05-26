@@ -678,8 +678,50 @@ img, svg, video { max-width: 100%; height: auto; }
   /* Menu ⋯ + campo de busca compartilham a linha — busca expande */
   .fds-tx-search { flex: 1; min-width: 0; }
 
-  /* Chips: wrap normal */
-  .fds-tx-chips { flex-wrap: wrap; }
+  /* Segunda linha dos filtros: chips em cima (full-width), busca + ⋯ embaixo */
+  .fds-tx-filter-row:nth-child(2) {
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+  .fds-tx-filter-row:nth-child(2) .fds-tx-chips {
+    width: 100%;
+    order: 1;
+  }
+  .fds-tx-filter-row:nth-child(2) .fds-tx-search {
+    order: 2;
+    flex: 1;
+    min-width: 0;
+  }
+  .fds-tx-filter-row:nth-child(2) > div[style*="inline-flex"] {
+    order: 2;
+    flex-shrink: 0;
+  }
+
+  /* Dropdown de ações (⋯) — ancorado no rodapé no mobile */
+  .fds-actions-dd {
+    position: fixed !important;
+    top: auto !important;
+    bottom: calc(56px + env(safe-area-inset-bottom, 0px) + 8px);
+    right: 12px;
+    left: 12px;
+    width: auto !important;
+    min-width: unset !important;
+    border-radius: 16px;
+    z-index: 9999;
+    box-shadow: 0 -4px 24px -4px rgba(15,26,20,0.18);
+  }
+
+  /* Chips: linha única com scroll horizontal (mesmo padrão dos meses) */
+  .fds-tx-chips {
+    flex-wrap: nowrap;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: none;
+    gap: 6px;
+    width: 100%;
+  }
+  .fds-tx-chips::-webkit-scrollbar { display: none; }
+  .fds-chip-sep { display: none; }
 
   /* ── 15. ORCAMENTO CATEGORIAS: layout de card adaptativo ──── */
   /* Remove o scroll horizontal com min-width fixo.

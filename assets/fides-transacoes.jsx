@@ -380,37 +380,45 @@ function Transacoes({ variant, onAdd }) {
               <Icon.Dots size={16}/>
             </button>
             {actionsOpen && (
-              <div style={{
-                position: 'absolute', top: 'calc(100% + 6px)', right: 0,
-                background: 'var(--card)', border: '1px solid var(--border)',
-                borderRadius: 12, padding: '4px 0', minWidth: 160,
-                boxShadow: '0 8px 24px -4px rgba(15,26,20,0.14)', zIndex: 200
-              }}
-                   onClick={(e) => e.stopPropagation()}
-                   onTouchStart={(e) => e.stopPropagation()}>
-                <button
-                  style={{ display: 'flex', alignItems: 'center', gap: 8,
-                           width: '100%', padding: '10px 14px', border: 'none',
-                           background: 'none', cursor: 'pointer', fontSize: 13,
-                           color: 'var(--ink)', fontFamily: 'inherit',
-                           touchAction: 'manipulation', WebkitTapHighlightColor: 'transparent',
-                           minHeight: 44 }}
-                  onClick={() => { setActionsOpen(false); handleExport(); }}
-                  onTouchEnd={(e) => { e.preventDefault(); setActionsOpen(false); handleExport(); }}>
-                  <Icon.Export size={14}/> Exportar CSV
-                </button>
-                <button
-                  style={{ display: 'flex', alignItems: 'center', gap: 8,
-                           width: '100%', padding: '10px 14px', border: 'none',
-                           background: 'none', cursor: 'pointer', fontSize: 13,
-                           color: 'var(--ink)', fontFamily: 'inherit',
-                           touchAction: 'manipulation', WebkitTapHighlightColor: 'transparent',
-                           minHeight: 44 }}
-                  onClick={() => { setActionsOpen(false); handleImport(); }}
-                  onTouchEnd={(e) => { e.preventDefault(); setActionsOpen(false); handleImport(); }}>
-                  <Icon.Import size={14}/> Importar CSV
-                </button>
-              </div>
+              <>
+                {/* Backdrop — fecha ao tocar fora */}
+                <div
+                  style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.2)', zIndex: 9998 }}
+                  onMouseDown={() => setActionsOpen(false)}
+                  onTouchStart={() => setActionsOpen(false)}
+                />
+                <div className="fds-actions-dd" style={{
+                  position: 'absolute', top: 'calc(100% + 6px)', right: 0,
+                  background: 'var(--card)', border: '1px solid var(--border)',
+                  borderRadius: 12, padding: '4px 0', minWidth: 160,
+                  boxShadow: '0 8px 24px -4px rgba(15,26,20,0.14)', zIndex: 9999
+                }}
+                     onClick={(e) => e.stopPropagation()}
+                     onTouchStart={(e) => e.stopPropagation()}>
+                  <button
+                    style={{ display: 'flex', alignItems: 'center', gap: 8,
+                             width: '100%', padding: '10px 14px', border: 'none',
+                             background: 'none', cursor: 'pointer', fontSize: 13,
+                             color: 'var(--ink)', fontFamily: 'inherit',
+                             touchAction: 'manipulation', WebkitTapHighlightColor: 'transparent',
+                             minHeight: 44 }}
+                    onClick={() => { setActionsOpen(false); handleExport(); }}
+                    onTouchEnd={(e) => { e.preventDefault(); setActionsOpen(false); handleExport(); }}>
+                    <Icon.Export size={14}/> Exportar CSV
+                  </button>
+                  <button
+                    style={{ display: 'flex', alignItems: 'center', gap: 8,
+                             width: '100%', padding: '10px 14px', border: 'none',
+                             background: 'none', cursor: 'pointer', fontSize: 13,
+                             color: 'var(--ink)', fontFamily: 'inherit',
+                             touchAction: 'manipulation', WebkitTapHighlightColor: 'transparent',
+                             minHeight: 44 }}
+                    onClick={() => { setActionsOpen(false); handleImport(); }}
+                    onTouchEnd={(e) => { e.preventDefault(); setActionsOpen(false); handleImport(); }}>
+                    <Icon.Import size={14}/> Importar CSV
+                  </button>
+                </div>
+              </>
             )}
           </div>
 
