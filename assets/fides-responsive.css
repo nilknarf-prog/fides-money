@@ -989,4 +989,17 @@ img, svg, video { max-width: 100%; height: auto; }
 
   /* Masthead title: tighter at 480px */
   .stu-mast-l { max-width: calc(100vw - 70px); }
+
+  /* ── Touch-action: elimina delay 300ms em botões iOS ──── */
+  .fds-icon-btn,
+  .stu-mast-add,
+  .stu-mast-title-btn,
+  .fds-sb-slim-item,
+  .fds-tabs button,
+  .fds-btn,
+  .fds-modal button {
+    touch-action: manipulation;
+    -webkit-tap-highlight-color: transparent;
+    cursor: pointer;
+  }
 }
