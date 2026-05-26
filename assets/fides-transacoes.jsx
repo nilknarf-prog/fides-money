@@ -1,7 +1,7 @@
 // fides-transacoes.jsx — Transações list + filters + Nova Transação modal
 
 function Transacoes({ variant, onAdd }) {
-  const { monthTransactions, transactions, categories, selectedMonth, setSelectedMonth, monthLabel, updateTransaction, deleteTransaction } = useFides();
+  const { monthTransactions, transactions, categories, selectedMonth, setSelectedMonth, monthLabel, addTransaction, updateTransaction, deleteTransaction } = useFides();
   const [selectedMonthChip, setSelectedMonthChip] = React.useState(null);
   const [filter, setFilter] = React.useState('todas');
   const [catFilter, setCatFilter] = React.useState(null);    // category key or null
@@ -20,10 +20,13 @@ function Transacoes({ variant, onAdd }) {
   const [recurFilter, setRecurFilter] = React.useState(null);
   const [recurDropdownOpen, setRecurDropdownOpen] = React.useState(false);
 
+  const [actionsOpen, setActionsOpen] = React.useState(false);
+
   // Refs para fechar apenas o dropdown cujo toque foi fora
-  const catDdRef   = React.useRef(null);
-  const acctDdRef  = React.useRef(null);
-  const recurDdRef = React.useRef(null);
+  const catDdRef     = React.useRef(null);
+  const acctDdRef    = React.useRef(null);
+  const recurDdRef   = React.useRef(null);
+  const actionsDdRef = React.useRef(null);
 
   const lbl = monthLabel(selectedMonth);
 
@@ -31,9 +34,10 @@ function Transacoes({ variant, onAdd }) {
   React.useEffect(() => {
     const handler = (e) => {
       setRowMenu(null);
-      if (catDdRef.current  && !catDdRef.current.contains(e.target))  setCatDropdownOpen(false);
-      if (acctDdRef.current && !acctDdRef.current.contains(e.target)) setAcctDropdownOpen(false);
-      if (recurDdRef.current && !recurDdRef.current.contains(e.target)) setRecurDropdownOpen(false);
+      if (catDdRef.current     && !catDdRef.current.contains(e.target))     setCatDropdownOpen(false);
+      if (acctDdRef.current    && !acctDdRef.current.contains(e.target))    setAcctDropdownOpen(false);
+      if (recurDdRef.current   && !recurDdRef.current.contains(e.target))   setRecurDropdownOpen(false);
+      if (actionsDdRef.current && !actionsDdRef.current.contains(e.target)) setActionsOpen(false);
     };
     document.addEventListener('mousedown', handler);
     document.addEventListener('touchstart', handler, { passive: true });
@@ -62,6 +66,79 @@ function Transacoes({ variant, onAdd }) {
 
   const visible = filtered.slice(0, visibleCount);
   const hasMore = visible.length < filtered.length && visibleCount < 100;
+
+  // ── Exportar CSV ─────────────────────────────────────────────
+  const handleExport = React.useCallback(() => {
+    const headers = ['Data','Descrição','Categoria','Conta','Valor','Status','Recorrência'];
+    const rows = filtered.map(t => {
+      const catLabel = categories[t.cat]?.label || t.cat || '';
+      const acctName = ACCOUNTS.find(a => a.id === t.acct)?.name || t.acct || '';
+      const val = t.val.toFixed(2).replace('.', ',');
+      return [
+        t.d || '',
+        `"${(t.desc || '').replace(/"/g, '""')}"`,
+        catLabel,
+        acctName,
+        val,
+        t.status || '',
+        t.recur  || ''
+      ].join(';');
+    });
+    const csv = [headers.join(';'), ...rows].join('\n');
+    const blob = new Blob(['﻿' + csv], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `fides-transacoes-${selectedMonth}.csv`;
+    a.click();
+    URL.revokeObjectURL(url);
+  }, [filtered, categories, selectedMonth]);
+
+  // ── Importar CSV ──────────────────────────────────────────────
+  const handleImport = React.useCallback(() => {
+    const input = document.createElement('input');
+    input.type = 'file';
+    input.accept = '.csv,text/csv';
+    input.onchange = (e) => {
+      const file = e.target.files?.[0];
+      if (!file) return;
+      const reader = new FileReader();
+      reader.onload = (ev) => {
+        const text = ev.target.result;
+        const lines = text.split(/\r?\n/).filter(Boolean);
+        if (lines.length < 2) { alert('CSV vazio ou sem dados.'); return; }
+        const sep = lines[0].includes(';') ? ';' : ',';
+        let imported = 0, errors = 0;
+        lines.slice(1).forEach(line => {
+          const cols = line.split(sep).map(c => c.replace(/^"|"$/g, '').trim());
+          const [d, desc, cat, acctName, valStr, status, recur] = cols;
+          if (!desc || !valStr) { errors++; return; }
+          const valRaw = parseFloat(valStr.replace(',', '.'));
+          if (isNaN(valRaw)) { errors++; return; }
+          const acctObj = ACCOUNTS.find(a =>
+            a.name.toLowerCase() === (acctName || '').toLowerCase()
+          );
+          const catKey = Object.entries(categories).find(
+            ([, v]) => v.label.toLowerCase() === (cat || '').toLowerCase()
+          )?.[0] || 'outros';
+          addTransaction({
+            desc,
+            val: valRaw,
+            cat: catKey,
+            acct: acctObj?.id || ACCOUNTS[0]?.id,
+            d: d || new Date().toLocaleDateString('pt-BR'),
+            status: status === 'pago' ? 'pago' : 'pendente',
+            recur: recur || null,
+            mes: selectedMonth,
+          });
+          imported++;
+        });
+        alert(`${imported} transação(ões) importada(s)${errors > 0 ? `, ${errors} linha(s) ignorada(s)` : ''}.`);
+      };
+      reader.readAsText(file, 'UTF-8');
+    };
+    input.click();
+  }, [categories, addTransaction, selectedMonth]);
 
   const tot = {
     receitas: baseList.filter(t => t.val > 0).reduce((s,t) => s + t.val, 0),
@@ -129,10 +206,6 @@ function Transacoes({ variant, onAdd }) {
                 {m}
               </button>
             ))}
-          </div>
-          <div className="fds-tx-actions">
-            <button className="fds-btn-ghost"><Icon.Import size={14}/> Importar</button>
-            <button className="fds-btn-ghost"><Icon.Export size={14}/> Exportar</button>
           </div>
         </div>
         <div className="fds-tx-filter-row">
@@ -293,6 +366,54 @@ function Transacoes({ variant, onAdd }) {
               )}
             </div>
           </div>
+          {/* ── Menu Importar / Exportar ── */}
+          <div ref={actionsDdRef}
+               style={{ position: 'relative', display: 'inline-flex', flexShrink: 0 }}>
+            <button
+              title="Importar / Exportar"
+              style={{ touchAction: 'manipulation', WebkitTapHighlightColor: 'transparent',
+                       minHeight: 36, minWidth: 36, display: 'flex', alignItems: 'center',
+                       justifyContent: 'center', borderRadius: 8,
+                       border: '1px solid var(--border)', background: 'var(--card)',
+                       cursor: 'pointer', color: 'var(--ink-2)' }}
+              onClick={(e) => { e.stopPropagation(); setActionsOpen(v => !v); }}>
+              <Icon.Dots size={16}/>
+            </button>
+            {actionsOpen && (
+              <div style={{
+                position: 'absolute', top: 'calc(100% + 6px)', right: 0,
+                background: 'var(--card)', border: '1px solid var(--border)',
+                borderRadius: 12, padding: '4px 0', minWidth: 160,
+                boxShadow: '0 8px 24px -4px rgba(15,26,20,0.14)', zIndex: 200
+              }}
+                   onClick={(e) => e.stopPropagation()}
+                   onTouchStart={(e) => e.stopPropagation()}>
+                <button
+                  style={{ display: 'flex', alignItems: 'center', gap: 8,
+                           width: '100%', padding: '10px 14px', border: 'none',
+                           background: 'none', cursor: 'pointer', fontSize: 13,
+                           color: 'var(--ink)', fontFamily: 'inherit',
+                           touchAction: 'manipulation', WebkitTapHighlightColor: 'transparent',
+                           minHeight: 44 }}
+                  onClick={() => { setActionsOpen(false); handleExport(); }}
+                  onTouchEnd={(e) => { e.preventDefault(); setActionsOpen(false); handleExport(); }}>
+                  <Icon.Export size={14}/> Exportar CSV
+                </button>
+                <button
+                  style={{ display: 'flex', alignItems: 'center', gap: 8,
+                           width: '100%', padding: '10px 14px', border: 'none',
+                           background: 'none', cursor: 'pointer', fontSize: 13,
+                           color: 'var(--ink)', fontFamily: 'inherit',
+                           touchAction: 'manipulation', WebkitTapHighlightColor: 'transparent',
+                           minHeight: 44 }}
+                  onClick={() => { setActionsOpen(false); handleImport(); }}
+                  onTouchEnd={(e) => { e.preventDefault(); setActionsOpen(false); handleImport(); }}>
+                  <Icon.Import size={14}/> Importar CSV
+                </button>
+              </div>
+            )}
+          </div>
+
           <div className="fds-tx-search">
             <Icon.Search size={14} style={{ opacity: 0.5 }}/>
             <input placeholder="Buscar descrição, valor, categoria…"

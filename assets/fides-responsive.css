@@ -675,7 +675,8 @@ img, svg, video { max-width: 100%; height: auto; }
   .fds-tx-actions { flex-shrink: 0; }
 
   /* Search de transações: full width */
-  .fds-tx-search { width: 100%; min-width: 0; }
+  /* Menu ⋯ + campo de busca compartilham a linha — busca expande */
+  .fds-tx-search { flex: 1; min-width: 0; }
 
   /* Chips: wrap normal */
   .fds-tx-chips { flex-wrap: wrap; }
