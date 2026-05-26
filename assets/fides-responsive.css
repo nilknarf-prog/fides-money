@@ -468,32 +468,27 @@ img, svg, video { max-width: 100%; height: auto; }
   .fds-tx-kpis { grid-template-columns: 1fr 1fr; gap: 8px; }
 
   /* ── 14. TRANSACTION TABLE: card-layout mobile ────────────── */
-  /* Remove min-width que forçava 600px — layout block não precisa */
   .fds-tx-table { min-width: 0; }
-
-  /* Quebra o algoritmo de tabela nativo do browser */
   .fds-tx-table,
   .fds-tx-table tbody { display: block; width: 100%; }
-
-  /* Cabeçalhos de coluna ocultados — labels substituídas pelo layout visual */
   .fds-tx-table thead { display: none; }
 
-  /* Cada linha = card 2 linhas × 3 colunas
-     col1(32px) | col2(1fr)              | col3(auto)
-     ────────────────────────────────────────────────
-     checkbox   | descrição              | valor
-     —          | data (esq) status (dir)| ⋯ ações
+  /* Grid: 3 colunas × 2 linhas
+     col1(28px) | col2(1fr)          | col3(auto)
+     ─────────────────────────────────────────────
+     row1: checkbox | nome desc       | valor
+     row2: —        | cat + conta     | status
   */
   .fds-tx-table tbody tr {
     display: grid;
-    grid-template-columns: 32px 1fr auto;
+    grid-template-columns: 28px 1fr auto;
     grid-template-rows: auto auto;
-    column-gap: 10px;
-    row-gap: 3px;
+    column-gap: 8px;
+    row-gap: 2px;
     padding: 10px 12px;
     border-bottom: 1px solid var(--border);
     background: transparent;
-    align-items: center;
+    align-items: start;
   }
   .fds-tx-table tbody tr.sel {
     background: color-mix(in oklab, var(--accent-soft) 50%, var(--card));
@@ -507,71 +502,119 @@ img, svg, video { max-width: 100%; height: auto; }
     vertical-align: unset;
   }
 
-  /* Checkbox — col1, abrange as 2 linhas */
+  /* col1 row1+2: checkbox centralizado */
   .fds-tx-table tbody td:nth-child(1) {
-    grid-column: 1; grid-row: 1 / 3;
-    display: flex; align-items: center; justify-content: center;
+    grid-column: 1;
+    grid-row: 1 / 3;
+    display: flex;
+    align-items: center;
+    justify-content: center;
     align-self: stretch;
+    padding-top: 2px;
   }
 
-  /* Data — col2, linha 2, texto muted — ancorado à esquerda da célula */
+  /* col2 row2: data — ocultar */
   .fds-tx-table tbody td:nth-child(2) {
-    grid-column: 2; grid-row: 2;
-    font-size: 11.5px; color: var(--muted);
-    align-self: center;
-    justify-self: start;
+    display: none;
   }
 
-  /* Descrição + emoji — col2, linha 1 */
+  /* col2 row1: descrição */
   .fds-tx-table tbody td:nth-child(3) {
-    grid-column: 2; grid-row: 1;
+    grid-column: 2;
+    grid-row: 1;
     min-width: 0;
     align-self: center;
+    padding-top: 1px;
   }
 
-  /* Categoria pill — oculto (emoji já visível no avatar da descrição) */
-  .fds-tx-table tbody td:nth-child(4) { display: none; }
+  /* col2 row2: categoria pill */
+  .fds-tx-table tbody td:nth-child(4) {
+    grid-column: 2;
+    grid-row: 2;
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    flex-wrap: nowrap;
+    min-width: 0;
+    overflow: hidden;
+  }
 
-  /* Conta pill — oculto */
-  .fds-tx-table tbody td:nth-child(5) { display: none; }
+  /* conta pill — ocultar (a categoria já identifica) */
+  .fds-tx-table tbody td:nth-child(5) {
+    display: none;
+  }
 
-  /* Status — col2, linha 2, ancorado à direita (divide célula com a data) */
+  /* col3 row2: status badge */
   .fds-tx-table tbody td:nth-child(6) {
-    grid-column: 2; grid-row: 2;
+    grid-column: 3;
+    grid-row: 2;
     align-self: center;
     justify-self: end;
-    display: flex; align-items: center;
+    display: flex;
+    align-items: center;
   }
 
-  /* Valor — col3, linha 1 */
+  /* col3 row1: valor */
   .fds-tx-table tbody td:nth-child(7) {
-    grid-column: 3; grid-row: 1;
-    text-align: right; white-space: nowrap;
-    font-size: 13px; align-self: center;
+    grid-column: 3;
+    grid-row: 1;
+    text-align: right;
+    white-space: nowrap;
+    font-size: 13px;
+    align-self: center;
+    font-weight: 600;
   }
 
-  /* Botão ações — col3, linha 2; sempre visível no mobile */
+  /* col3 row2 já tem status — ocultar botão ações */
   .fds-tx-table tbody td:nth-child(8) {
-    grid-column: 3; grid-row: 2;
-    display: flex; align-items: center; justify-content: flex-end;
-    min-width: 44px; min-height: 44px;
-  }
-  .fds-tx-table tbody td:nth-child(8) .fds-tx-row-act {
-    opacity: 1 !important;   /* no mobile sem hover — sempre visível */
-    width: 32px;
-    min-height: 44px;        /* touch target mínimo iOS/Android */
-    display: flex; align-items: center; justify-content: center;
-    border-radius: 8px;
+    display: none;
   }
 
-  /* Descrição: texto principal expande, tags quebram para linha 2 */
-  .fds-tx-desc { flex-wrap: wrap; gap: 4px 6px; align-items: center; }
+  /* Descrição: nome truncado, sem quebra */
+  .fds-tx-desc {
+    display: flex;
+    flex-wrap: nowrap;
+    align-items: center;
+    gap: 5px;
+    overflow: hidden;
+  }
   .fds-tx-desc-main {
-    flex: 1 1 auto;
-    min-width: 0;
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
+    font-size: 13px;
+    font-weight: 550;
+    flex-shrink: 1;
+    min-width: 0;
+  }
+
+  /* Pill de categoria: reduzida no mobile */
+  .fds-tx-table .fds-cat-pill {
+    font-size: 10.5px;
+    padding: 2px 7px;
+    white-space: nowrap;
+    max-width: 100px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    flex-shrink: 0;
+  }
+
+  /* Conta pill ao lado da categoria */
+  .fds-tx-table .fds-acct-pill {
+    font-size: 10.5px;
+    padding: 2px 7px;
+    white-space: nowrap;
+    max-width: 90px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    flex-shrink: 0;
+  }
+
+  /* Status: fonte menor no mobile */
+  .fds-tx-table .fds-status {
+    font-size: 10.5px;
+    padding: 2px 7px;
+    white-space: nowrap;
   }
 
   /* Filtros de transações */
