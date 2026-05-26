@@ -385,7 +385,7 @@ function Transacoes({ variant, onAdd }) {
                 <div
                   style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.2)', zIndex: 9998 }}
                   onMouseDown={() => setActionsOpen(false)}
-                  onTouchStart={() => setActionsOpen(false)}
+                  onTouchEnd={() => setActionsOpen(false)}
                 />
                 <div className="fds-actions-dd" style={{
                   position: 'absolute', top: 'calc(100% + 6px)', right: 0,
@@ -402,8 +402,7 @@ function Transacoes({ variant, onAdd }) {
                              color: 'var(--ink)', fontFamily: 'inherit',
                              touchAction: 'manipulation', WebkitTapHighlightColor: 'transparent',
                              minHeight: 44 }}
-                    onClick={() => { setActionsOpen(false); handleExport(); }}
-                    onTouchEnd={(e) => { e.preventDefault(); setActionsOpen(false); handleExport(); }}>
+                    onPointerUp={(e) => { e.stopPropagation(); setActionsOpen(false); handleExport(); }}>
                     <Icon.Export size={14}/> Exportar CSV
                   </button>
                   <button
@@ -413,8 +412,7 @@ function Transacoes({ variant, onAdd }) {
                              color: 'var(--ink)', fontFamily: 'inherit',
                              touchAction: 'manipulation', WebkitTapHighlightColor: 'transparent',
                              minHeight: 44 }}
-                    onClick={() => { setActionsOpen(false); handleImport(); }}
-                    onTouchEnd={(e) => { e.preventDefault(); setActionsOpen(false); handleImport(); }}>
+                    onPointerUp={(e) => { e.stopPropagation(); setActionsOpen(false); handleImport(); }}>
                     <Icon.Import size={14}/> Importar CSV
                   </button>
                 </div>
