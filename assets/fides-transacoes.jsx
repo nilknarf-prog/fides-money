@@ -424,48 +424,53 @@ function Transacoes({ variant, onAdd }) {
               )}
             </div>
           </div>
-          {/* ── Importar / Exportar ── */}
-          <button
-            title="Importar extrato"
-            onPointerUp={() => handleImport('csv')}
-            style={{
-              touchAction: 'manipulation',
-              WebkitTapHighlightColor: 'transparent',
-              minHeight: 44, minWidth: 44,
-              display: 'flex', alignItems: 'center', justifyContent: 'center',
-              borderRadius: 8,
-              border: '1px solid var(--border)',
-              background: 'var(--card)',
-              cursor: 'pointer',
-              color: 'var(--ink-2)',
-              flexShrink: 0
-            }}>
-            <Icon.Import size={16}/>
-          </button>
-
-          <button
-            title="Exportar extrato"
-            onPointerUp={() => handleExport('csv')}
-            style={{
-              touchAction: 'manipulation',
-              WebkitTapHighlightColor: 'transparent',
-              minHeight: 44, minWidth: 44,
-              display: 'flex', alignItems: 'center', justifyContent: 'center',
-              borderRadius: 8,
-              border: '1px solid var(--border)',
-              background: 'var(--card)',
-              cursor: 'pointer',
-              color: 'var(--ink-2)',
-              flexShrink: 0
-            }}>
-            <Icon.Export size={16}/>
-          </button>
-
           <div className="fds-tx-search">
             <Icon.Search size={14} style={{ opacity: 0.5 }}/>
             <input placeholder="Buscar descrição, valor, categoria…"
                    value={search} onChange={(e) => setSearch(e.target.value)}/>
             {search && <button onClick={() => setSearch('')}><Icon.X size={13}/></button>}
+          </div>
+
+          {/* ── Importar / Exportar ── */}
+          <div style={{
+            display: 'flex', gap: 8,
+            borderTop: '1px solid var(--border)',
+            paddingTop: 10, marginTop: 2
+          }}>
+            <button
+              onPointerUp={() => handleImport('csv')}
+              style={{
+                flex: 1,
+                touchAction: 'manipulation',
+                WebkitTapHighlightColor: 'transparent',
+                minHeight: 44,
+                display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 7,
+                borderRadius: 8,
+                border: '1px solid var(--border)',
+                background: 'var(--card)',
+                cursor: 'pointer',
+                color: 'var(--ink-2)',
+                fontSize: 13, fontFamily: 'inherit', fontWeight: 500
+              }}>
+              <Icon.Import size={15}/> Importar
+            </button>
+            <button
+              onPointerUp={() => handleExport('csv')}
+              style={{
+                flex: 1,
+                touchAction: 'manipulation',
+                WebkitTapHighlightColor: 'transparent',
+                minHeight: 44,
+                display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 7,
+                borderRadius: 8,
+                border: '1px solid var(--border)',
+                background: 'var(--card)',
+                cursor: 'pointer',
+                color: 'var(--ink-2)',
+                fontSize: 13, fontFamily: 'inherit', fontWeight: 500
+              }}>
+              <Icon.Export size={15}/> Exportar
+            </button>
           </div>
         </div>
       </section>
