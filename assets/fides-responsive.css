@@ -684,6 +684,7 @@ img, svg, video { max-width: 100%; height: auto; }
     gap: 8px;
   }
   .fds-tx-filter-row:nth-child(2) .fds-tx-chips {
+    flex: none;
     width: 100%;
     order: 1;
   }
@@ -713,6 +714,7 @@ img, svg, video { max-width: 100%; height: auto; }
 
   /* Chips: linha única com scroll horizontal (mesmo padrão dos meses) */
   .fds-tx-chips {
+    flex: none;                          /* anula flex:1 do base que sobrescreve width */
     flex-wrap: nowrap;
     overflow-x: auto;
     -webkit-overflow-scrolling: touch;
