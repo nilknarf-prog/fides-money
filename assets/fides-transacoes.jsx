@@ -15,13 +15,26 @@ function Transacoes({ variant, onAdd }) {
   const [bulkCatPicker, setBulkCatPicker] = React.useState(false);
   const [confirmDelete, setConfirmDelete] = React.useState(false);
   const [editingTx, setEditingTx] = React.useState(null);
+  const [acctFilter, setAcctFilter] = React.useState(null);
+  const [acctDropdownOpen, setAcctDropdownOpen] = React.useState(false);
+  const [recurFilter, setRecurFilter] = React.useState(null);
+  const [recurDropdownOpen, setRecurDropdownOpen] = React.useState(false);
   const lbl = monthLabel(selectedMonth);
 
-  // Close menus when clicking outside
+  // Close menus when clicking/touching outside
   React.useEffect(() => {
-    const close = () => { setRowMenu(null); setCatDropdownOpen(false); };
+    const close = () => {
+      setRowMenu(null);
+      setCatDropdownOpen(false);
+      setAcctDropdownOpen(false);
+      setRecurDropdownOpen(false);
+    };
     document.addEventListener('click', close);
-    return () => document.removeEventListener('click', close);
+    document.addEventListener('touchstart', close, { passive: true });
+    return () => {
+      document.removeEventListener('click', close);
+      document.removeEventListener('touchstart', close);
+    };
   }, []);
 
   const months = ['Jan','Fev','Mar','Abr','Mai','Jun','Jul','Ago','Set','Out','Nov','Dez'];
@@ -34,7 +47,9 @@ function Transacoes({ variant, onAdd }) {
     if (filter === 'receitas' && t.val < 0) return false;
     if (filter === 'despesas' && t.val > 0) return false;
     if (filter === 'pendentes' && t.status !== 'pendente') return false;
-    if (catFilter && t.cat !== catFilter) return false;
+    if (catFilter  && t.cat  !== catFilter)  return false;
+    if (acctFilter && t.acct !== acctFilter) return false;
+    if (recurFilter && t.recur !== recurFilter) return false;
     if (search && !t.desc.toLowerCase().includes(search.toLowerCase())) return false;
     return true;
   });
@@ -163,8 +178,102 @@ function Transacoes({ variant, onAdd }) {
                 </div>
               )}
             </div>
-            <button className="fds-chip"><Icon.Wallet size={13}/> Conta</button>
-            <button className="fds-chip"><Icon.Tag size={13}/> Etiquetas</button>
+            {/* ── Filtro de Conta ── */}
+            <div style={{ position: 'relative', display: 'inline-flex' }}>
+              <button
+                className={`fds-chip${acctFilter ? ' on' : ''}`}
+                style={{ touchAction: 'manipulation', WebkitTapHighlightColor: 'transparent' }}
+                onClick={(e) => { e.stopPropagation(); setAcctDropdownOpen(v => !v); setRecurDropdownOpen(false); }}>
+                <Icon.Wallet size={13}/>
+                {acctFilter
+                  ? (ACCOUNTS.find(a => a.id === acctFilter)?.name || acctFilter)
+                  : 'Conta'}
+                {acctFilter && (
+                  <span
+                    style={{ marginLeft: 4, opacity: 0.7, lineHeight: 1 }}
+                    onClick={(e) => { e.stopPropagation(); setAcctFilter(null); setAcctDropdownOpen(false); }}>
+                    ×
+                  </span>
+                )}
+              </button>
+              {acctDropdownOpen && (
+                <div className="fds-cat-picker-dd" onClick={(e) => e.stopPropagation()}>
+                  <div className="fds-cat-picker-head">Filtrar por conta</div>
+                  <button
+                    className={`fds-cat-picker-item${!acctFilter ? ' on' : ''}`}
+                    style={{ minHeight: 44, touchAction: 'manipulation', WebkitTapHighlightColor: 'transparent' }}
+                    onClick={() => { setAcctFilter(null); setAcctDropdownOpen(false); }}>
+                    <span style={{ width: 18, height: 18, display: 'inline-block' }}/>
+                    <span>Todas as contas</span>
+                    <span className="fds-chip-count">{baseList.length}</span>
+                  </button>
+                  {ACCOUNTS.map(a => {
+                    const cnt = baseList.filter(t => t.acct === a.id).length;
+                    if (cnt === 0) return null;
+                    return (
+                      <button
+                        key={a.id}
+                        className={`fds-cat-picker-item${acctFilter === a.id ? ' on' : ''}`}
+                        style={{ minHeight: 44, touchAction: 'manipulation', WebkitTapHighlightColor: 'transparent' }}
+                        onClick={() => { setAcctFilter(a.id); setAcctDropdownOpen(false); }}>
+                        <span style={{
+                          width: 14, height: 14, borderRadius: '50%',
+                          background: a.color, display: 'inline-block', flexShrink: 0
+                        }}/>
+                        <span>{a.name}</span>
+                        <span className="fds-chip-count">{cnt}</span>
+                      </button>
+                    );
+                  })}
+                </div>
+              )}
+            </div>
+
+            {/* ── Filtro de Recorrência ── */}
+            <div style={{ position: 'relative', display: 'inline-flex' }}>
+              <button
+                className={`fds-chip${recurFilter ? ' on' : ''}`}
+                style={{ touchAction: 'manipulation', WebkitTapHighlightColor: 'transparent' }}
+                onClick={(e) => { e.stopPropagation(); setRecurDropdownOpen(v => !v); setAcctDropdownOpen(false); }}>
+                <Icon.Tag size={13}/>
+                {recurFilter || 'Recorrência'}
+                {recurFilter && (
+                  <span
+                    style={{ marginLeft: 4, opacity: 0.7, lineHeight: 1 }}
+                    onClick={(e) => { e.stopPropagation(); setRecurFilter(null); setRecurDropdownOpen(false); }}>
+                    ×
+                  </span>
+                )}
+              </button>
+              {recurDropdownOpen && (
+                <div className="fds-cat-picker-dd" onClick={(e) => e.stopPropagation()}>
+                  <div className="fds-cat-picker-head">Filtrar por recorrência</div>
+                  <button
+                    className={`fds-cat-picker-item${!recurFilter ? ' on' : ''}`}
+                    style={{ minHeight: 44, touchAction: 'manipulation', WebkitTapHighlightColor: 'transparent' }}
+                    onClick={() => { setRecurFilter(null); setRecurDropdownOpen(false); }}>
+                    <span style={{ width: 18, height: 18, display: 'inline-block' }}/>
+                    <span>Todas</span>
+                    <span className="fds-chip-count">{baseList.length}</span>
+                  </button>
+                  {['mensal','semanal','anual','quinzenal'].map(r => {
+                    const cnt = baseList.filter(t => t.recur === r).length;
+                    if (cnt === 0) return null;
+                    return (
+                      <button
+                        key={r}
+                        className={`fds-cat-picker-item${recurFilter === r ? ' on' : ''}`}
+                        style={{ minHeight: 44, touchAction: 'manipulation', WebkitTapHighlightColor: 'transparent' }}
+                        onClick={() => { setRecurFilter(r); setRecurDropdownOpen(false); }}>
+                        <Icon.Refresh size={14}/>
+                        <span style={{ textTransform: 'capitalize' }}>{r}</span>
+                        <span className="fds-chip-count">{cnt}</span>
+                      </button>
+                    );
+                  })}
+                </div>
+              )}
+            </div>
           </div>
           <div className="fds-tx-search">
             <Icon.Search size={14} style={{ opacity: 0.5 }}/>
@@ -305,6 +414,24 @@ function Transacoes({ variant, onAdd }) {
           <div className="fds-muted">
             Mostrando <span className="fds-strong">{visible.length}</span> de {filtered.length}
             {filtered.length !== baseList.length && <> · {baseList.length} total em {lbl.long}</>}
+            {(acctFilter || recurFilter || catFilter || filter !== 'todas' || search) && (
+              <button
+                onClick={() => {
+                  setFilter('todas');
+                  setCatFilter(null);
+                  setAcctFilter(null);
+                  setRecurFilter(null);
+                  setSearch('');
+                }}
+                style={{
+                  marginLeft: 8, fontSize: 11, color: 'var(--muted)',
+                  background: 'none', border: 'none', cursor: 'pointer',
+                  textDecoration: 'underline', touchAction: 'manipulation',
+                  WebkitTapHighlightColor: 'transparent', padding: '2px 4px',
+                }}>
+                Limpar filtros
+              </button>
+            )}
           </div>
           <div className="fds-tx-pager">
             {hasMore ? (
