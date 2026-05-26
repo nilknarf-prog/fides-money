@@ -19,21 +19,27 @@ function Transacoes({ variant, onAdd }) {
   const [acctDropdownOpen, setAcctDropdownOpen] = React.useState(false);
   const [recurFilter, setRecurFilter] = React.useState(null);
   const [recurDropdownOpen, setRecurDropdownOpen] = React.useState(false);
+
+  // Refs para fechar apenas o dropdown cujo toque foi fora
+  const catDdRef   = React.useRef(null);
+  const acctDdRef  = React.useRef(null);
+  const recurDdRef = React.useRef(null);
+
   const lbl = monthLabel(selectedMonth);
 
-  // Close menus when clicking/touching outside
+  // Fecha dropdown somente se o toque/click foi FORA dele
   React.useEffect(() => {
-    const close = () => {
+    const handler = (e) => {
       setRowMenu(null);
-      setCatDropdownOpen(false);
-      setAcctDropdownOpen(false);
-      setRecurDropdownOpen(false);
+      if (catDdRef.current  && !catDdRef.current.contains(e.target))  setCatDropdownOpen(false);
+      if (acctDdRef.current && !acctDdRef.current.contains(e.target)) setAcctDropdownOpen(false);
+      if (recurDdRef.current && !recurDdRef.current.contains(e.target)) setRecurDropdownOpen(false);
     };
-    document.addEventListener('click', close);
-    document.addEventListener('touchstart', close, { passive: true });
+    document.addEventListener('mousedown', handler);
+    document.addEventListener('touchstart', handler, { passive: true });
     return () => {
-      document.removeEventListener('click', close);
-      document.removeEventListener('touchstart', close);
+      document.removeEventListener('mousedown', handler);
+      document.removeEventListener('touchstart', handler);
     };
   }, []);
 
@@ -142,7 +148,7 @@ function Transacoes({ variant, onAdd }) {
               </button>
             ))}
             <span className="fds-chip-sep"/>
-            <div style={{ position: 'relative', display: 'inline-flex' }}>
+            <div ref={catDdRef} style={{ position: 'relative', display: 'inline-flex' }}>
               <button className={`fds-chip${catFilter ? ' on' : ''}`}
                       onClick={(e) => { e.stopPropagation(); setCatDropdownOpen(v => !v); }}>
                 <Icon.Filter size={13}/>
@@ -155,10 +161,13 @@ function Transacoes({ variant, onAdd }) {
                 )}
               </button>
               {catDropdownOpen && (
-                <div className="fds-cat-picker-dd" onClick={(e) => e.stopPropagation()}>
+                <div className="fds-cat-picker-dd"
+                     onClick={(e) => e.stopPropagation()}
+                     onTouchStart={(e) => e.stopPropagation()}>
                   <div className="fds-cat-picker-head">Filtrar por categoria</div>
                   <button className={`fds-cat-picker-item${!catFilter ? ' on' : ''}`}
-                          onClick={() => { setCatFilter(null); setCatDropdownOpen(false); }}>
+                          onClick={() => { setCatFilter(null); setCatDropdownOpen(false); }}
+                          onTouchEnd={(e) => { e.preventDefault(); e.currentTarget.click(); }}>
                     <span style={{ width: 18, height: 18, display: 'inline-block' }}/>
                     <span>Todas as categorias</span>
                     <span className="fds-chip-count">{baseList.length}</span>
@@ -168,7 +177,8 @@ function Transacoes({ variant, onAdd }) {
                     const cnt = baseList.filter(t => t.cat === k).length;
                     return (
                       <button key={k} className={`fds-cat-picker-item${catFilter === k ? ' on' : ''}`}
-                              onClick={() => { setCatFilter(k); setCatDropdownOpen(false); }}>
+                              onClick={() => { setCatFilter(k); setCatDropdownOpen(false); }}
+                              onTouchEnd={(e) => { e.preventDefault(); e.currentTarget.click(); }}>
                         <CategoryAvatar cat={k} size={18}/>
                         <span>{c.label}</span>
                         <span className="fds-chip-count">{cnt}</span>
@@ -179,7 +189,7 @@ function Transacoes({ variant, onAdd }) {
               )}
             </div>
             {/* ── Filtro de Conta ── */}
-            <div style={{ position: 'relative', display: 'inline-flex' }}>
+            <div ref={acctDdRef} style={{ position: 'relative', display: 'inline-flex' }}>
               <button
                 className={`fds-chip${acctFilter ? ' on' : ''}`}
                 style={{ touchAction: 'manipulation', WebkitTapHighlightColor: 'transparent' }}
@@ -197,12 +207,15 @@ function Transacoes({ variant, onAdd }) {
                 )}
               </button>
               {acctDropdownOpen && (
-                <div className="fds-cat-picker-dd" onClick={(e) => e.stopPropagation()}>
+                <div className="fds-cat-picker-dd"
+                     onClick={(e) => e.stopPropagation()}
+                     onTouchStart={(e) => e.stopPropagation()}>
                   <div className="fds-cat-picker-head">Filtrar por conta</div>
                   <button
                     className={`fds-cat-picker-item${!acctFilter ? ' on' : ''}`}
                     style={{ minHeight: 44, touchAction: 'manipulation', WebkitTapHighlightColor: 'transparent' }}
-                    onClick={() => { setAcctFilter(null); setAcctDropdownOpen(false); }}>
+                    onClick={() => { setAcctFilter(null); setAcctDropdownOpen(false); }}
+                    onTouchEnd={(e) => { e.preventDefault(); e.currentTarget.click(); }}>
                     <span style={{ width: 18, height: 18, display: 'inline-block' }}/>
                     <span>Todas as contas</span>
                     <span className="fds-chip-count">{baseList.length}</span>
@@ -215,7 +228,8 @@ function Transacoes({ variant, onAdd }) {
                         key={a.id}
                         className={`fds-cat-picker-item${acctFilter === a.id ? ' on' : ''}`}
                         style={{ minHeight: 44, touchAction: 'manipulation', WebkitTapHighlightColor: 'transparent' }}
-                        onClick={() => { setAcctFilter(a.id); setAcctDropdownOpen(false); }}>
+                        onClick={() => { setAcctFilter(a.id); setAcctDropdownOpen(false); }}
+                        onTouchEnd={(e) => { e.preventDefault(); e.currentTarget.click(); }}>
                         <span style={{
                           width: 14, height: 14, borderRadius: '50%',
                           background: a.color, display: 'inline-block', flexShrink: 0
@@ -230,7 +244,7 @@ function Transacoes({ variant, onAdd }) {
             </div>
 
             {/* ── Filtro de Recorrência ── */}
-            <div style={{ position: 'relative', display: 'inline-flex' }}>
+            <div ref={recurDdRef} style={{ position: 'relative', display: 'inline-flex' }}>
               <button
                 className={`fds-chip${recurFilter ? ' on' : ''}`}
                 style={{ touchAction: 'manipulation', WebkitTapHighlightColor: 'transparent' }}
@@ -246,12 +260,15 @@ function Transacoes({ variant, onAdd }) {
                 )}
               </button>
               {recurDropdownOpen && (
-                <div className="fds-cat-picker-dd" onClick={(e) => e.stopPropagation()}>
+                <div className="fds-cat-picker-dd"
+                     onClick={(e) => e.stopPropagation()}
+                     onTouchStart={(e) => e.stopPropagation()}>
                   <div className="fds-cat-picker-head">Filtrar por recorrência</div>
                   <button
                     className={`fds-cat-picker-item${!recurFilter ? ' on' : ''}`}
                     style={{ minHeight: 44, touchAction: 'manipulation', WebkitTapHighlightColor: 'transparent' }}
-                    onClick={() => { setRecurFilter(null); setRecurDropdownOpen(false); }}>
+                    onClick={() => { setRecurFilter(null); setRecurDropdownOpen(false); }}
+                    onTouchEnd={(e) => { e.preventDefault(); e.currentTarget.click(); }}>
                     <span style={{ width: 18, height: 18, display: 'inline-block' }}/>
                     <span>Todas</span>
                     <span className="fds-chip-count">{baseList.length}</span>
@@ -264,7 +281,8 @@ function Transacoes({ variant, onAdd }) {
                         key={r}
                         className={`fds-cat-picker-item${recurFilter === r ? ' on' : ''}`}
                         style={{ minHeight: 44, touchAction: 'manipulation', WebkitTapHighlightColor: 'transparent' }}
-                        onClick={() => { setRecurFilter(r); setRecurDropdownOpen(false); }}>
+                        onClick={() => { setRecurFilter(r); setRecurDropdownOpen(false); }}
+                        onTouchEnd={(e) => { e.preventDefault(); e.currentTarget.click(); }}>
                         <Icon.Refresh size={14}/>
                         <span style={{ textTransform: 'capitalize' }}>{r}</span>
                         <span className="fds-chip-count">{cnt}</span>
