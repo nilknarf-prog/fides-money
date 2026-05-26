@@ -698,20 +698,6 @@ img, svg, video { max-width: 100%; height: auto; }
     flex-shrink: 0;
   }
 
-  /* Dropdown de ações (⋯) — ancorado no rodapé no mobile */
-  .fds-actions-dd {
-    position: fixed !important;
-    top: auto !important;
-    bottom: calc(56px + env(safe-area-inset-bottom, 0px) + 8px);
-    right: 12px;
-    left: 12px;
-    width: auto !important;
-    min-width: unset !important;
-    border-radius: 16px;
-    z-index: 9999;
-    box-shadow: 0 -4px 24px -4px rgba(15,26,20,0.18);
-  }
-
   /* Chips: linha única com scroll horizontal (mesmo padrão dos meses) */
   .fds-tx-chips {
     flex: none;                          /* anula flex:1 do base que sobrescreve width */
