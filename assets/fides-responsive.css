@@ -259,10 +259,8 @@ img, svg, video { max-width: 100%; height: auto; }
     border-right: 0;
     border-top: 1px solid var(--border);
     z-index: 100;
-    /* Frosted glass */
-    background: color-mix(in oklab, var(--bg) 88%, transparent);
-    backdrop-filter: blur(16px);
-    -webkit-backdrop-filter: blur(16px);
+    /* backdrop-filter removido: criava containing block para position:fixed no iOS Safari */
+    background: color-mix(in oklab, var(--bg) 96%, transparent);
     /* Override align-self: flex-start */
     align-self: auto;
   }

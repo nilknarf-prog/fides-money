@@ -24,10 +24,11 @@ function Transacoes({ variant, onAdd }) {
   const [actionsOpenTime, setActionsOpenTime] = React.useState(0);
 
   // Refs para fechar apenas o dropdown cujo toque foi fora
-  const catDdRef     = React.useRef(null);
-  const acctDdRef    = React.useRef(null);
-  const recurDdRef   = React.useRef(null);
-  const actionsDdRef = React.useRef(null);
+  const catDdRef        = React.useRef(null);
+  const acctDdRef       = React.useRef(null);
+  const recurDdRef      = React.useRef(null);
+  const actionsDdRef    = React.useRef(null); // mantido para não quebrar o useEffect
+  const actionsButtonRef = React.useRef(null);
 
   const lbl = monthLabel(selectedMonth);
 
@@ -44,7 +45,7 @@ function Transacoes({ variant, onAdd }) {
       if (catDdRef.current     && !inside(catDdRef,     t)) setCatDropdownOpen(false);
       if (acctDdRef.current    && !inside(acctDdRef,    t)) setAcctDropdownOpen(false);
       if (recurDdRef.current   && !inside(recurDdRef,   t)) setRecurDropdownOpen(false);
-      if (actionsDdRef.current && !inside(actionsDdRef, t)) setActionsOpen(false);
+      // actionsOpen é fechado pelo backdrop do portal — não precisa de ref aqui
     };
     document.addEventListener('mousedown', handler);
     document.addEventListener('touchstart', handler, { passive: true });
@@ -430,15 +431,27 @@ function Transacoes({ variant, onAdd }) {
             </div>
           </div>
           {/* ── Menu Extrato ── */}
-          <div ref={actionsDdRef}
-               style={{ position: 'relative', display: 'inline-flex', flexShrink: 0 }}>
+          <div style={{ position: 'relative', display: 'inline-flex', flexShrink: 0 }}>
             <button
+              ref={actionsButtonRef}
               title="Extrato"
-              style={{ touchAction: 'manipulation', WebkitTapHighlightColor: 'transparent',
-                       minHeight: 44, minWidth: 44, display: 'flex', alignItems: 'center',
-                       justifyContent: 'center', borderRadius: 8,
-                       border: '1px solid var(--border)', background: 'var(--card)',
-                       cursor: 'pointer', color: 'var(--ink-2)' }}
+              style={{
+                touchAction: 'manipulation',
+                WebkitTapHighlightColor: 'transparent',
+                minHeight: 44,
+                minWidth: 44,
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                borderRadius: 8,
+                border: '1px solid var(--border)',
+                background: 'var(--card)',
+                cursor: 'pointer',
+                color: 'var(--ink-2)'
+              }}
+              onPointerDown={(e) => {
+                e.stopPropagation();
+              }}
               onPointerUp={(e) => {
                 e.stopPropagation();
                 setActionsOpen(v => {
@@ -448,65 +461,97 @@ function Transacoes({ variant, onAdd }) {
               }}>
               <Icon.Dots size={16}/>
             </button>
-            {actionsOpen && (
+
+            {actionsOpen && ReactDOM.createPortal(
               <>
-                {/* Backdrop — fecha ao tocar fora */}
+                {/* Backdrop — fecha ao tocar fora, sem conflito de eventos */}
                 <div
-                  style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.2)', zIndex: 9998 }}
-                  onMouseDown={() => setActionsOpen(false)}
-                  onTouchEnd={() => setActionsOpen(false)}
+                  style={{
+                    position: 'fixed',
+                    inset: 0,
+                    background: 'rgba(0,0,0,0.25)',
+                    zIndex: 9998,
+                    WebkitTapHighlightColor: 'transparent'
+                  }}
+                  onPointerDown={(e) => {
+                    e.stopPropagation();
+                    setActionsOpen(false);
+                  }}
                 />
-                <div className="fds-actions-dd"
-                     style={{
-                       position: 'fixed',
-                       top: 'auto',
-                       bottom: 'calc(56px + env(safe-area-inset-bottom, 0px) + 8px)',
-                       right: 16,
-                       left: 16,
-                       background: 'var(--card)',
-                       border: '1px solid var(--border)',
-                       borderRadius: 16,
-                       padding: '4px 0',
-                       boxShadow: '0 -4px 24px -4px rgba(15,26,20,0.18)',
-                       zIndex: 9999
-                     }}
-                     onClick={(e) => e.stopPropagation()}
-                     onTouchStart={(e) => e.stopPropagation()}>
+
+                {/* Bottom sheet — renderizado no body, sem ancestral com backdrop-filter */}
+                <div
+                  style={{
+                    position: 'fixed',
+                    bottom: 'calc(64px + env(safe-area-inset-bottom, 0px))',
+                    left: 16,
+                    right: 16,
+                    background: 'var(--card)',
+                    border: '1px solid var(--border)',
+                    borderRadius: 16,
+                    padding: '4px 0',
+                    boxShadow: '0 -4px 24px -4px rgba(15,26,20,0.22)',
+                    zIndex: 9999,
+                    touchAction: 'none'
+                  }}
+                  onPointerDown={(e) => e.stopPropagation()}
+                >
                   <button
-                    style={{ display: 'flex', alignItems: 'center', gap: 8,
-                             width: '100%', padding: '12px 16px', border: 'none',
-                             background: 'none', cursor: 'pointer', fontSize: 14,
-                             color: 'var(--ink)', fontFamily: 'inherit',
-                             touchAction: 'manipulation',
-                             WebkitTapHighlightColor: 'transparent',
-                             minHeight: 48 }}
+                    style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: 8,
+                      width: '100%',
+                      padding: '14px 16px',
+                      border: 'none',
+                      background: 'none',
+                      cursor: 'pointer',
+                      fontSize: 14,
+                      color: 'var(--ink)',
+                      fontFamily: 'inherit',
+                      touchAction: 'manipulation',
+                      WebkitTapHighlightColor: 'transparent',
+                      minHeight: 52
+                    }}
                     onPointerUp={(e) => {
                       e.stopPropagation();
-                      if (Date.now() - actionsOpenTime < 300) return;
+                      if (Date.now() - actionsOpenTime < 350) return;
                       setActionsOpen(false);
-                      handleExport('csv');
+                      setTimeout(() => handleExport('csv'), 50);
                     }}>
                     <Icon.Export size={15}/> Exportar extrato
                   </button>
+
                   <div style={{ height: 1, background: 'var(--border)', margin: '0 16px' }}/>
+
                   <button
-                    style={{ display: 'flex', alignItems: 'center', gap: 8,
-                             width: '100%', padding: '12px 16px', border: 'none',
-                             background: 'none', cursor: 'pointer', fontSize: 14,
-                             color: 'var(--ink)', fontFamily: 'inherit',
-                             touchAction: 'manipulation',
-                             WebkitTapHighlightColor: 'transparent',
-                             minHeight: 48 }}
+                    style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: 8,
+                      width: '100%',
+                      padding: '14px 16px',
+                      border: 'none',
+                      background: 'none',
+                      cursor: 'pointer',
+                      fontSize: 14,
+                      color: 'var(--ink)',
+                      fontFamily: 'inherit',
+                      touchAction: 'manipulation',
+                      WebkitTapHighlightColor: 'transparent',
+                      minHeight: 52
+                    }}
                     onPointerUp={(e) => {
                       e.stopPropagation();
-                      if (Date.now() - actionsOpenTime < 300) return;
+                      if (Date.now() - actionsOpenTime < 350) return;
                       setActionsOpen(false);
-                      handleImport('csv');
+                      setTimeout(() => handleImport('csv'), 50);
                     }}>
                     <Icon.Import size={15}/> Importar extrato
                   </button>
                 </div>
-              </>
+              </>,
+              document.body
             )}
           </div>
 
