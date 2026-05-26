@@ -32,12 +32,18 @@ function Transacoes({ variant, onAdd }) {
 
   // Fecha dropdown somente se o toque/click foi FORA dele
   React.useEffect(() => {
+    // iOS: e.target pode ser <path> interno de SVG — usar closest() para subir ao elemento com ref
+    const inside = (ref, t) =>
+      ref.current && (ref.current.contains(t) ||
+        (t.closest && ref.current.contains(t.closest('button,[data-dd]') || t)));
+
     const handler = (e) => {
+      const t = e.target;
       setRowMenu(null);
-      if (catDdRef.current     && !catDdRef.current.contains(e.target))     setCatDropdownOpen(false);
-      if (acctDdRef.current    && !acctDdRef.current.contains(e.target))    setAcctDropdownOpen(false);
-      if (recurDdRef.current   && !recurDdRef.current.contains(e.target))   setRecurDropdownOpen(false);
-      if (actionsDdRef.current && !actionsDdRef.current.contains(e.target)) setActionsOpen(false);
+      if (catDdRef.current     && !inside(catDdRef,     t)) setCatDropdownOpen(false);
+      if (acctDdRef.current    && !inside(acctDdRef,    t)) setAcctDropdownOpen(false);
+      if (recurDdRef.current   && !inside(recurDdRef,   t)) setRecurDropdownOpen(false);
+      if (actionsDdRef.current && !inside(actionsDdRef, t)) setActionsOpen(false);
     };
     document.addEventListener('mousedown', handler);
     document.addEventListener('touchstart', handler, { passive: true });
@@ -67,73 +73,129 @@ function Transacoes({ variant, onAdd }) {
   const visible = filtered.slice(0, visibleCount);
   const hasMore = visible.length < filtered.length && visibleCount < 100;
 
-  // ── Exportar CSV ─────────────────────────────────────────────
-  const handleExport = React.useCallback(() => {
-    const headers = ['Data','Descrição','Categoria','Conta','Valor','Status','Recorrência'];
-    const rows = filtered.map(t => {
-      const catLabel = categories[t.cat]?.label || t.cat || '';
-      const acctName = ACCOUNTS.find(a => a.id === t.acct)?.name || t.acct || '';
-      const val = t.val.toFixed(2).replace('.', ',');
-      return [
-        t.d || '',
-        `"${(t.desc || '').replace(/"/g, '""')}"`,
-        catLabel,
-        acctName,
-        val,
-        t.status || '',
-        t.recur  || ''
-      ].join(';');
-    });
-    const csv = [headers.join(';'), ...rows].join('\n');
-    const blob = new Blob(['﻿' + csv], { type: 'text/csv;charset=utf-8;' });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = `fides-transacoes-${selectedMonth}.csv`;
-    a.click();
-    URL.revokeObjectURL(url);
+  // ── Exportar extrato (CSV ou OFX) ────────────────────────────
+  const handleExport = React.useCallback((fmt = 'csv') => {
+    if (fmt === 'ofx') {
+      const now = new Date();
+      const dtNow = `${now.getFullYear()}${String(now.getMonth()+1).padStart(2,'0')}${String(now.getDate()).padStart(2,'0')}120000`;
+      const txLines = filtered.map(t => {
+        const trnType = t.val >= 0 ? 'CREDIT' : 'DEBIT';
+        const parts = (t.d || '01/01').split('/');
+        const dd = (parts[0] || '01').padStart(2,'0');
+        const mm = (parts[1] || '01').padStart(2,'0');
+        const yyyy = selectedMonth.split('-')[0] || '2026';
+        const dtPosted = `${yyyy}${mm}${dd}120000`;
+        const amt = t.val.toFixed(2);
+        const memo = (t.desc || '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+        const fitid = t._id || `${dtPosted}-${Math.random().toString(36).slice(2,8)}`;
+        return `<STMTTRN>\n<TRNTYPE>${trnType}\n<DTPOSTED>${dtPosted}\n<TRNAMT>${amt}\n<FITID>${fitid}\n<MEMO>${memo}\n</STMTTRN>`;
+      }).join('\n');
+      const ofx = [
+        'OFXHEADER:100','DATA:OFXSGML','VERSION:102','SECURITY:NONE',
+        'ENCODING:UTF-8','CHARSET:1252','COMPRESSION:NONE',
+        'OLDFILEUID:NONE','NEWFILEUID:NONE','',
+        '<OFX>','<SIGNONMSGSRSV1>','<SONRS>','<STATUS>',
+        '<CODE>0','<SEVERITY>INFO','</STATUS>',
+        `<DTSERVER>${dtNow}`,'<LANGUAGE>POR','</SONRS>','</SIGNONMSGSRSV1>',
+        '<BANKMSGSRSV1>','<STMTTRNRS>','<TRNUID>1','<STATUS>',
+        '<CODE>0','<SEVERITY>INFO','</STATUS>','<STMTRS>','<CURDEF>BRL',
+        '<BANKACCTFROM>','<BANKID>0000','<ACCTID>Fides','<ACCTTYPE>CHECKING','</BANKACCTFROM>',
+        '<BANKTRANLIST>',`<DTSTART>${dtNow}`,`<DTEND>${dtNow}`,
+        txLines,
+        '</BANKTRANLIST>','<LEDGERBAL>','<BALAMT>0.00',`<DTASOF>${dtNow}`,'</LEDGERBAL>',
+        '</STMTRS>','</STMTTRNRS>','</BANKMSGSRSV1>','</OFX>',
+      ].join('\n');
+      const blob = new Blob([ofx], { type: 'application/x-ofx;charset=utf-8;' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url; a.download = `fides-extrato-${selectedMonth}.ofx`; a.click();
+      URL.revokeObjectURL(url);
+    } else {
+      const headers = ['Data','Descrição','Categoria','Conta','Valor','Status','Recorrência'];
+      const rows = filtered.map(t => {
+        const catLabel = categories[t.cat]?.label || t.cat || '';
+        const acctName = ACCOUNTS.find(a => a.id === t.acct)?.name || t.acct || '';
+        const valFmt = t.val.toFixed(2).replace('.', ',');
+        return [
+          t.d || '',
+          `"${(t.desc || '').replace(/"/g, '""')}"`,
+          catLabel, acctName, valFmt, t.status || '', t.recur || ''
+        ].join(';');
+      });
+      const csv = [headers.join(';'), ...rows].join('\n');
+      const blob = new Blob(['﻿' + csv], { type: 'text/csv;charset=utf-8;' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url; a.download = `fides-extrato-${selectedMonth}.csv`; a.click();
+      URL.revokeObjectURL(url);
+    }
   }, [filtered, categories, selectedMonth]);
 
-  // ── Importar CSV ──────────────────────────────────────────────
-  const handleImport = React.useCallback(() => {
+  // ── Importar extrato (CSV ou OFX) ────────────────────────────
+  const handleImport = React.useCallback((fmt = 'csv') => {
     const input = document.createElement('input');
     input.type = 'file';
-    input.accept = '.csv,text/csv';
+    input.accept = fmt === 'ofx' ? '.ofx,.qfx' : '.csv,text/csv';
     input.onchange = (e) => {
       const file = e.target.files?.[0];
       if (!file) return;
       const reader = new FileReader();
       reader.onload = (ev) => {
         const text = ev.target.result;
-        const lines = text.split(/\r?\n/).filter(Boolean);
-        if (lines.length < 2) { alert('CSV vazio ou sem dados.'); return; }
-        const sep = lines[0].includes(';') ? ';' : ',';
-        let imported = 0, errors = 0;
-        lines.slice(1).forEach(line => {
-          const cols = line.split(sep).map(c => c.replace(/^"|"$/g, '').trim());
-          const [d, desc, cat, acctName, valStr, status, recur] = cols;
-          if (!desc || !valStr) { errors++; return; }
-          const valRaw = parseFloat(valStr.replace(',', '.'));
-          if (isNaN(valRaw)) { errors++; return; }
-          const acctObj = ACCOUNTS.find(a =>
-            a.name.toLowerCase() === (acctName || '').toLowerCase()
-          );
-          const catKey = Object.entries(categories).find(
-            ([, v]) => v.label.toLowerCase() === (cat || '').toLowerCase()
-          )?.[0] || 'outros';
-          addTransaction({
-            desc,
-            val: valRaw,
-            cat: catKey,
-            acct: acctObj?.id || ACCOUNTS[0]?.id,
-            d: d || new Date().toLocaleDateString('pt-BR'),
-            status: status === 'pago' ? 'pago' : 'pendente',
-            recur: recur || null,
-            mes: selectedMonth,
+        if (fmt === 'ofx') {
+          const blocks = text.match(/<STMTTRN>[\s\S]*?<\/STMTTRN>/gi) || [];
+          if (blocks.length === 0) { alert('Nenhuma transação encontrada no arquivo OFX.'); return; }
+          const getTag = (block, tag) => {
+            const m = block.match(new RegExp(`<${tag}>([^<\n\r]+)`, 'i'));
+            return m ? m[1].trim() : '';
+          };
+          let imported = 0, errors = 0;
+          blocks.forEach(block => {
+            const memo   = getTag(block, 'MEMO') || getTag(block, 'NAME') || '';
+            const amtStr = getTag(block, 'TRNAMT');
+            const dtRaw  = getTag(block, 'DTPOSTED');
+            if (!memo || !amtStr) { errors++; return; }
+            const amt = parseFloat(amtStr.replace(',', '.'));
+            if (isNaN(amt)) { errors++; return; }
+            const yyyy = dtRaw.slice(0, 4) || selectedMonth.split('-')[0];
+            const mm   = dtRaw.slice(4, 6) || selectedMonth.split('-')[1] || '01';
+            const dd   = dtRaw.slice(6, 8) || '01';
+            addTransaction({
+              desc: memo, val: amt, cat: 'outros',
+              acct: ACCOUNTS[0]?.id,
+              d: `${dd}/${mm}`,
+              status: 'pendente', recur: null,
+              mes: `${yyyy}-${mm}`,
+            });
+            imported++;
           });
-          imported++;
-        });
-        alert(`${imported} transação(ões) importada(s)${errors > 0 ? `, ${errors} linha(s) ignorada(s)` : ''}.`);
+          alert(`${imported} transação(ões) importada(s)${errors > 0 ? `, ${errors} bloco(s) ignorado(s)` : ''}.`);
+        } else {
+          const lines = text.split(/\r?\n/).filter(Boolean);
+          if (lines.length < 2) { alert('CSV vazio ou sem dados.'); return; }
+          const sep = lines[0].includes(';') ? ';' : ',';
+          let imported = 0, errors = 0;
+          lines.slice(1).forEach(line => {
+            const cols = line.split(sep).map(c => c.replace(/^"|"$/g, '').trim());
+            const [d, desc, cat, acctName, valStr, status, recur] = cols;
+            if (!desc || !valStr) { errors++; return; }
+            const valRaw = parseFloat(valStr.replace(',', '.'));
+            if (isNaN(valRaw)) { errors++; return; }
+            const acctObj = ACCOUNTS.find(a => a.name.toLowerCase() === (acctName || '').toLowerCase());
+            const catKey  = Object.entries(categories).find(
+              ([, v]) => v.label.toLowerCase() === (cat || '').toLowerCase()
+            )?.[0] || 'outros';
+            addTransaction({
+              desc, val: valRaw, cat: catKey,
+              acct: acctObj?.id || ACCOUNTS[0]?.id,
+              d: d || new Date().toLocaleDateString('pt-BR'),
+              status: status === 'pago' ? 'pago' : 'pendente',
+              recur: recur || null, mes: selectedMonth,
+            });
+            imported++;
+          });
+          alert(`${imported} transação(ões) importada(s)${errors > 0 ? `, ${errors} linha(s) ignorada(s)` : ''}.`);
+        }
       };
       reader.readAsText(file, 'UTF-8');
     };
@@ -366,17 +428,17 @@ function Transacoes({ variant, onAdd }) {
               )}
             </div>
           </div>
-          {/* ── Menu Importar / Exportar ── */}
+          {/* ── Menu Extrato ── */}
           <div ref={actionsDdRef}
                style={{ position: 'relative', display: 'inline-flex', flexShrink: 0 }}>
             <button
-              title="Importar / Exportar"
+              title="Extrato"
               style={{ touchAction: 'manipulation', WebkitTapHighlightColor: 'transparent',
-                       minHeight: 36, minWidth: 36, display: 'flex', alignItems: 'center',
+                       minHeight: 44, minWidth: 44, display: 'flex', alignItems: 'center',
                        justifyContent: 'center', borderRadius: 8,
                        border: '1px solid var(--border)', background: 'var(--card)',
                        cursor: 'pointer', color: 'var(--ink-2)' }}
-              onClick={(e) => { e.stopPropagation(); setActionsOpen(v => !v); }}>
+              onPointerUp={(e) => { e.stopPropagation(); setActionsOpen(v => !v); }}>
               <Icon.Dots size={16}/>
             </button>
             {actionsOpen && (
@@ -390,31 +452,47 @@ function Transacoes({ variant, onAdd }) {
                 <div className="fds-actions-dd" style={{
                   position: 'absolute', top: 'calc(100% + 6px)', right: 0,
                   background: 'var(--card)', border: '1px solid var(--border)',
-                  borderRadius: 12, padding: '4px 0', minWidth: 160,
+                  borderRadius: 12, padding: '6px 0', minWidth: 184,
                   boxShadow: '0 8px 24px -4px rgba(15,26,20,0.14)', zIndex: 9999
                 }}
                      onClick={(e) => e.stopPropagation()}
                      onTouchStart={(e) => e.stopPropagation()}>
-                  <button
-                    style={{ display: 'flex', alignItems: 'center', gap: 8,
-                             width: '100%', padding: '10px 14px', border: 'none',
-                             background: 'none', cursor: 'pointer', fontSize: 13,
-                             color: 'var(--ink)', fontFamily: 'inherit',
-                             touchAction: 'manipulation', WebkitTapHighlightColor: 'transparent',
-                             minHeight: 44 }}
-                    onPointerUp={(e) => { e.stopPropagation(); setActionsOpen(false); handleExport(); }}>
-                    <Icon.Export size={14}/> Exportar CSV
-                  </button>
-                  <button
-                    style={{ display: 'flex', alignItems: 'center', gap: 8,
-                             width: '100%', padding: '10px 14px', border: 'none',
-                             background: 'none', cursor: 'pointer', fontSize: 13,
-                             color: 'var(--ink)', fontFamily: 'inherit',
-                             touchAction: 'manipulation', WebkitTapHighlightColor: 'transparent',
-                             minHeight: 44 }}
-                    onPointerUp={(e) => { e.stopPropagation(); setActionsOpen(false); handleImport(); }}>
-                    <Icon.Import size={14}/> Importar CSV
-                  </button>
+                  {/* Seção: Exportar */}
+                  <div style={{ padding: '4px 14px 2px', fontSize: 10, fontWeight: 600,
+                                color: 'var(--muted)', textTransform: 'uppercase', letterSpacing: '0.06em' }}>
+                    Exportar extrato
+                  </div>
+                  {[['csv','CSV — planilha'],['ofx','OFX — banco / app']].map(([fmt, lbl]) => (
+                    <button key={fmt}
+                      style={{ display: 'flex', alignItems: 'center', gap: 8,
+                               width: '100%', padding: '9px 14px', border: 'none',
+                               background: 'none', cursor: 'pointer', fontSize: 13,
+                               color: 'var(--ink)', fontFamily: 'inherit',
+                               touchAction: 'manipulation', WebkitTapHighlightColor: 'transparent',
+                               minHeight: 44, textAlign: 'left' }}
+                      onPointerUp={(e) => { e.stopPropagation(); setActionsOpen(false); handleExport(fmt); }}>
+                      <Icon.Export size={14} style={{ flexShrink: 0 }}/> {lbl}
+                    </button>
+                  ))}
+                  {/* Divider */}
+                  <div style={{ margin: '4px 0', borderTop: '1px solid var(--border)' }}/>
+                  {/* Seção: Importar */}
+                  <div style={{ padding: '4px 14px 2px', fontSize: 10, fontWeight: 600,
+                                color: 'var(--muted)', textTransform: 'uppercase', letterSpacing: '0.06em' }}>
+                    Importar extrato
+                  </div>
+                  {[['csv','CSV — planilha'],['ofx','OFX — banco / app']].map(([fmt, lbl]) => (
+                    <button key={fmt}
+                      style={{ display: 'flex', alignItems: 'center', gap: 8,
+                               width: '100%', padding: '9px 14px', border: 'none',
+                               background: 'none', cursor: 'pointer', fontSize: 13,
+                               color: 'var(--ink)', fontFamily: 'inherit',
+                               touchAction: 'manipulation', WebkitTapHighlightColor: 'transparent',
+                               minHeight: 44, textAlign: 'left' }}
+                      onPointerUp={(e) => { e.stopPropagation(); setActionsOpen(false); handleImport(fmt); }}>
+                      <Icon.Import size={14} style={{ flexShrink: 0 }}/> {lbl}
+                    </button>
+                  ))}
                 </div>
               </>
             )}
