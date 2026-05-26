@@ -188,6 +188,13 @@ function Transacoes({ variant, onAdd }) {
             {selected.size > 0 ? (
               <span className="fds-tx-bulk-info" style={{ position: 'relative' }}>
                 {selected.size} selecionada{selected.size>1?'s':''}
+                {selected.size === 1 && (
+                  <button className="fds-tx-bulk-act" onClick={() => {
+                    const idx = [...selected][0];
+                    const tx = filtered[idx];
+                    if (tx) setEditingTx({ ...tx });
+                  }}>✏️ Editar</button>
+                )}
                 <button className="fds-tx-bulk-act" onClick={bulkMarkPaid}>Marcar pago</button>
                 <button className="fds-tx-bulk-act" onClick={(e) => { e.stopPropagation(); setBulkCatPicker(v => !v); setConfirmDelete(false); }}>
                   Categorizar
