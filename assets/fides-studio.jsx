@@ -509,6 +509,9 @@ function DashboardStudio({ onAdd, onNav }) {
   const top5 = spendByCategory.slice(0, 5);
   const totalSpend = spendByCategory.reduce((s,d) => s + d.val, 0);
 
+  // Modo do gráfico de fluxo
+  const [flowMode, setFlowMode] = React.useState('fluxo');
+
   // Salários do mês — destacar quando há vários (caso do usuário)
   const salarios = monthTransactions.filter(t => t.cat === 'salario');
   const salarioInfo = salarios.length > 1
@@ -605,12 +608,29 @@ function DashboardStudio({ onAdd, onNav }) {
             <span className="lg lg-future"><span className="dot"/>Projeção</span>
           </div>
           <div className="fds-tabs">
-            <button className="on">Fluxo</button>
-            <button>Saldo acumulado</button>
-            <button>Por categoria</button>
+            {[
+              { id: 'fluxo',     label: 'Fluxo'          },
+              { id: 'acumulado', label: 'Saldo acumulado' },
+              { id: 'categoria', label: 'Por categoria'   },
+            ].map(t => (
+              <button
+                key={t.id}
+                className={flowMode === t.id ? 'on' : ''}
+                onClick={() => setFlowMode(t.id)}>
+                {t.label}
+              </button>
+            ))}
           </div>
         </div>
-        <AreaChart data={MONTHLY} height={240} accent="var(--accent)" glow/>
+        {flowMode === 'fluxo' && (
+          <AreaChart data={MONTHLY} height={240} accent="var(--accent)" glow/>
+        )}
+        {flowMode === 'acumulado' && (
+          <AccumulatedChart data={MONTHLY} height={240} accent="var(--accent)"/>
+        )}
+        {flowMode === 'categoria' && (
+          <CategoryChart data={spendByCategory} height={240}/>
+        )}
       </div>
 
       {/* ─── Capítulo II · Para onde foi ─── */}

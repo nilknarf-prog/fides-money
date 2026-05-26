@@ -183,4 +183,98 @@ function ProgressBar({ value, height = 6, tint = '#B45309', track = 'currentColo
   );
 }
 
-Object.assign(window, { AreaChart, Sparkline, Donut, BudgetBar, ProgressBar, smoothPath });
+// ─── Saldo acumulado ──────────────────────────────────────────
+function AccumulatedChart({ data, height = 240, accent = 'var(--accent)' }) {
+  let acc = 0;
+  const accData = data.map(d => {
+    acc += (d.rec - d.des);
+    return { m: d.m, val: acc, future: d.future };
+  });
+  const W = 1000, padX = 24, padTop = 24, padBot = 36;
+  const vals = accData.map(d => d.val);
+  const minV = Math.min(0, ...vals);
+  const maxV = Math.max(...vals) * 1.1 || 1;
+  const range = maxV - minV || 1;
+  const xs = accData.map((_, i) => padX + i * (W - padX * 2) / (accData.length - 1));
+  const ys = accData.map(d => padTop + (1 - (d.val - minV) / range) * (height - padTop - padBot));
+  const pts = xs.map((x, i) => [x, ys[i]]);
+  const linePath = smoothPath(pts);
+  const uid = React.useId().replace(/[:]/g, '');
+  const zeroY = padTop + (1 - (0 - minV) / range) * (height - padTop - padBot);
+  return (
+    <svg viewBox={`0 0 ${W} ${height}`} width="100%" height={height}
+         style={{ display: 'block', overflow: 'visible' }}>
+      <defs>
+        <linearGradient id={`g-acc-${uid}`} x1="0" x2="0" y1="0" y2="1">
+          <stop offset="0%"   stopColor={accent} stopOpacity="0.28"/>
+          <stop offset="100%" stopColor={accent} stopOpacity="0"/>
+        </linearGradient>
+      </defs>
+      <line x1={padX} y1={zeroY} x2={W - padX} y2={zeroY}
+            stroke="currentColor" strokeOpacity="0.15"
+            strokeWidth="1" strokeDasharray="4 4"/>
+      <path d={linePath + ` L ${xs[xs.length-1]},${zeroY} L ${xs[0]},${zeroY} Z`}
+            fill={`url(#g-acc-${uid})`}/>
+      <path d={linePath} fill="none" stroke={accent}
+            strokeWidth="2.4" strokeLinecap="round"/>
+      {accData.map((d, i) => (
+        <circle key={i} cx={xs[i]} cy={ys[i]} r="4"
+                fill={d.future ? 'transparent' : '#fff'}
+                stroke={accent} strokeWidth="2"
+                opacity={d.future ? 0.5 : 1}/>
+      ))}
+      {accData.map((d, i) => (
+        <text key={i} x={xs[i]} y={height - 12} textAnchor="middle"
+              fontSize="11" fill="currentColor"
+              fillOpacity={d.future ? 0.3 : 0.55}
+              fontFamily="var(--font-sans)" letterSpacing="0.04em"
+              style={{ textTransform: 'uppercase' }}>
+          {d.m}
+        </text>
+      ))}
+    </svg>
+  );
+}
+
+// ─── Por categoria (barras horizontais) ───────────────────────
+function CategoryChart({ data, height = 240 }) {
+  if (!data || data.length === 0) return null;
+  const total = data.reduce((s, d) => s + d.val, 0);
+  const sorted = [...data].sort((a, b) => b.val - a.val).slice(0, 7);
+  const barMax = sorted[0].val;
+  const W = 1000, padX = 24, padTop = 16, padBot = 8;
+  const itemH = Math.floor((height - padTop - padBot) / sorted.length);
+  const barH = Math.max(12, itemH - 10);
+  return (
+    <svg viewBox={`0 0 ${W} ${height}`} width="100%" height={height}
+         style={{ display: 'block', overflow: 'visible' }}>
+      {sorted.map((d, i) => {
+        const y = padTop + i * itemH;
+        const maxBarW = W - padX * 2 - 200;
+        const barW = Math.max(8, (d.val / barMax) * maxBarW);
+        const pct = ((d.val / total) * 100).toFixed(0);
+        const valFmt = d.val.toLocaleString('pt-BR', {
+          minimumFractionDigits: 0, maximumFractionDigits: 0
+        });
+        return (
+          <g key={d.key || i}>
+            <text x={padX} y={y + barH / 2 + 4}
+                  fontSize="12" fill="currentColor" fillOpacity="0.65"
+                  fontFamily="var(--font-sans)">
+              {d.label}
+            </text>
+            <rect x={padX + 160} y={y} width={barW} height={barH}
+                  rx={barH / 2} fill={d.tint || 'var(--accent)'} opacity="0.85"/>
+            <text x={padX + 160 + barW + 10} y={y + barH / 2 + 4}
+                  fontSize="11" fill="currentColor" fillOpacity="0.55"
+                  fontFamily="var(--font-sans)">
+              R${valFmt} · {pct}%
+            </text>
+          </g>
+        );
+      })}
+    </svg>
+  );
+}
+
+Object.assign(window, { AreaChart, Sparkline, Donut, BudgetBar, ProgressBar, smoothPath, AccumulatedChart, CategoryChart });
