@@ -259,7 +259,7 @@ img, svg, video { max-width: 100%; height: auto; }
     border-right: 0;
     border-top: 1px solid var(--border);
     z-index: 100;
-    /* backdrop-filter removido: criava containing block para position:fixed no iOS Safari */
+    /* Frosted glass — backdrop-filter removido: cria containing block no iOS Safari */
     background: color-mix(in oklab, var(--bg) 96%, transparent);
     /* Override align-self: flex-start */
     align-self: auto;
