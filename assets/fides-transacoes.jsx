@@ -14,6 +14,7 @@ function Transacoes({ variant, onAdd }) {
   const [rowCatPicker, setRowCatPicker] = React.useState(null); // tx _id being re-categorised
   const [bulkCatPicker, setBulkCatPicker] = React.useState(false);
   const [confirmDelete, setConfirmDelete] = React.useState(false);
+  const [editingTx, setEditingTx] = React.useState(null);
   const lbl = monthLabel(selectedMonth);
 
   // Close menus when clicking outside
@@ -284,38 +285,9 @@ function Transacoes({ variant, onAdd }) {
                   </td>
                   <td style={{ position: 'relative' }}>
                     <button className="fds-tx-row-act"
-                            onClick={(e) => { e.stopPropagation(); setRowMenu(rowMenu === i ? null : i); setRowCatPicker(null); }}>
+                            onClick={(e) => { e.stopPropagation(); setEditingTx({...t}); }}>
                       <Icon.Dots size={15}/>
                     </button>
-                    {rowMenu === i && (
-                      <div className="fds-row-menu" onClick={(e) => e.stopPropagation()}>
-                        <button onClick={() => {
-                          updateTransaction(t._id, { status: t.status === 'pago' ? 'pendente' : 'pago' });
-                          setRowMenu(null);
-                        }}>
-                          <Icon.Check size={13}/>
-                          {t.status === 'pago' ? 'Marcar como pendente' : 'Marcar como pago'}
-                        </button>
-                        <button onClick={(e) => { e.stopPropagation(); setRowCatPicker(rowCatPicker === t._id ? null : t._id); }}>
-                          <Icon.Tag size={13}/> Categorizar
-                        </button>
-                        {rowCatPicker === t._id && (
-                          <div className="fds-cat-picker-dd fds-cat-picker-dd--sub" onClick={(e) => e.stopPropagation()}>
-                            <div className="fds-cat-picker-head">Nova categoria</div>
-                            {catsInList.map(k => (
-                              <button key={k} className={`fds-cat-picker-item${t.cat === k ? ' on' : ''}`}
-                                      onClick={() => { updateTransaction(t._id, { cat: k }); setRowMenu(null); setRowCatPicker(null); }}>
-                                <CategoryAvatar cat={k} size={16}/>
-                                <span>{categories[k]?.label || k}</span>
-                              </button>
-                            ))}
-                          </div>
-                        )}
-                        <button className="danger" onClick={() => { deleteTransaction(t._id); setRowMenu(null); }}>
-                          <Icon.X size={13}/> Excluir
-                        </button>
-                      </div>
-                    )}
                   </td>
                 </tr>
               );
@@ -349,6 +321,8 @@ function Transacoes({ variant, onAdd }) {
           </div>
         </div>
       </section>
+
+      {editingTx && <EditTxModal tx={editingTx} onClose={() => setEditingTx(null)}/>}
     </div>
   );
 }
@@ -377,6 +351,133 @@ function TxKpi({ label, value, accent, delta, spark, kind, variant, pendingCount
           <span className="fds-link-sm">Ver →</span>
         </div>
       )}
+    </div>
+  );
+}
+
+// ─── Modal: Editar Transação ──────────────────────────────────
+function EditTxModal({ tx, onClose }) {
+  const { categories, updateTransaction, deleteTransaction } = useFides();
+
+  const parseVal = (s) => {
+    const clean = String(s).replace(/\./g, '').replace(',', '.');
+    return parseFloat(clean) || 0;
+  };
+
+  const [kind,   setKind]   = React.useState(tx.val >= 0 ? 'receita' : 'despesa');
+  const [desc,   setDesc]   = React.useState(tx.desc  || '');
+  const [val,    setVal]    = React.useState(Math.abs(tx.val).toLocaleString('pt-BR', { minimumFractionDigits: 2 }));
+  const [date,   setDate]   = React.useState(tx.date  || '');
+  const [cat,    setCat]    = React.useState(tx.cat   || '');
+  const [acct,   setAcct]   = React.useState(tx.acct  || ACCOUNTS[0]?.id || '');
+  const [status, setStatus] = React.useState(tx.status || 'pago');
+
+  const handleSave = () => {
+    const numVal = parseVal(val);
+    updateTransaction(tx._id, {
+      desc,
+      val:    kind === 'despesa' ? -numVal : numVal,
+      cat,
+      acct,
+      status,
+      date,
+    });
+    onClose();
+  };
+
+  const handleDelete = () => {
+    if (window.confirm(`Excluir "${tx.desc}"?`)) {
+      deleteTransaction(tx._id);
+      onClose();
+    }
+  };
+
+  const catEntries = Object.entries(categories);
+  const canSave = desc.trim().length > 0 && parseVal(val) > 0;
+
+  return (
+    <div className="fds-modal-backdrop" onClick={onClose}>
+      <div className="fds-modal" onClick={(e) => e.stopPropagation()}>
+        <header className="fds-modal-head">
+          <h2 className="fds-modal-title">Editar transação</h2>
+          <button className="fds-modal-close" onClick={onClose}><Icon.X size={16}/></button>
+        </header>
+
+        <div className="fds-modal-body">
+          {/* Tipo: Despesa / Receita */}
+          <div className="fds-field">
+            <label className="fds-label">Tipo</label>
+            <div className="fds-seg">
+              <button type="button" className={kind === 'despesa' ? 'on' : ''} onClick={() => setKind('despesa')}>Despesa</button>
+              <button type="button" className={kind === 'receita' ? 'on' : ''} onClick={() => setKind('receita')}>Receita</button>
+            </div>
+          </div>
+
+          {/* Descrição */}
+          <div className="fds-field">
+            <label className="fds-label">Descrição</label>
+            <input className="fds-input" value={desc}
+                   onChange={(e) => setDesc(e.target.value)}
+                   placeholder="Ex: Supermercado"/>
+          </div>
+
+          {/* Valor */}
+          <div className="fds-field">
+            <label className="fds-label">Valor (R$)</label>
+            <input className="fds-input" value={val}
+                   onChange={(e) => setVal(e.target.value)}
+                   placeholder="0,00" inputMode="decimal"/>
+          </div>
+
+          {/* Data */}
+          <div className="fds-field">
+            <label className="fds-label">Data</label>
+            <input className="fds-input" type="date" value={date}
+                   onChange={(e) => setDate(e.target.value)}/>
+          </div>
+
+          {/* Categoria */}
+          <div className="fds-field">
+            <label className="fds-label">Categoria</label>
+            <select className="fds-select" value={cat} onChange={(e) => setCat(e.target.value)}>
+              {catEntries.map(([k, v]) => (
+                <option key={k} value={k}>{v.emoji} {v.label}</option>
+              ))}
+            </select>
+          </div>
+
+          {/* Conta */}
+          <div className="fds-field">
+            <label className="fds-label">Conta</label>
+            <select className="fds-select" value={acct} onChange={(e) => setAcct(e.target.value)}>
+              {ACCOUNTS.map(a => (
+                <option key={a.id} value={a.id}>{a.name} ·· {a.tag}</option>
+              ))}
+            </select>
+          </div>
+
+          {/* Status */}
+          <div className="fds-field">
+            <label className="fds-label">Status</label>
+            <div className="fds-seg">
+              <button type="button" className={status === 'pago' ? 'on' : ''} onClick={() => setStatus('pago')}>Pago</button>
+              <button type="button" className={status === 'pendente' ? 'on' : ''} onClick={() => setStatus('pendente')}>Pendente</button>
+            </div>
+          </div>
+        </div>
+
+        <footer className="fds-modal-foot">
+          <button className="fds-btn-ghost danger" onClick={handleDelete}>
+            <Icon.X size={13}/> Excluir
+          </button>
+          <div className="fds-modal-foot-actions">
+            <button className="fds-btn-ghost" onClick={onClose}>Cancelar</button>
+            <button className="fds-btn-primary" onClick={handleSave} disabled={!canSave}>
+              <Icon.Check size={14}/> Salvar alterações
+            </button>
+          </div>
+        </footer>
+      </div>
     </div>
   );
 }
@@ -783,4 +884,4 @@ function NovaTransacaoModal({ open, onClose, onSave, variant }) {
   );
 }
 
-Object.assign(window, { Transacoes, NovaTransacaoModal });
+Object.assign(window, { Transacoes, EditTxModal, NovaTransacaoModal });

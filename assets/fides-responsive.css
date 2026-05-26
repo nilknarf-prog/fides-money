@@ -617,6 +617,21 @@ img, svg, video { max-width: 100%; height: auto; }
     white-space: nowrap;
   }
 
+  /* ── 14b. MOVIMENTO RECENTE: layout mobile ─────────────────── */
+  .stu-tx {
+    grid-template-columns: 28px 32px 1fr auto;
+    gap: 8px;
+    padding: 10px 12px;
+  }
+  .stu-tx-date { font-size: 14px; }
+  .stu-tx-desc { font-size: 13px; flex-wrap: nowrap; overflow: hidden; }
+  .stu-tx-desc .fds-mini-tag { display: none; }
+  .stu-tx-sub { display: flex; flex-wrap: nowrap; gap: 4px; overflow: hidden; margin-top: 2px; }
+  .stu-tx-sub .fds-cat-pill  { font-size: 10px; padding: 2px 6px; white-space: nowrap; flex-shrink: 0; max-width: 90px; overflow: hidden; text-overflow: ellipsis; }
+  .stu-tx-sub .fds-acct-pill { font-size: 10px; padding: 2px 6px; white-space: nowrap; flex-shrink: 0; max-width: 80px; overflow: hidden; text-overflow: ellipsis; }
+  .stu-tx-sub .fds-status    { font-size: 10px; padding: 2px 6px; white-space: nowrap; flex-shrink: 0; }
+  .stu-tx-amt { font-size: 13px; white-space: nowrap; }
+
   /* Filtros de transações */
   .fds-tx-filters { padding: 10px 12px; gap: 8px; }
 
