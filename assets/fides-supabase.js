@@ -1,6 +1,15 @@
 // assets/fides-supabase.js
 // Cliente Supabase singleton — expõe window.fidesDb e window.fidesAuth
 
+window._fidesAuthResolvers = [];
+window.waitForAuth = function () {
+  if (window.fidesAuth) return Promise.resolve(window.fidesAuth);
+  return new Promise(function (resolve) {
+    window._fidesAuthResolvers = window._fidesAuthResolvers || [];
+    window._fidesAuthResolvers.push(resolve);
+  });
+};
+
 (function () {
   'use strict';
 
@@ -25,6 +34,10 @@
 
     window.fidesDb   = client;
     window.fidesAuth = client.auth;
+    if (window._fidesAuthResolvers) {
+      window._fidesAuthResolvers.forEach(function (fn) { fn(client.auth); });
+      window._fidesAuthResolvers = [];
+    }
     console.info('[Fides] Supabase inicializado com sucesso.');
   }
 

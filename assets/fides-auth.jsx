@@ -30,8 +30,9 @@ function FidesAuth({ onAuth }) {
     const name     = nameRef.current?.value?.trim()     || '';
 
     try {
+      const auth = await window.waitForAuth();
       if (authMode === 'cadastro') {
-        const { error: err } = await window.fidesAuth.signUp({
+        const { error: err } = await auth.signUp({
           email,
           password,
           options: { data: { name } },
@@ -39,7 +40,7 @@ function FidesAuth({ onAuth }) {
         if (err) throw err;
         setSuccess('Verifique seu e-mail para confirmar o cadastro.');
       } else {
-        const { error: err } = await window.fidesAuth.signInWithPassword({ email, password });
+        const { error: err } = await auth.signInWithPassword({ email, password });
         if (err) throw err;
         // onAuthStateChange no store detecta e troca mode para 'live'
         onAuth?.();
@@ -66,7 +67,8 @@ function FidesAuth({ onAuth }) {
     if (!email) { setError('Digite seu e-mail para recuperar a senha.'); return; }
     setError(''); setLoading(true);
     try {
-      const { error: err } = await window.fidesAuth.resetPasswordForEmail(email, {
+      const auth = await window.waitForAuth();
+      const { error: err } = await auth.resetPasswordForEmail(email, {
         redirectTo: window.location.origin + '/reset-password',
       });
       if (err) throw err;
@@ -208,12 +210,6 @@ function FidesAuth({ onAuth }) {
           )}
         </form>
 
-        {/* ─── Demo link ─── */}
-        <div className="fds-auth-demo">
-          <a href="/teste" className="fds-auth-demo-link">
-            Ver demo sem login →
-          </a>
-        </div>
       </div>
     </div>
   );
