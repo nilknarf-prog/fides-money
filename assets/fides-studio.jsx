@@ -16,9 +16,25 @@ function FidesStudio({ page = 'dashboard' }) {
 function FidesStudioShell({ initialPage = 'dashboard' }) {
   const [active, setActive] = React.useState(initialPage);
   const [modalOpen, setModalOpen] = React.useState(false);
-  const { addTransaction, addTransactions, categoryModalOpen, closeCategoryModal } = useFides();
+  const { addTransaction, addTransactions, categoryModalOpen, closeCategoryModal, isLoading } = useFides();
 
   React.useEffect(() => { setActive(initialPage); }, [initialPage]);
+
+  if (isLoading) return (
+    <div style={{
+      display: 'flex', alignItems: 'center', justifyContent: 'center',
+      minHeight: '100vh', flexDirection: 'column', gap: '16px',
+    }}>
+      <div style={{
+        width: '32px', height: '32px',
+        border: '2px solid var(--border)',
+        borderTop: '2px solid var(--accent)',
+        borderRadius: '50%',
+        animation: 'spin 0.8s linear infinite',
+      }}/>
+      <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
+    </div>
+  );
 
   return (
     <div className="fds-app fds-studio" data-variant="studio">
@@ -486,7 +502,22 @@ function StudioMasthead({ onAdd }) {
 
 // ─── Studio dashboard ─────────────────────────────────────────
 function DashboardStudio({ onAdd, onNav }) {
-  const { monthTransactions, prevMonthTransactions, categories, spendByCategory, budgetGroups, openCategoryModal, selectedMonth, monthLabel, prevMonth } = useFides();
+  const { monthTransactions, prevMonthTransactions, categories, spendByCategory, budgetGroups, openCategoryModal, selectedMonth, monthLabel, prevMonth, isEmpty } = useFides();
+
+  if (isEmpty) return (
+    <div className="fds-page stu-page">
+      <div className="fds-empty-state">
+        <div className="fds-empty-state-icon">👋</div>
+        <h2 className="fds-empty-state-title">Bem-vindo ao Fides!</h2>
+        <p className="fds-empty-state-lede">
+          Comece adicionando sua primeira conta para ver o resumo financeiro.
+        </p>
+        <button className="fds-empty-state-btn" onClick={() => onNav?.('contas')}>
+          + Adicionar primeira conta
+        </button>
+      </div>
+    </div>
+  );
   const lbl = monthLabel(selectedMonth);
   const prevLbl = monthLabel(prevMonth(selectedMonth));
 

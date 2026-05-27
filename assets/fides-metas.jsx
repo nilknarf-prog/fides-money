@@ -588,8 +588,23 @@ function ConfigurarModal({ sobra, metas, onConfirm, onClose }) {
 
 // ─── MetasStudio ──────────────────────────────────────────────
 function MetasStudio({ onAdd, onNav }) {
-  const { transactions, monthTransactions, selectedMonth, monthLabel } = useFides();
+  const { transactions, monthTransactions, selectedMonth, monthLabel, isEmpty } = useFides();
   const today = new Date();
+
+  if (isEmpty) return (
+    <div className="fds-page stu-page">
+      <div className="fds-empty-state">
+        <div className="fds-empty-state-icon">🎯</div>
+        <h2 className="fds-empty-state-title">Sem metas ainda</h2>
+        <p className="fds-empty-state-lede">
+          Crie sua primeira meta de poupança para acompanhar seu progresso financeiro.
+        </p>
+        <button className="fds-empty-state-btn" onClick={() => onAdd?.()}>
+          + Criar primeira meta
+        </button>
+      </div>
+    </div>
+  );
   const meses = ['jan','fev','mar','abr','mai','jun','jul','ago','set','out','nov','dez'];
   const lbl = monthLabel(selectedMonth);
 
