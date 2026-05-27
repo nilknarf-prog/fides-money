@@ -25,6 +25,8 @@ function OrcamentoStudio({ onAdd }) {
 
   const [editing, setEditing] = React.useState(null);
   const [expanded, setExpanded] = React.useState(null);
+  const [collapsedGroups, setCollapsedGroups] = React.useState({});
+  const toggleGroup = (groupId) => setCollapsedGroups(prev => ({ ...prev, [groupId]: !prev[groupId] }));
 
   // ─── 6-month planned vs real (fabricated stable history) ──
   const history = [
@@ -175,14 +177,19 @@ function OrcamentoStudio({ onAdd }) {
           const tint = g.id === 'essencial' ? 'var(--ok)' : g.id === 'estilo' ? 'var(--info)' : 'var(--bad)';
           return (
             <React.Fragment key={g.id}>
-              <div className="orc-cats-group">
+              <button className="orc-cats-group"
+                      onClick={() => toggleGroup(g.id)}
+                      style={{ touchAction: 'manipulation', WebkitTapHighlightColor: 'transparent', minHeight: 44 }}
+                      role="button"
+                      aria-expanded={!collapsedGroups[g.id]}>
                 <span className="orc-cats-group-dot" style={{ background: tint }}/>
                 {g.label}
                 <span className="orc-cats-group-meta">
                   {fmtBRL(g.spent)} de {fmtBRL(g.limit)} · {g.limit ? Math.round(g.spent/g.limit*100) : 0}%
                 </span>
-              </div>
-              {g.cats.map(c => {
+                <Icon.Down size={14} style={{ marginLeft: 'auto', transition: 'transform 0.2s ease', transform: collapsedGroups[g.id] ? 'rotate(-90deg)' : 'rotate(0deg)', color: 'var(--ink-3)' }}/>
+              </button>
+              {!collapsedGroups[g.id] && g.cats.map(c => {
                 const cat = categories[c.cat] || { label: c.cat, tint: '#888', emoji: '🏷️' };
                 const lim = c.limit;
                 const rest = lim - c.spent;
