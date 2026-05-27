@@ -60,6 +60,120 @@ function BankLogo({ bank = '', name = '', size = 40 }) {
   );
 }
 
+// ─── Ícones locais (não estão no Icon global) ─────────────────
+const __ctnIco = (paths) => ({ size = 16, style, className }) =>
+  React.createElement('svg', {
+    width: size, height: size, viewBox: '0 0 24 24',
+    fill: 'none', stroke: 'currentColor',
+    strokeWidth: 1.6, strokeLinecap: 'round', strokeLinejoin: 'round',
+    style, className,
+  }, paths);
+
+const CtnIcon = {
+  Edit:  __ctnIco(React.createElement(React.Fragment, null,
+    React.createElement('path', { d: 'M11 4H5a2 2 0 00-2 2v12a2 2 0 002 2h12a2 2 0 002-2v-6' }),
+    React.createElement('path', { d: 'M17.5 2.5a2.12 2.12 0 013 3L12 14l-4 1 1-4 7.5-8.5z' }),
+  )),
+  Trash: __ctnIco(React.createElement(React.Fragment, null,
+    React.createElement('polyline', { points: '3 6 5 6 21 6' }),
+    React.createElement('path', { d: 'M19 6l-1 14H6L5 6M10 11v6M14 11v6M9 6V4h6v2' }),
+  )),
+};
+
+// ─── DotsMenu — dropdown contextual reutilizável ──────────────
+// Props:
+//   items: Array<{ id, label, icon, danger?, onClick }>
+//   align: 'left' | 'right' (default 'right')
+function DotsMenu({ items, align = 'right' }) {
+  const [open, setOpen] = React.useState(false);
+  const ref = React.useRef(null);
+
+  React.useEffect(() => {
+    if (!open) return;
+    const handler = (e) => {
+      if (ref.current && !ref.current.contains(e.target)) {
+        setOpen(false);
+      }
+    };
+    document.addEventListener('mousedown', handler);
+    document.addEventListener('touchstart', handler, { passive: true });
+    return () => {
+      document.removeEventListener('mousedown', handler);
+      document.removeEventListener('touchstart', handler);
+    };
+  }, [open]);
+
+  return (
+    <div className="ctn-dots-wrap" ref={ref}>
+      <button
+        className="fds-icon-btn"
+        aria-label="Opções"
+        aria-expanded={open}
+        aria-haspopup="menu"
+        onClick={() => setOpen(v => !v)}
+        style={{ touchAction: 'manipulation', WebkitTapHighlightColor: 'transparent' }}
+      >
+        <Icon.Dots size={16}/>
+      </button>
+
+      {open && (
+        <div
+          className={`ctn-dots-dd ${align === 'left' ? 'ctn-dots-dd--left' : ''}`}
+          role="menu"
+          onClick={e => e.stopPropagation()}
+        >
+          {items.map(item => {
+            const Ic = item.icon ? (CtnIcon[item.icon] || Icon[item.icon] || null) : null;
+            return (
+              <button
+                key={item.id}
+                role="menuitem"
+                className={`ctn-dots-item${item.danger ? ' danger' : ''}`}
+                onPointerUp={() => { item.onClick?.(); setOpen(false); }}
+                style={{ touchAction: 'manipulation', WebkitTapHighlightColor: 'transparent' }}
+              >
+                {Ic && <Ic size={14}/>}
+                {item.label}
+              </button>
+            );
+          })}
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ─── ConfirmDeleteModal ────────────────────────────────────────
+function ConfirmDeleteModal({ open, title, desc, onConfirm, onCancel }) {
+  if (!open) return null;
+  return (
+    <div className="fds-modal-backdrop" onClick={onCancel}>
+      <div className="fds-modal" style={{ maxWidth: 400 }} onClick={e => e.stopPropagation()}>
+        <div className="fds-modal-head">
+          <div className="fds-modal-title" style={{ color: 'var(--bad)' }}>
+            <CtnIcon.Trash size={16} style={{ marginRight: 8, verticalAlign: 'middle' }}/>
+            {title}
+          </div>
+          <button className="fds-icon-btn" onClick={onCancel}><Icon.X size={16}/></button>
+        </div>
+        <div className="fds-modal-body">
+          <p style={{ fontSize: 14, color: 'var(--ink-3)', lineHeight: 1.6, margin: 0 }}>{desc}</p>
+        </div>
+        <div className="fds-modal-foot" style={{ display: 'flex', justifyContent: 'flex-end', gap: 8 }}>
+          <button className="fds-btn-ghost" onClick={onCancel}>Cancelar</button>
+          <button
+            className="fds-btn-primary"
+            style={{ background: 'var(--bad)' }}
+            onClick={onConfirm}
+          >
+            <CtnIcon.Trash size={13}/> Excluir
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 function ContasStudio({ onAdd }) {
   const { transactions, categories, payCartaoFatura, faturasPorCartao, selectedMonth, monthLabel } = useFides();
   const lbl = monthLabel(selectedMonth);
@@ -68,6 +182,9 @@ function ContasStudio({ onAdd }) {
   const [localAccounts, setLocalAccounts] = React.useState(ACCOUNTS);
   const [localCards, setLocalCards]       = React.useState(CARDS);
   const [addModal, setAddModal]           = React.useState(null); // 'conta' | 'cartao'
+  const [editConta, setEditConta]   = React.useState(null);
+  const [editCartao, setEditCartao] = React.useState(null);
+  const [deleteTarget, setDeleteTarget] = React.useState(null);
 
   const BANK_COLORS = ['#2D5A3D','#2C5282','#B45309','#7C3AED','#0F766E','#9B2C2C'];
 
@@ -102,6 +219,38 @@ function ContasStudio({ onAdd }) {
     setAddModal(null);
   }
 
+  function handleEditConta(e) {
+    e.preventDefault();
+    const fd = new FormData(e.target);
+    setLocalAccounts(prev => prev.map(a =>
+      a.id === editConta.id
+        ? { ...a, name: fd.get('name') || a.name, type: fd.get('type') || a.type, tag: fd.get('tag') || a.tag, balance: parseFloat(fd.get('balance') ?? a.balance) }
+        : a
+    ));
+    setEditConta(null);
+  }
+
+  function handleEditCartao(e) {
+    e.preventDefault();
+    const fd = new FormData(e.target);
+    setLocalCards(prev => prev.map(c =>
+      c.id === editCartao.id
+        ? { ...c, name: fd.get('name') || c.name, tag: fd.get('tag') || c.tag, limit: parseFloat(fd.get('limit') ?? c.limit), due: fd.get('due') || c.due, diaFechamento: fd.get('fechamento') || c.diaFechamento }
+        : c
+    ));
+    setEditCartao(null);
+  }
+
+  function handleConfirmDelete() {
+    if (!deleteTarget) return;
+    if (deleteTarget.type === 'conta') {
+      setLocalAccounts(prev => prev.filter(a => a.id !== deleteTarget.id));
+    } else {
+      setLocalCards(prev => prev.filter(c => c.id !== deleteTarget.id));
+    }
+    setDeleteTarget(null);
+  }
+
   // ─── Totals use localAccounts / localCards ─────────────────
   const totalContas = localAccounts.reduce((s, a) => s + a.balance, 0);
   const totalUsadoCartoes = localCards.reduce((s, c) => s + c.used, 0);
@@ -126,6 +275,73 @@ function ContasStudio({ onAdd }) {
   return (
     <div className="fds-page stu-page" data-od-id="contas">
       {/* ─── Modals ─── */}
+      <ConfirmDeleteModal
+        open={!!deleteTarget}
+        title={deleteTarget?.type === 'conta' ? 'Excluir conta' : 'Excluir cartão'}
+        desc={deleteTarget?.type === 'conta'
+          ? `Tem certeza que deseja excluir a conta "${deleteTarget?.name}"? Esta ação não pode ser desfeita.`
+          : `Tem certeza que deseja excluir o cartão "${deleteTarget?.name}"? Esta ação não pode ser desfeita.`}
+        onConfirm={handleConfirmDelete}
+        onCancel={() => setDeleteTarget(null)}
+      />
+
+      {editConta && (
+        <div className="fds-modal-backdrop" onClick={() => setEditConta(null)}>
+          <div className="fds-modal" style={{ maxWidth: 460 }} onClick={e => e.stopPropagation()}>
+            <div className="fds-modal-head">
+              <div>
+                <div className="fds-modal-eyebrow">Editar</div>
+                <div className="fds-modal-title">{editConta.name}</div>
+              </div>
+              <button className="fds-icon-btn" onClick={() => setEditConta(null)}><Icon.X size={16}/></button>
+            </div>
+            <form className="fds-modal-body" onSubmit={handleEditConta} style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
+              <div className="fds-modal-row two">
+                <label className="fds-field"><span>Nome do banco</span><input className="fds-input" name="name" defaultValue={editConta.name} required/></label>
+                <label className="fds-field"><span>Tipo</span><select className="fds-input" name="type" defaultValue={editConta.type}><option value="corrente">Corrente</option><option value="digital">Digital</option><option value="poupança">Poupança</option></select></label>
+              </div>
+              <div className="fds-modal-row two">
+                <label className="fds-field"><span>Últimos 4 dígitos</span><input className="fds-input" name="tag" defaultValue={editConta.tag} maxLength={4}/></label>
+                <label className="fds-field"><span>Saldo atual (R$)</span><input className="fds-input" name="balance" type="number" step="0.01" defaultValue={editConta.balance}/></label>
+              </div>
+              <div className="fds-modal-foot" style={{ display: 'flex', justifyContent: 'flex-end', gap: 8, padding: '12px 0 0' }}>
+                <button type="button" className="fds-btn-ghost" onClick={() => setEditConta(null)}>Cancelar</button>
+                <button type="submit" className="fds-btn-primary"><Icon.Check size={13}/> Salvar alterações</button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {editCartao && (
+        <div className="fds-modal-backdrop" onClick={() => setEditCartao(null)}>
+          <div className="fds-modal" style={{ maxWidth: 460 }} onClick={e => e.stopPropagation()}>
+            <div className="fds-modal-head">
+              <div>
+                <div className="fds-modal-eyebrow">Editar</div>
+                <div className="fds-modal-title">{editCartao.name}</div>
+              </div>
+              <button className="fds-icon-btn" onClick={() => setEditCartao(null)}><Icon.X size={16}/></button>
+            </div>
+            <form className="fds-modal-body" onSubmit={handleEditCartao} style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
+              <div className="fds-modal-row two">
+                <label className="fds-field"><span>Nome do cartão</span><input className="fds-input" name="name" defaultValue={editCartao.name} required/></label>
+                <label className="fds-field"><span>Últimos 4 dígitos</span><input className="fds-input" name="tag" defaultValue={editCartao.tag.replace(/[^\d]/g,'')} maxLength={4}/></label>
+              </div>
+              <div className="fds-modal-row two">
+                <label className="fds-field"><span>Limite total (R$)</span><input className="fds-input" name="limit" type="number" step="0.01" defaultValue={editCartao.limit} required/></label>
+                <label className="fds-field"><span>Vencimento (dia)</span><input className="fds-input" name="due" type="number" min={1} max={31} defaultValue={String(editCartao.diaVencimento || editCartao.due || '')}/></label>
+              </div>
+              <label className="fds-field"><span>Fechamento da fatura (dia)</span><input className="fds-input" name="fechamento" type="number" min={1} max={31} defaultValue={editCartao.diaFechamento}/></label>
+              <div className="fds-modal-foot" style={{ display: 'flex', justifyContent: 'flex-end', gap: 8, padding: '12px 0 0' }}>
+                <button type="button" className="fds-btn-ghost" onClick={() => setEditCartao(null)}>Cancelar</button>
+                <button type="submit" className="fds-btn-primary"><Icon.Check size={13}/> Salvar alterações</button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
       {addModal === 'conta' && (
         <div className="fds-modal-backdrop" onClick={() => setAddModal(null)}>
           <div className="fds-modal" style={{ maxWidth: 460 }} onClick={e => e.stopPropagation()}>
@@ -284,7 +500,13 @@ function ContasStudio({ onAdd }) {
                     Conta {a.type === 'digital' ? 'digital' : 'corrente'} · ••{a.tag}
                   </div>
                 </div>
-                <button className="fds-icon-btn"><Icon.Dots size={16}/></button>
+                <DotsMenu
+                  align="left"
+                  items={[
+                    { id: 'edit', label: 'Editar conta', icon: 'Edit', onClick: () => setEditConta(a) },
+                    { id: 'delete', label: 'Excluir conta', icon: 'Trash', danger: true, onClick: () => setDeleteTarget({ type: 'conta', id: a.id, name: a.name }) },
+                  ]}
+                />
               </div>
 
               <div className="ctn-account-bal-row">
@@ -364,7 +586,16 @@ function ContasStudio({ onAdd }) {
                     <BankLogo bank={c.bank || ''} name={c.name || ''} size={28}/>
                     <span>{c.name}</span>
                   </div>
-                  <Icon.Wifi size={16}/>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                    <Icon.Wifi size={16}/>
+                    <DotsMenu
+                      align="left"
+                      items={[
+                        { id: 'edit', label: 'Editar cartão', icon: 'Edit', onClick: () => setEditCartao(c) },
+                        { id: 'delete', label: 'Excluir cartão', icon: 'Trash', danger: true, onClick: () => setDeleteTarget({ type: 'cartao', id: c.id, name: c.name }) },
+                      ]}
+                    />
+                  </div>
                 </div>
                 <div className="ctn-card-visual-num">•••• •••• •••• {c.tag.replace(/[^\d]/g,'').slice(-4) || '0000'}</div>
                 <div className="ctn-card-visual-foot">
