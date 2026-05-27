@@ -30,7 +30,7 @@ function FidesStudioShell({ initialPage = 'dashboard' }) {
           {active === 'transacoes' && <TransacoesStudio onAdd={() => setModalOpen(true)}/>}
           {active === 'orcamento'  && <OrcamentoStudio onAdd={() => setModalOpen(true)}/>}
           {active === 'contas'     && <ContasStudio onAdd={() => setModalOpen(true)}/>}
-          {active === 'metas'      && <MetasStudio onAdd={() => setModalOpen(true)}/>}
+          {active === 'metas'      && <MetasStudio onAdd={() => setModalOpen(true)} onNav={setActive}/>}
           {!['dashboard','transacoes','orcamento','contas','metas'].includes(active) && <StudioStub page={active}/>}
         </main>
       </div>
