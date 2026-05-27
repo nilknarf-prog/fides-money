@@ -283,90 +283,198 @@ function PagarFaturaModal({ modal, onClose, onConfirm }) {
   );
 }
 
+// ─── Modal: Pagar fatura (débito em conta) ────────────────────
+function PagarFaturaDebModal({ card, accounts, onClose, onConfirm }) {
+  const totalFatura = card.used;
+  const [selectedAccount, setSelectedAccount] = React.useState(accounts[0]?.id || '');
+  const [success, setSuccess]   = React.useState(false);
+  const [loading, setLoading]   = React.useState(false);
+
+  const selectedAcct        = accounts.find(a => a.id === selectedAccount);
+  const saldoInsuficiente   = selectedAcct && selectedAcct.balance < totalFatura;
+  const semContas           = accounts.length === 0;
+
+  if (success) return (
+    <div className="fds-modal-backdrop" onPointerUp={onClose}
+         style={{ position: 'fixed', inset: 0, zIndex: 200 }}>
+      <div className="fds-modal" style={{ maxWidth: 420, textAlign: 'center' }}
+           onPointerUp={e => e.stopPropagation()}>
+        <div className="fds-modal-body" style={{ padding: '32px 24px' }}>
+          <div style={{ fontSize: 48, lineHeight: 1 }}>✅</div>
+          <div style={{ fontWeight: 700, fontSize: 18, marginTop: 12 }}>Fatura paga!</div>
+          <div style={{ color: 'var(--ink-3)', marginTop: 8, fontSize: 14 }}>
+            {fmtBRL(totalFatura)} debitados de {selectedAcct?.name}
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+
+  return (
+    <div className="fds-modal-backdrop" onPointerUp={onClose}
+         style={{ position: 'fixed', inset: 0, zIndex: 200 }}>
+      <div className="fds-modal" style={{ maxWidth: 420 }}
+           onPointerUp={e => e.stopPropagation()}>
+        <div className="fds-modal-head">
+          <div>
+            <div className="fds-modal-eyebrow">Pagar fatura</div>
+            <div className="fds-modal-title">{card.name}</div>
+          </div>
+          <button className="fds-icon-btn" onPointerUp={onClose}
+                  style={{ touchAction: 'manipulation', WebkitTapHighlightColor: 'transparent' }}>
+            <Icon.X size={16}/>
+          </button>
+        </div>
+
+        <div className="fds-modal-body" style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+          <label className="fds-field">
+            <span>Total da fatura</span>
+            <input className="fds-input" readOnly value={fmtBRL(totalFatura)}
+                   style={{ color: 'var(--bad)', fontWeight: 600, cursor: 'default' }}/>
+          </label>
+
+          {semContas ? (
+            <div style={{ color: 'var(--bad)', fontSize: 13 }}>
+              Você não tem contas cadastradas. Adicione uma conta primeiro.
+            </div>
+          ) : (
+            <>
+              <label className="fds-field">
+                <span>Débitar da conta</span>
+                <select className="fds-input" value={selectedAccount}
+                        onChange={e => setSelectedAccount(e.target.value)}
+                        style={{ touchAction: 'manipulation', minHeight: 44 }}>
+                  {accounts.map(a => (
+                    <option key={a.id} value={a.id}>
+                      {a.name} · saldo {fmtBRL(a.balance)}
+                    </option>
+                  ))}
+                </select>
+              </label>
+              {saldoInsuficiente && (
+                <div style={{ color: 'var(--bad)', fontSize: 13, display: 'flex', alignItems: 'center', gap: 6 }}>
+                  <Icon.X size={13}/>
+                  Saldo insuficiente — faltam {fmtBRL(totalFatura - (selectedAcct?.balance || 0))}.
+                </div>
+              )}
+            </>
+          )}
+        </div>
+
+        <div className="fds-modal-foot" style={{ display: 'flex', justifyContent: 'flex-end', gap: 8 }}>
+          <button className="fds-btn-ghost" onPointerUp={onClose}
+                  style={{ touchAction: 'manipulation', minHeight: 44 }}>
+            Cancelar
+          </button>
+          <button
+            className="fds-btn-primary"
+            disabled={saldoInsuficiente || semContas || loading}
+            onPointerUp={async () => {
+              if (saldoInsuficiente || semContas || loading || !selectedAccount) return;
+              setLoading(true);
+              try {
+                await onConfirm(selectedAccount);
+                setSuccess(true);
+                setTimeout(onClose, 2000);
+              } catch (_) {
+                setLoading(false);
+              }
+            }}
+            style={{ touchAction: 'manipulation', minHeight: 44 }}
+          >
+            <Icon.Check size={13}/> Confirmar pagamento
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 function ContasStudio({ onAdd }) {
-  const { transactions, categories, payCartaoFatura, updateTransaction, faturasPorCartao, selectedMonth, monthLabel } = useFides();
+  const {
+    transactions, categories, payCartaoFatura, updateTransaction,
+    faturasPorCartao, selectedMonth, monthLabel,
+    accounts, cards,
+    addAccount, addCard, updateAccount, deleteAccount, updateCard, deleteCard,
+  } = useFides();
   const lbl = monthLabel(selectedMonth);
 
-  // ─── Local state extends ACCOUNTS / CARDS ─────────────────
-  const [localAccounts, setLocalAccounts] = React.useState(ACCOUNTS);
-  const [localCards, setLocalCards]       = React.useState(CARDS);
-  const [addModal, setAddModal]           = React.useState(null); // 'conta' | 'cartao'
-  const [editConta, setEditConta]   = React.useState(null);
-  const [editCartao, setEditCartao] = React.useState(null);
+  const [addModal, setAddModal]         = React.useState(null);
+  const [editConta, setEditConta]       = React.useState(null);
+  const [editCartao, setEditCartao]     = React.useState(null);
   const [deleteTarget, setDeleteTarget] = React.useState(null);
-  const [payModal, setPayModal] = React.useState(null);
-  // payModal = { cardId, cardName, txs: [...] } quando aberto, null quando fechado
+  const [payModal, setPayModal]         = React.useState(null);
+  const [payDebModal, setPayDebModal]   = React.useState(null);
+  // payDebModal = { card } when open, null when closed
 
   const BANK_COLORS = ['#2D5A3D','#2C5282','#B45309','#7C3AED','#0F766E','#9B2C2C'];
 
-  function handleAddConta(e) {
+  async function handleAddConta(e) {
     e.preventDefault();
     const fd = new FormData(e.target);
-    const newAcct = {
-      id:      'acct-' + Date.now(),
-      name:    fd.get('name') || 'Nova conta',
-      type:    fd.get('type') || 'corrente',
-      tag:     fd.get('tag') || '0000',
+    await addAccount({
+      name:    fd.get('name')    || 'Nova conta',
+      type:    fd.get('type')    || 'corrente',
+      tag:     fd.get('tag')     || '0000',
       balance: parseFloat(fd.get('balance') || '0'),
-      color:   BANK_COLORS[localAccounts.length % BANK_COLORS.length],
-    };
-    setLocalAccounts(prev => [...prev, newAcct]);
+      color:   BANK_COLORS[accounts.length % BANK_COLORS.length],
+    });
     setAddModal(null);
   }
 
-  function handleAddCartao(e) {
+  async function handleAddCartao(e) {
     e.preventDefault();
     const fd = new FormData(e.target);
-    const newCard = {
-      id:            'card-' + Date.now(),
-      name:          fd.get('name') || 'Novo cartão',
-      tag:           fd.get('tag') || '0000',
+    await addCard({
+      name:          fd.get('name')      || 'Novo cartão',
+      tag:           fd.get('tag')       || '0000',
       limit:         parseFloat(fd.get('limit') || '0'),
-      used:          0,
-      due:           fd.get('due') || '10',
+      due:           fd.get('due')       || '10',
       diaFechamento: fd.get('fechamento') || '03',
-    };
-    setLocalCards(prev => [...prev, newCard]);
+    });
     setAddModal(null);
   }
 
-  function handleEditConta(e) {
+  async function handleEditConta(e) {
     e.preventDefault();
     const fd = new FormData(e.target);
-    setLocalAccounts(prev => prev.map(a =>
-      a.id === editConta.id
-        ? { ...a, name: fd.get('name') || a.name, type: fd.get('type') || a.type, tag: fd.get('tag') || a.tag, balance: parseFloat(fd.get('balance') ?? a.balance) }
-        : a
-    ));
+    await updateAccount(editConta.id, {
+      name:    fd.get('name')    || editConta.name,
+      type:    fd.get('type')    || editConta.type,
+      tag:     fd.get('tag')     || editConta.tag,
+      balance: parseFloat(fd.get('balance') ?? editConta.balance),
+    });
     setEditConta(null);
   }
 
-  function handleEditCartao(e) {
+  async function handleEditCartao(e) {
     e.preventDefault();
     const fd = new FormData(e.target);
-    setLocalCards(prev => prev.map(c =>
-      c.id === editCartao.id
-        ? { ...c, name: fd.get('name') || c.name, tag: fd.get('tag') || c.tag, limit: parseFloat(fd.get('limit') ?? c.limit), due: fd.get('due') || c.due, diaFechamento: fd.get('fechamento') || c.diaFechamento }
-        : c
-    ));
+    await updateCard(editCartao.id, {
+      name:          fd.get('name')       || editCartao.name,
+      tag:           fd.get('tag')        || editCartao.tag,
+      limit:         parseFloat(fd.get('limit') ?? editCartao.limit),
+      due:           fd.get('due')        || editCartao.due,
+      diaFechamento: fd.get('fechamento') || editCartao.diaFechamento,
+    });
     setEditCartao(null);
   }
 
-  function handleConfirmDelete() {
+  async function handleConfirmDelete() {
     if (!deleteTarget) return;
     if (deleteTarget.type === 'conta') {
-      setLocalAccounts(prev => prev.filter(a => a.id !== deleteTarget.id));
+      await deleteAccount(deleteTarget.id);
     } else {
-      setLocalCards(prev => prev.filter(c => c.id !== deleteTarget.id));
+      await deleteCard(deleteTarget.id);
     }
     setDeleteTarget(null);
   }
 
-  // ─── Totals use localAccounts / localCards ─────────────────
-  const totalContas = localAccounts.reduce((s, a) => s + a.balance, 0);
-  const totalUsadoCartoes = localCards.reduce((s, c) => s + c.used, 0);
-  const totalLimiteCartoes = localCards.reduce((s, c) => s + c.limit, 0);
-  const proximaFatura = localCards.reduce((m, c) =>
+  // ─── Totals use store accounts / cards ─────────────────────
+  const totalContas         = accounts.reduce((s, a) => s + a.balance, 0);
+  const totalUsadoCartoes   = cards.reduce((s, c) => s + c.used, 0);
+  const totalLimiteCartoes  = cards.reduce((s, c) => s + c.limit, 0);
+  const proximaFatura       = cards.reduce((m, c) =>
     (!m || c.due < m.due) ? c : m, null);
 
   // Account sparklines — fabricated stable historical balances
@@ -550,8 +658,8 @@ function ContasStudio({ onAdd }) {
           distribuídos.
         </h2>
         <p className="stu-hero-lede">
-          <strong className="stu-num">{localAccounts.length} contas</strong> ativas e{' '}
-          <strong className="stu-num">{localCards.length} cartões</strong> abertos. Você comprometeu{' '}
+          <strong className="stu-num">{accounts.length} contas</strong> ativas e{' '}
+          <strong className="stu-num">{cards.length} cartões</strong> abertos. Você comprometeu{' '}
           <strong className="stu-num">{fmtBRL(totalUsadoCartoes)}</strong> de{' '}
           <strong className="stu-num">{fmtBRL(totalLimiteCartoes)}</strong> em limite — {((totalUsadoCartoes/totalLimiteCartoes)*100).toFixed(0)}%.
           {proximaFatura && <> Próxima fatura: <strong className="stu-num">{proximaFatura.name}</strong> vence em <em>{proximaFatura.due}</em>.</>}
@@ -562,7 +670,7 @@ function ContasStudio({ onAdd }) {
             <div className="stu-metric-lbl">Saldo em contas</div>
             <div className="stu-metric-val pos">{fmtBRL(totalContas)}</div>
             <div className="stu-metric-tag" style={{ color: 'var(--muted)' }}>
-              <Icon.Bank size={11}/> {ACCOUNTS.length} contas
+              <Icon.Bank size={11}/> {accounts.length} contas
             </div>
           </div>
           <div className="stu-metric-sep"/>
@@ -592,10 +700,10 @@ function ContasStudio({ onAdd }) {
 
       {/* ─── Capítulo I · Contas ─── */}
       <ChapterMark roman="I" title="Contas"
-                   caption={`${localAccounts.length} contas correntes e digitais`}
+                   caption={`${accounts.length} contas correntes e digitais`}
                    action={<button className="stu-link" onClick={() => setAddModal('conta')}><Icon.Plus size={12}/> Adicionar conta</button>}/>
       <div className="ctn-accounts" data-od-id="ctn-lista-contas">
-        {localAccounts.map(a => {
+        {accounts.map(a => {
           const txs = txByAcct(a.id);
           const last = lastByAcct(a.id);
           const last7 = acctHistory[a.id] || [a.balance];
@@ -614,7 +722,7 @@ function ContasStudio({ onAdd }) {
                 <DotsMenu
                   align="left"
                   items={[
-                    { id: 'edit', label: 'Editar conta', icon: 'Edit', onClick: () => setEditConta(a) },
+                    { id: 'edit',   label: 'Editar conta',  icon: 'Edit',  onClick: () => setEditConta(a) },
                     { id: 'delete', label: 'Excluir conta', icon: 'Trash', danger: true, onClick: () => setDeleteTarget({ type: 'conta', id: a.id, name: a.name }) },
                   ]}
                 />
@@ -669,10 +777,10 @@ function ContasStudio({ onAdd }) {
 
       {/* ─── Capítulo II · Cartões ─── */}
       <ChapterMark roman="II" title="Cartões de crédito"
-                   caption={`${localCards.length} cartões · ${fmtBRL(totalUsadoCartoes)} de fatura aberta`}
+                   caption={`${cards.length} cartões · ${fmtBRL(totalUsadoCartoes)} de fatura aberta`}
                    action={<button className="stu-link" onClick={() => setAddModal('cartao')}><Icon.Plus size={12}/> Adicionar cartão</button>}/>
       <div className="ctn-cards" data-od-id="ctn-lista-cartoes">
-        {localCards.map(c => {
+        {cards.map(c => {
           const pct = c.used / c.limit;
           const over = pct > 0.85;
           // Encontra a fatura corrente para este cartão (mês de fatura = selectedMonth)
@@ -702,8 +810,9 @@ function ContasStudio({ onAdd }) {
                     <DotsMenu
                       align="left"
                       items={[
-                        { id: 'edit', label: 'Editar cartão', icon: 'Edit', onClick: () => setEditCartao(c) },
-                        { id: 'delete', label: 'Excluir cartão', icon: 'Trash', danger: true, onClick: () => setDeleteTarget({ type: 'cartao', id: c.id, name: c.name }) },
+                        { id: 'pay',    label: 'Pagar fatura',  icon: 'Check', onClick: () => setPayDebModal({ card: c }) },
+                        { id: 'edit',   label: 'Editar cartão', icon: 'Edit',  onClick: () => setEditCartao(c) },
+                        { id: 'delete', label: 'Excluir cartão',icon: 'Trash', danger: true, onClick: () => setDeleteTarget({ type: 'cartao', id: c.id, name: c.name }) },
                       ]}
                     />
                   </div>
@@ -786,24 +895,24 @@ function ContasStudio({ onAdd }) {
                    caption="Como seu dinheiro está dividido entre as contas"/>
       <div className="stu-card ctn-dist" data-od-id="ctn-distribuicao">
         <div className="ctn-dist-bar">
-          {ACCOUNTS.map(a => {
-            const w = (a.balance / totalContas) * 100;
+          {accounts.map(a => {
+            const w = totalContas > 0 ? (a.balance / totalContas) * 100 : 0;
             return (
               <div key={a.id} className="ctn-dist-seg"
-                   style={{ width: `${w}%`, background: a.color }}
+                   style={{ width: `${w}%`, background: a.color || '#888' }}
                    title={`${a.name}: ${w.toFixed(1)}%`}/>
             );
           })}
         </div>
         <div className="ctn-dist-rows">
-          {ACCOUNTS.map(a => {
-            const pct = (a.balance / totalContas) * 100;
+          {accounts.map(a => {
+            const pct = totalContas > 0 ? (a.balance / totalContas) * 100 : 0;
             return (
               <div className="ctn-dist-row" key={a.id}>
-                <span className="ctn-dist-dot" style={{ background: a.color }}/>
+                <span className="ctn-dist-dot" style={{ background: a.color || '#888' }}/>
                 <span className="ctn-dist-name">{a.name}</span>
                 <div className="ctn-dist-track">
-                  <div className="ctn-dist-fill" style={{ width: `${pct}%`, background: a.color }}/>
+                  <div className="ctn-dist-fill" style={{ width: `${pct}%`, background: a.color || '#888' }}/>
                 </div>
                 <span className="ctn-dist-pct">{pct.toFixed(1)}%</span>
                 <span className="ctn-dist-val">{fmtBRL(a.balance)}</span>
@@ -820,6 +929,21 @@ function ContasStudio({ onAdd }) {
           onConfirm={(selectedIds) => {
             selectedIds.forEach(id => updateTransaction(id, { status: 'pago' }));
             setPayModal(null);
+          }}
+        />
+      )}
+
+      {payDebModal && (
+        <PagarFaturaDebModal
+          card={payDebModal.card}
+          accounts={accounts}
+          onClose={() => setPayDebModal(null)}
+          onConfirm={async (accountId) => {
+            await payCartaoFatura({
+              cartaoId:  payDebModal.card.id,
+              accountId,
+              valor:     payDebModal.card.used,
+            });
           }}
         />
       )}

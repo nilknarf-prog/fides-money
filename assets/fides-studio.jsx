@@ -8,9 +8,33 @@
 function FidesStudio({ page = 'dashboard' }) {
   return (
     <FidesProvider>
-      <FidesStudioShell initialPage={page}/>
+      <FidesStudioGuard initialPage={page}/>
     </FidesProvider>
   );
+}
+
+function FidesStudioGuard({ initialPage }) {
+  const { mode, isLoading } = useFides();
+
+  if (isLoading) return (
+    <div style={{
+      display: 'flex', alignItems: 'center', justifyContent: 'center',
+      minHeight: '100vh', flexDirection: 'column', gap: '16px',
+    }}>
+      <div style={{
+        width: '32px', height: '32px',
+        border: '2px solid var(--border)',
+        borderTop: '2px solid var(--accent)',
+        borderRadius: '50%',
+        animation: 'spin 0.8s linear infinite',
+      }}/>
+      <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
+    </div>
+  );
+
+  if (mode === 'mock') return <FidesAuth />;
+
+  return <FidesStudioShell initialPage={initialPage}/>;
 }
 
 function FidesStudioShell({ initialPage = 'dashboard' }) {
@@ -268,7 +292,11 @@ function SidebarSlim({ active, onNav }) {
 
 // ─── Editorial masthead ───────────────────────────────────────
 function StudioMasthead({ onAdd }) {
-  const { selectedMonth, setSelectedMonth, prevMonth, monthLabel, openAssistant, monthTransactions } = useFides();
+  const { selectedMonth, setSelectedMonth, prevMonth, monthLabel, openAssistant, monthTransactions, mode } = useFides();
+
+  async function handleLogout() {
+    if (window.fidesAuth) await window.fidesAuth.signOut();
+  }
   const [pickerOpen, setPickerOpen] = React.useState(false);
   const [pickerYear, setPickerYear] = React.useState(y);
   const pickerRef = React.useRef(null);
@@ -479,6 +507,28 @@ function StudioMasthead({ onAdd }) {
         <button className="stu-mast-add" onClick={onAdd}>
           <Icon.Plus size={14}/> Lançar
         </button>
+        {mode === 'live' && (
+          <button
+            className="stu-mast-logout"
+            onClick={handleLogout}
+            title="Sair da conta"
+            style={{
+              touchAction: 'manipulation',
+              WebkitTapHighlightColor: 'transparent',
+              minHeight: 44, minWidth: 44,
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
+              background: 'transparent', border: 'none', cursor: 'pointer',
+              color: 'var(--ink-2)', borderRadius: 8, padding: '0 8px',
+            }}
+          >
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none"
+                 stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M9 21H5a2 2 0 01-2-2V5a2 2 0 012-2h4"/>
+              <polyline points="16 17 21 12 16 7"/>
+              <line x1="21" y1="12" x2="9" y2="12"/>
+            </svg>
+          </button>
+        )}
       </div>
     </header>
   );
@@ -486,7 +536,22 @@ function StudioMasthead({ onAdd }) {
 
 // ─── Studio dashboard ─────────────────────────────────────────
 function DashboardStudio({ onAdd, onNav }) {
-  const { monthTransactions, prevMonthTransactions, categories, spendByCategory, budgetGroups, openCategoryModal, selectedMonth, monthLabel, prevMonth } = useFides();
+  const { monthTransactions, prevMonthTransactions, categories, spendByCategory, budgetGroups, openCategoryModal, selectedMonth, monthLabel, prevMonth, isEmpty } = useFides();
+
+  if (isEmpty) return (
+    <div className="fds-page stu-page">
+      <div className="fds-empty-state">
+        <div className="fds-empty-state-icon">👋</div>
+        <h2 className="fds-empty-state-title">Bem-vindo ao Fides!</h2>
+        <p className="fds-empty-state-lede">
+          Comece adicionando sua primeira conta para ver o resumo financeiro.
+        </p>
+        <button className="fds-empty-state-btn" onClick={() => onNav?.('contas')}>
+          + Adicionar primeira conta
+        </button>
+      </div>
+    </div>
+  );
   const lbl = monthLabel(selectedMonth);
   const prevLbl = monthLabel(prevMonth(selectedMonth));
 
