@@ -8,17 +8,27 @@
   align-items: center;
   justify-content: center;
   padding: 24px 16px;
-  background: var(--bg);
+  background: var(--card-soft);
   font-family: var(--font-sans);
 }
 
-/* ─── Container do formulário ────────────────────────────────── */
+/* ─── Card central ───────────────────────────────────────────── */
 .fds-auth-container {
   width: 100%;
-  max-width: 380px;
+  max-width: 420px;
+  background: var(--card);
+  border-radius: 16px;
+  padding: 24px;
+  box-shadow: var(--shadow-elev);
   display: flex;
   flex-direction: column;
   gap: 0;
+}
+
+@media (min-width: 480px) {
+  .fds-auth-container {
+    padding: 32px;
+  }
 }
 
 /* ─── Brand / Logo ───────────────────────────────────────────── */
@@ -39,17 +49,17 @@
 
 .fds-auth-wordmark {
   font-family: var(--font-display);
-  font-size: 28px;
+  font-size: 32px;
   font-weight: 700;
   letter-spacing: var(--tracking-tight);
-  color: var(--ink);
+  color: var(--accent);
   margin: 0;
   line-height: 1;
 }
 
 .fds-auth-tagline {
   font-size: var(--fs-sm);
-  color: var(--muted);
+  color: var(--ink-3);
   margin: 0;
   letter-spacing: 0.01em;
 }
@@ -70,22 +80,22 @@
   font-family: var(--font-sans);
   font-size: var(--fs-ui);
   font-weight: 500;
-  color: var(--muted);
+  color: var(--ink-2);
   background: transparent;
   border: none;
   border-radius: calc(var(--radius-md) - 3px);
   cursor: pointer;
   min-height: 44px;
-  transition: color 0.15s, background 0.15s;
+  transition: color 0.2s, background 0.2s;
   -webkit-tap-highlight-color: transparent;
   touch-action: manipulation;
 }
 
 .fds-auth-tab.on {
-  background: var(--card);
-  color: var(--ink);
+  background: var(--accent);
+  color: #FFFFFF;
   font-weight: 600;
-  box-shadow: var(--shadow-elev);
+  border-radius: 10px;
 }
 
 /* ─── Formulário ─────────────────────────────────────────────── */
@@ -112,13 +122,12 @@
 .fds-auth-input {
   width: 100%;
   box-sizing: border-box;
-  height: 48px;
-  padding: 0 14px;
+  padding: 12px 14px;
   font-family: var(--font-sans);
   font-size: 16px; /* 16px mínimo — evita zoom automático no iOS */
   color: var(--ink);
   background: var(--card);
-  border: 1.5px solid var(--border);
+  border: 1px solid var(--border);
   border-radius: 10px;
   outline: none;
   appearance: none;
@@ -138,31 +147,32 @@
 
 /* ─── Mensagens de feedback ──────────────────────────────────── */
 .fds-auth-msg {
-  font-size: var(--fs-sm);
+  font-size: 14px;
   font-weight: 500;
   padding: 10px 14px;
-  border-radius: var(--radius-sm);
+  border-radius: 8px;
   line-height: 1.5;
 }
 
 .fds-auth-msg--error {
   color: var(--bad);
   background: var(--bad-soft);
+  border-left: 3px solid var(--bad);
 }
 
 .fds-auth-msg--success {
   color: var(--ok);
   background: var(--ok-soft);
+  border-left: 3px solid var(--ok);
 }
 
 /* ─── Botão primário ─────────────────────────────────────────── */
 .fds-auth-btn-primary {
   width: 100%;
-  height: 48px;
-  min-height: 44px;
+  min-height: 48px;
   padding: 0 24px;
   font-family: var(--font-sans);
-  font-size: 15px;
+  font-size: 16px;
   font-weight: 600;
   color: #FFFFFF;
   background: var(--accent);
@@ -181,7 +191,7 @@
 }
 
 .fds-auth-btn-primary:disabled {
-  opacity: 0.5;
+  opacity: 0.7;
   cursor: not-allowed;
 }
 
@@ -189,51 +199,30 @@
 .fds-auth-link {
   background: none;
   border: none;
-  padding: 10px 0;
+  padding: 8px 0;
   font-family: var(--font-sans);
-  font-size: var(--fs-sm);
+  font-size: 13px;
   font-weight: 500;
-  color: var(--accent);
+  color: var(--ink-3);
   cursor: pointer;
-  text-align: center;
+  text-align: right;
+  text-decoration: none;
   min-height: 44px;
   display: block;
   width: 100%;
   -webkit-tap-highlight-color: transparent;
   touch-action: manipulation;
-  transition: opacity 0.15s;
+  transition: color 0.15s;
 }
 
 .fds-auth-link:hover:not(:disabled) {
-  opacity: 0.75;
+  text-decoration: underline;
+  color: var(--ink-2);
 }
 
 .fds-auth-link:disabled {
   opacity: 0.4;
   cursor: not-allowed;
-}
-
-/* ─── Demo link ──────────────────────────────────────────────── */
-.fds-auth-demo {
-  margin-top: 28px;
-  text-align: center;
-}
-
-.fds-auth-demo-link {
-  font-size: var(--fs-xs);
-  color: var(--muted);
-  text-decoration: none;
-  padding: 8px 12px;
-  display: inline-block;
-  border-radius: 6px;
-  min-height: 44px;
-  line-height: 44px;
-  -webkit-tap-highlight-color: transparent;
-  touch-action: manipulation;
-}
-
-.fds-auth-demo-link:hover {
-  color: var(--ink-3);
 }
 
 /* ─── Responsivo: mais espaço em telas maiores ───────────────── */

@@ -103,7 +103,7 @@ function FidesAuth({ onAuth }) {
             </svg>
           </div>
           <h1 className="fds-auth-wordmark">Fides</h1>
-          <p className="fds-auth-tagline">Suas finanças, com clareza.</p>
+          <p className="fds-auth-tagline">Gestão financeira pessoal</p>
         </div>
 
         {/* ─── Tabs ─── */}
