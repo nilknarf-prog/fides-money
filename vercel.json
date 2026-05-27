@@ -1,3 +1,28 @@
 {
-  "rewrites": [{ "source": "/(.*)", "destination": "/Fides-app.html" }]
+  "rewrites": [
+    {
+      "source": "/fides-config.js",
+      "destination": "/api/inject-config"
+    },
+    {
+      "source": "/teste",
+      "destination": "/Fides-app.html"
+    },
+    {
+      "source": "/teste/(.*)",
+      "destination": "/Fides-app.html"
+    },
+    {
+      "source": "/((?!api/).*)",
+      "destination": "/index.html"
+    }
+  ],
+  "headers": [
+    {
+      "source": "/fides-config.js",
+      "headers": [
+        { "key": "Cache-Control", "value": "no-store, no-cache, must-revalidate" }
+      ]
+    }
+  ]
 }
