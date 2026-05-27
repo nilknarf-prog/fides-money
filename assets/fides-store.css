@@ -380,3 +380,59 @@
   display: flex; align-items: center; justify-content: center;
   font-style: italic;
 }
+
+/* ─── Category move dropdown ─────────────────────────────── */
+.fds-studio .cat-move-btn {
+  background: none;
+  border: none;
+  padding: 4px;
+  border-radius: 6px;
+  cursor: pointer;
+  color: var(--ink-3);
+  touch-action: manipulation;
+  -webkit-tap-highlight-color: transparent;
+  min-height: 44px;
+  min-width: 36px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: background 0.15s, color 0.15s;
+}
+.fds-studio .cat-move-btn:hover { background: var(--card-soft); color: var(--ink); }
+
+.fds-studio .cat-move-dd {
+  position: absolute;
+  right: 0;
+  top: 100%;
+  z-index: 50;
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  box-shadow: 0 4px 16px rgba(0,0,0,0.12);
+  min-width: 180px;
+  padding: 4px;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.fds-studio .cat-move-dd-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 12px;
+  border-radius: 7px;
+  border: none;
+  background: none;
+  cursor: pointer;
+  text-align: left;
+  font-size: 13px;
+  color: var(--ink);
+  touch-action: manipulation;
+  -webkit-tap-highlight-color: transparent;
+  min-height: 44px;
+  width: 100%;
+  transition: background 0.12s;
+}
+.fds-studio .cat-move-dd-item:hover { background: var(--card-soft); }
+.fds-studio .cat-move-dd-item .pct { font-size: 11px; color: var(--ink-3); font-family: var(--font-mono); }

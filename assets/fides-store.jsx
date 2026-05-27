@@ -80,6 +80,12 @@ function FidesProvider({ children }) {
       return n;
     });
   }, []);
+  const moveCategory = React.useCallback((id, newGroup) => {
+    setCategories(prev => {
+      if (!prev[id]) return prev;
+      return { ...prev, [id]: { ...prev[id], group: newGroup } };
+    });
+  }, []);
   const setPlanned = React.useCallback((catId, value) => {
     setPlannedOverrides(p => ({ ...p, [catId]: value }));
   }, []);
@@ -166,7 +172,7 @@ function FidesProvider({ children }) {
     updateTransaction, deleteTransaction,
     accounts, addAccount,
     cards, addCard,
-    categories, addCategory, updateCategory, deleteCategory,
+    categories, addCategory, updateCategory, deleteCategory, moveCategory,
     plannedOverrides, setPlanned,
     selectedMonth, setSelectedMonth, prevMonth, monthLabel,
     monthTransactions, prevMonthTransactions,
@@ -200,7 +206,7 @@ function useFides() {
     accounts: ACCOUNTS, addAccount: () => {},
     cards: CARDS, addCard: () => {},
     categories: CATEGORIES,
-    addCategory: () => {}, updateCategory: () => {}, deleteCategory: () => {},
+    addCategory: () => {}, updateCategory: () => {}, deleteCategory: () => {}, moveCategory: () => {},
     plannedOverrides: {}, setPlanned: () => {},
     selectedMonth: '2026-05', setSelectedMonth: () => {},
     prevMonth: (ym) => ym, monthLabel: (ym) => ({ short: ym, long: ym }),
@@ -242,6 +248,58 @@ function CategoryAvatar({ cat, size = 32, categories: categoriesProp }) {
   );
 }
 
+// ─── <MoveCatDropdown/> — inline dropdown to move a category ─
+function MoveCatDropdown({ id, currentGroup }) {
+  const { moveCategory } = useFides();
+  const [open, setOpen] = React.useState(false);
+  const ref = React.useRef(null);
+
+  React.useEffect(() => {
+    if (!open) return;
+    const close = (e) => {
+      if (ref.current && !ref.current.contains(e.target)) setOpen(false);
+    };
+    document.addEventListener('mousedown', close);
+    document.addEventListener('touchstart', close, { passive: true });
+    return () => {
+      document.removeEventListener('mousedown', close);
+      document.removeEventListener('touchstart', close);
+    };
+  }, [open]);
+
+  const groups = [
+    { id: 'essencial', label: 'Essencial',        pct: '50%' },
+    { id: 'estilo',    label: 'Estilo de vida',    pct: '30%' },
+    { id: 'divida',    label: 'Dívidas & invest.', pct: '20%' },
+  ].filter(g => g.id !== currentGroup);
+
+  return (
+    <div ref={ref} style={{ position: 'relative' }}>
+      <button
+        className="cat-move-btn"
+        title="Mover para outro grupo"
+        onPointerUp={(e) => { e.stopPropagation(); setOpen(v => !v); }}
+      >
+        <Icon.Arrow size={13}/>
+      </button>
+      {open && (
+        <div className="cat-move-dd">
+          {groups.map(g => (
+            <button
+              key={g.id}
+              className="cat-move-dd-item"
+              onPointerUp={() => { moveCategory(id, g.id); setOpen(false); }}
+            >
+              <span className="pct">{g.pct}</span>
+              {g.label}
+            </button>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
 // ─── <CategoriaModal/> — CRUD ────────────────────────────────
 // Opens via store.openCategoryModal() OR via prop `open`.
 const CATEGORY_TINTS = [
@@ -251,7 +309,7 @@ const CATEGORY_TINTS = [
 ];
 
 function CategoriaModal({ open, onClose }) {
-  const { categories, addCategory, deleteCategory } = useFides();
+  const { categories, addCategory, deleteCategory, moveCategory } = useFides();
   const [activeGroup, setActiveGroup] = React.useState('essencial');
   const [creating, setCreating] = React.useState(false);
   const [draft, setDraft] = React.useState({
@@ -393,6 +451,7 @@ function CategoriaModal({ open, onClose }) {
                   <div className="cat-card-name">{c.label}</div>
                   <div className="cat-card-sub">{c.custom ? 'Personalizada' : 'Padrão'}</div>
                 </div>
+                <MoveCatDropdown id={id} currentGroup={activeGroup}/>
                 {c.custom && (
                   <button className="cat-card-del" onClick={() => deleteCategory(id)} title="Excluir">
                     <Icon.X size={13}/>
@@ -417,4 +476,5 @@ function CategoriaModal({ open, onClose }) {
 Object.assign(window, {
   FidesStoreContext, FidesProvider, useFides,
   CategoryAvatar, CategoriaModal, CATEGORY_TINTS,
+  MoveCatDropdown,
 });
