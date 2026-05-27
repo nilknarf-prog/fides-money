@@ -174,8 +174,117 @@ function ConfirmDeleteModal({ open, title, desc, onConfirm, onCancel }) {
   );
 }
 
+function PagarFaturaModal({ modal, onClose, onConfirm }) {
+  const { categories } = useFides();
+  const [selected, setSelected] = React.useState(() =>
+    new Set(modal.txs.map(t => t._id))
+  );
+
+  const toggle = (id) => setSelected(prev => {
+    const next = new Set(prev);
+    next.has(id) ? next.delete(id) : next.add(id);
+    return next;
+  });
+
+  const toggleAll = () => {
+    if (selected.size === modal.txs.length) {
+      setSelected(new Set());
+    } else {
+      setSelected(new Set(modal.txs.map(t => t._id)));
+    }
+  };
+
+  const totalSelecionado = modal.txs
+    .filter(t => selected.has(t._id))
+    .reduce((sum, t) => sum + Math.abs(t.val), 0);
+
+  const allSelected = selected.size === modal.txs.length;
+  const noneSelected = selected.size === 0;
+
+  return (
+    <div className="fds-modal-backdrop" onClick={onClose}
+         style={{ position: 'fixed', inset: 0, zIndex: 200 }}>
+      <div className="fds-modal" style={{ maxWidth: 480 }}
+           onClick={e => e.stopPropagation()}>
+
+        <div className="fds-modal-head">
+          <div>
+            <div className="fds-modal-eyebrow">Pagar fatura</div>
+            <div className="fds-modal-title">{modal.cardName}</div>
+          </div>
+          <button className="fds-icon-btn" onClick={onClose}
+                  style={{ touchAction: 'manipulation', WebkitTapHighlightColor: 'transparent' }}>
+            <Icon.X size={16}/>
+          </button>
+        </div>
+
+        <div className="fds-modal-body" style={{ padding: '0 0 4px' }}>
+
+          {/* Linha selecionar todos */}
+          <div className="pfm-select-all">
+            <button className="pfm-check-btn" onClick={toggleAll}
+                    style={{ touchAction: 'manipulation', WebkitTapHighlightColor: 'transparent' }}>
+              <span className={`pfm-checkbox ${allSelected ? 'checked' : ''}`}>
+                {allSelected && <Icon.Check size={11}/>}
+              </span>
+              <span className="pfm-select-all-lbl">
+                {allSelected ? 'Desmarcar todos' : 'Selecionar todos'}
+              </span>
+            </button>
+            <span className="pfm-count">{selected.size} de {modal.txs.length}</span>
+          </div>
+
+          {/* Lista de transações */}
+          <div className="pfm-list">
+            {modal.txs.map(t => {
+              const cat = categories[t.cat] || { label: t.cat, emoji: '🏷️', tint: '#888' };
+              const isSelected = selected.has(t._id);
+              return (
+                <button key={t._id}
+                        className={`pfm-item ${isSelected ? 'selected' : ''}`}
+                        onClick={() => toggle(t._id)}
+                        style={{ touchAction: 'manipulation', WebkitTapHighlightColor: 'transparent' }}>
+                  <span className={`pfm-checkbox ${isSelected ? 'checked' : ''}`}>
+                    {isSelected && <Icon.Check size={11}/>}
+                  </span>
+                  <CategoryAvatar cat={t.cat} size={28}/>
+                  <span className="pfm-item-desc">{t.desc}</span>
+                  <span className="pfm-item-d">{t.d}</span>
+                  <span className="pfm-item-val">
+                    −R$ {Math.abs(t.val).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
+                  </span>
+                </button>
+              );
+            })}
+          </div>
+        </div>
+
+        <div className="fds-modal-foot" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 8 }}>
+          <div className="pfm-total">
+            <span className="pfm-total-lbl">Total selecionado</span>
+            <span className="pfm-total-val">{fmtBRL(totalSelecionado)}</span>
+          </div>
+          <div style={{ display: 'flex', gap: 8 }}>
+            <button className="fds-btn-ghost" onClick={onClose}
+                    style={{ touchAction: 'manipulation', WebkitTapHighlightColor: 'transparent' }}>
+              Cancelar
+            </button>
+            <button className="fds-btn-primary"
+                    disabled={noneSelected}
+                    onClick={() => onConfirm(selected)}
+                    style={{ touchAction: 'manipulation', WebkitTapHighlightColor: 'transparent' }}>
+              <Icon.Check size={13}/>
+              Confirmar pagamento
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 function ContasStudio({ onAdd }) {
-  const { transactions, categories, payCartaoFatura, faturasPorCartao, selectedMonth, monthLabel } = useFides();
+  const { transactions, categories, payCartaoFatura, updateTransaction, faturasPorCartao, selectedMonth, monthLabel } = useFides();
   const lbl = monthLabel(selectedMonth);
 
   // ─── Local state extends ACCOUNTS / CARDS ─────────────────
@@ -185,6 +294,8 @@ function ContasStudio({ onAdd }) {
   const [editConta, setEditConta]   = React.useState(null);
   const [editCartao, setEditCartao] = React.useState(null);
   const [deleteTarget, setDeleteTarget] = React.useState(null);
+  const [payModal, setPayModal] = React.useState(null);
+  // payModal = { cardId, cardName, txs: [...] } quando aberto, null quando fechado
 
   const BANK_COLORS = ['#2D5A3D','#2C5282','#B45309','#7C3AED','#0F766E','#9B2C2C'];
 
@@ -571,7 +682,7 @@ function ContasStudio({ onAdd }) {
           const faturaTxs = faturaCorrente?.txs || [];
           const handlePay = () => {
             if (faturaCorrente && faturaTxs.length > 0) {
-              payCartaoFatura(c.id, selectedMonth);
+              setPayModal({ cardId: c.id, cardName: c.name, txs: faturaTxs });
             }
           };
           return (
@@ -701,6 +812,17 @@ function ContasStudio({ onAdd }) {
           })}
         </div>
       </div>
+
+      {payModal && (
+        <PagarFaturaModal
+          modal={payModal}
+          onClose={() => setPayModal(null)}
+          onConfirm={(selectedIds) => {
+            selectedIds.forEach(id => updateTransaction(id, { status: 'pago' }));
+            setPayModal(null);
+          }}
+        />
+      )}
     </div>
   );
 }
