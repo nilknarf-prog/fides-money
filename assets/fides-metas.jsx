@@ -433,14 +433,25 @@ function RevisarPanel({ assinaturas, onClose }) {
                 </span>
                 <CategoryAvatar cat={t.cat} size={28}/>
                 <span className="met-revisar-nome">{t.desc}</span>
-                <span className="met-revisar-val">{fmtBRL(Math.abs(t.val))}/mês</span>
+                <div className="met-revisar-vals">
+                  <span className="met-revisar-val-mes">{fmtBRL(Math.abs(t.val))}/mês</span>
+                  <span className="met-revisar-val-ano">{fmtBRL(Math.abs(t.val) * 12)}/ano</span>
+                </div>
               </label>
             ))}
           </div>
           {economia > 0 && (
             <div className="met-revisar-economia">
-              <Icon.TrendUp size={14}/> Cancelando estes serviços, você libera{' '}
-              <strong>{fmtBRL(economia)}/mês</strong> para as metas.
+              <Icon.TrendUp size={14}/>
+              <div className="met-revisar-economia-body">
+                <span>Cancelando estes serviços, você libera</span>
+                <div className="met-revisar-economia-nums">
+                  <strong>{fmtBRL(economia)}/mês</strong>
+                  <span className="met-revisar-economia-sep">·</span>
+                  <strong className="met-revisar-economia-ano">{fmtBRL(economia * 12)}/ano</strong>
+                </div>
+                <span className="met-revisar-economia-sub">para as suas metas</span>
+              </div>
             </div>
           )}
         </div>
