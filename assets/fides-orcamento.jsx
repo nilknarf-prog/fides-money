@@ -17,6 +17,10 @@ function OrcamentoStudio({ onAdd }) {
   const pctSpent = totals.planned ? totals.spent / totals.planned : 0;
   const sobra = totals.planned - totals.spent;
   const hasSpend = totals.spent > 0; // false → Capítulo II mostra empty state
+  // Contagem real de categorias visíveis (substitui o "12" hardcoded).
+  const visibleCatCount = budgetGroups.reduce((n, g) => n + g.cats.length, 0);
+  // Estouro só é real quando um grupo tem limite definido E gasto acima dele.
+  const overflowGroup = budgetGroups.find(g => g.limit > 0 && g.spent > g.limit);
   // crude projection: current burn extrapolated to end of month
   const dayOfMonth = 16, daysInMonth = 31;
   const projecaoFinal = totals.spent * (daysInMonth / dayOfMonth);
@@ -56,7 +60,9 @@ function OrcamentoStudio({ onAdd }) {
           em {lbl.long.split(' de ')[0]}.
         </h2>
         <p className="stu-hero-lede">
-          Até hoje, comprometeu <strong className="stu-num">R$&nbsp;{totals.spent.toLocaleString('pt-BR',{minimumFractionDigits:2})}</strong> — {(pctSpent*100).toFixed(0)}% do total. No ritmo atual, fechará Maio em <strong className="stu-num">R$&nbsp;{Math.round(projecaoFinal).toLocaleString('pt-BR')}</strong>, sobrando <span className="stu-pos">R$&nbsp;{Math.round(sobraProjetada).toLocaleString('pt-BR')}</span>. <em>Dívidas estouraram 25% acima do limite</em> — Ádria pesa.
+          Até hoje, comprometeu <strong className="stu-num">R$&nbsp;{totals.spent.toLocaleString('pt-BR',{minimumFractionDigits:2})}</strong> — {(pctSpent*100).toFixed(0)}% do total. No ritmo atual, fechará Maio em <strong className="stu-num">R$&nbsp;{Math.round(projecaoFinal).toLocaleString('pt-BR')}</strong>, sobrando <span className="stu-pos">R$&nbsp;{Math.round(sobraProjetada).toLocaleString('pt-BR')}</span>.{overflowGroup && (
+            <> <em>{overflowGroup.label} estourou {Math.round((overflowGroup.spent / overflowGroup.limit - 1) * 100)}% acima do limite</em>.</>
+          )}
         </p>
 
         <div className="stu-hero-strip" data-od-id="orc-hero-strip">
@@ -64,7 +70,7 @@ function OrcamentoStudio({ onAdd }) {
             <div className="stu-metric-lbl">Planejado</div>
             <div className="stu-metric-val">{fmtBRL(totals.planned)}</div>
             <div className="stu-metric-tag" style={{ color: 'var(--muted)' }}>
-              <Icon.Tag size={11}/> 12 categorias
+              <Icon.Tag size={11}/> {visibleCatCount} {visibleCatCount === 1 ? 'categoria' : 'categorias'}
             </div>
           </div>
           <div className="stu-metric-sep"/>
