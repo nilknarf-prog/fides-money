@@ -91,6 +91,17 @@ function normalizeGoal(row) {
   };
 }
 
+// user_categories row → UI category shape. A chave do objeto é row.cat_key.
+function normalizeCategory(row) {
+  return {
+    label: row.label,
+    group: row.grp,
+    tint:  row.tint,
+    emoji: row.emoji,
+    custom: true,
+  };
+}
+
 // ─── FidesProvider ─────────────────────────────────────────────
 
 function FidesProvider({ children }) {
@@ -146,11 +157,12 @@ function FidesProvider({ children }) {
     const uid = uidOverride != null ? uidOverride : userId;
     if (!uid || !isSupabaseReady()) return;
     try {
-      const [txRes, acctRes, cardRes, goalRes] = await Promise.all([
+      const [txRes, acctRes, cardRes, goalRes, catRes] = await Promise.all([
         window.fidesDb.from('transactions').select('*').eq('user_id', uid).order('date', { ascending: false }),
         window.fidesDb.from('accounts').select('*').eq('user_id', uid).order('created_at'),
         window.fidesDb.from('cards').select('*').eq('user_id', uid).order('created_at'),
         window.fidesDb.from('goals').select('*').eq('user_id', uid).order('created_at'),
+        window.fidesDb.from('user_categories').select('*').eq('user_id', uid).order('created_at'),
       ]);
       if (!txRes.error)   setTransactions((txRes.data   || []).map(normalizeTx));
       if (!acctRes.error) setAccounts((acctRes.data     || []).map(normalizeAccount));
@@ -159,6 +171,20 @@ function FidesProvider({ children }) {
       if (txRes.error)   console.error('[Fides] Erro transações:',  txRes.error.message);
       if (acctRes.error) console.error('[Fides] Erro contas:',      acctRes.error.message);
       if (cardRes.error) console.error('[Fides] Erro cartões:',     cardRes.error.message);
+      // Categorias: defaults fixos + customizadas do usuário (híbrido).
+      // Isolado em try/catch para nunca quebrar o load do restante dos dados.
+      try {
+        if (catRes && !catRes.error) {
+          const custom = Object.fromEntries((catRes.data || []).map(r => [r.cat_key, normalizeCategory(r)]));
+          setCategories({ ...CATEGORIES, ...custom });
+        } else {
+          if (catRes && catRes.error) console.error('[Fides] Erro categorias:', catRes.error.message);
+          setCategories({ ...CATEGORIES });
+        }
+      } catch (catErr) {
+        console.error('[Fides] Erro categorias:', catErr.message);
+        setCategories({ ...CATEGORIES });
+      }
     } catch (err) {
       console.error('[Fides] Erro refreshData:', err.message);
     }
@@ -476,23 +502,101 @@ function FidesProvider({ children }) {
     setCards(prev => prev.filter(c => c.id !== id));
   }, [mode, userId, refreshData]);
 
-  // ─── Categories (always local, never persisted to DB yet) ─────
+  // ─── Categories (híbrido: defaults fixos + custom persistidas no Supabase) ─
 
-  const addCategory = React.useCallback((id, cat) => {
-    setCategories(prev => ({ ...prev, [id]: { ...cat, custom: true } }));
-  }, []);
-  const updateCategory = React.useCallback((id, patch) => {
-    setCategories(prev => ({ ...prev, [id]: { ...prev[id], ...patch } }));
-  }, []);
-  const deleteCategory = React.useCallback((id) => {
-    setCategories(prev => { const n = { ...prev }; delete n[id]; return n; });
-  }, []);
+  // Cria uma categoria custom. Garante chave única contra defaults + custom.
+  // Otimista local; no modo live também grava em user_categories (revert em erro).
+  const addCategory = React.useCallback(async (id, draft) => {
+    // Garante unicidade da chave contra TODAS as categorias atuais.
+    let uniqueId = id;
+    let n = 2;
+    while (categories[uniqueId]) {
+      uniqueId = `${id}-${n}`;
+      n += 1;
+    }
+    const newCat = {
+      label: draft.label,
+      emoji: draft.emoji,
+      tint:  draft.tint,
+      group: draft.group,
+      custom: true,
+    };
+    setCategories(prev => ({ ...prev, [uniqueId]: newCat }));
+    if (mode === 'live' && userId) {
+      try {
+        const { error } = await window.fidesDb.from('user_categories').insert({
+          user_id: userId,
+          cat_key: uniqueId,
+          label:   draft.label,
+          emoji:   draft.emoji,
+          tint:    draft.tint,
+          grp:     draft.group,
+        });
+        if (error) throw error;
+      } catch (err) {
+        console.error('[Fides] addCategory:', err.message);
+        setCategories(prev => { const nx = { ...prev }; delete nx[uniqueId]; return nx; });
+        window.alert('Não foi possível salvar a categoria. Tente novamente.');
+      }
+    }
+    return uniqueId;
+  }, [mode, userId, categories]);
+
+  // Atualiza uma categoria. Defaults permanecem read-only no banco — apenas
+  // categorias custom são persistidas. Estado local é otimista (revert em erro).
+  const updateCategory = React.useCallback(async (id, patch) => {
+    const prevCat = categories[id];
+    if (!prevCat) return;
+    setCategories(prev => prev[id] ? { ...prev, [id]: { ...prev[id], ...patch } } : prev);
+    if (mode === 'live' && userId && prevCat.custom) {
+      try {
+        const dbPatch = {};
+        if (patch.label !== undefined) dbPatch.label = patch.label;
+        if (patch.emoji !== undefined) dbPatch.emoji = patch.emoji;
+        if (patch.tint  !== undefined) dbPatch.tint  = patch.tint;
+        if (patch.group !== undefined) dbPatch.grp   = patch.group;
+        if (Object.keys(dbPatch).length) {
+          const { error } = await window.fidesDb.from('user_categories')
+            .update(dbPatch).eq('user_id', userId).eq('cat_key', id);
+          if (error) throw error;
+        }
+      } catch (err) {
+        console.error('[Fides] updateCategory:', err.message);
+        setCategories(prev => ({ ...prev, [id]: prevCat }));
+        window.alert('Não foi possível atualizar a categoria. Tente novamente.');
+      }
+    }
+  }, [mode, userId, categories]);
+
+  // Exclui uma categoria custom. Reatribui as transações dela para 'outros'
+  // (local + banco) antes de remover. Em erro em qualquer etapa, reverte tudo.
+  const deleteCategory = React.useCallback(async (id) => {
+    const prevCat = categories[id];
+    if (!prevCat || !prevCat.custom) return; // defaults não podem ser excluídos
+    const txSnapshot = transactions;
+    setTransactions(prev => prev.map(t => t.cat === id ? { ...t, cat: 'outros' } : t));
+    setCategories(prev => { const nx = { ...prev }; delete nx[id]; return nx; });
+    if (mode === 'live' && userId) {
+      try {
+        const { error: txErr } = await window.fidesDb.from('transactions')
+          .update({ category: 'outros' }).eq('user_id', userId).eq('category', id);
+        if (txErr) throw txErr;
+        const { error: catErr } = await window.fidesDb.from('user_categories')
+          .delete().eq('user_id', userId).eq('cat_key', id);
+        if (catErr) throw catErr;
+      } catch (err) {
+        console.error('[Fides] deleteCategory:', err.message);
+        setTransactions(txSnapshot);
+        setCategories(prev => ({ ...prev, [id]: prevCat }));
+        window.alert('Não foi possível excluir a categoria. Tente novamente.');
+      }
+    }
+  }, [mode, userId, categories, transactions]);
+
+  // Mudar de grupo é só um update de `grp` (persistido apenas para custom).
   const moveCategory = React.useCallback((id, newGroup) => {
-    setCategories(prev => prev[id]
-      ? { ...prev, [id]: { ...prev[id], group: newGroup } }
-      : prev
-    );
-  }, []);
+    updateCategory(id, { group: newGroup });
+  }, [updateCategory]);
   const setPlanned = React.useCallback((catId, value) => {
     setPlannedOverrides(p => ({ ...p, [catId]: value }));
   }, []);
@@ -735,7 +839,7 @@ const CATEGORY_TINTS = [
 ];
 
 function CategoriaModal({ open, onClose }) {
-  const { categories, addCategory, deleteCategory, moveCategory } = useFides();
+  const { categories, addCategory, updateCategory, deleteCategory, moveCategory } = useFides();
   const [activeGroup, setActiveGroup] = React.useState('essencial');
   const [creating, setCreating]       = React.useState(false);
   const [draft, setDraft]             = React.useState({
@@ -759,7 +863,13 @@ function CategoriaModal({ open, onClose }) {
       .normalize('NFD').replace(/[̀-ͯ]/g, '')
       .replace(/[^a-z0-9]+/g, '_').replace(/^_+|_+$/g, '')
       .slice(0, 20) || 'custom_' + Date.now();
-    addCategory(id, draft);
+    // Editar uma categoria custom existente não pode chamar insert (viola unique):
+    // roteia para updateCategory. Caso contrário, cria nova via addCategory.
+    if (categories[id] && categories[id].custom) {
+      updateCategory(id, draft);
+    } else {
+      addCategory(id, draft);
+    }
     setCreating(false);
     setDraft({ label: '', emoji: '🛒', tint: '#F59E0B', group: activeGroup });
   };
