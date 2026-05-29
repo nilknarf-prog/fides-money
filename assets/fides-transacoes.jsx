@@ -1,7 +1,7 @@
 // fides-transacoes.jsx — Transações list + filters + Nova Transação modal
 
 function Transacoes({ variant, onAdd }) {
-  const { monthTransactions, transactions, categories, selectedMonth, setSelectedMonth, monthLabel, addTransaction, updateTransaction, deleteTransaction } = useFides();
+  const { monthTransactions, transactions, categories, selectedMonth, setSelectedMonth, monthLabel, addTransaction, updateTransaction, deleteTransaction, accounts } = useFides();
   const [selectedMonthChip, setSelectedMonthChip] = React.useState(null);
   const [filter, setFilter] = React.useState('todas');
   const [catFilter, setCatFilter] = React.useState(null);    // category key or null
@@ -110,7 +110,7 @@ function Transacoes({ variant, onAdd }) {
       const headers = ['Data','Descrição','Categoria','Conta','Valor','Status','Recorrência'];
       const rows = filtered.map(t => {
         const catLabel = categories[t.cat]?.label || t.cat || '';
-        const acctName = ACCOUNTS.find(a => a.id === t.acct)?.name || t.acct || '';
+        const acctName = accounts.find(a => a.id === t.acct)?.name || t.acct || '';
         const valFmt = t.val.toFixed(2).replace('.', ',');
         return [
           t.d || '',
@@ -327,7 +327,7 @@ function Transacoes({ variant, onAdd }) {
                 onClick={(e) => { e.stopPropagation(); setAcctDropdownOpen(v => !v); setRecurDropdownOpen(false); }}>
                 <Icon.Wallet size={13}/>
                 {acctFilter
-                  ? (ACCOUNTS.find(a => a.id === acctFilter)?.name || acctFilter)
+                  ? (accounts.find(a => a.id === acctFilter)?.name || acctFilter)
                   : 'Conta'}
                 {acctFilter && (
                   <span
@@ -351,7 +351,7 @@ function Transacoes({ variant, onAdd }) {
                     <span>Todas as contas</span>
                     <span className="fds-chip-count">{baseList.length}</span>
                   </button>
-                  {ACCOUNTS.map(a => {
+                  {accounts.map(a => {
                     const cnt = baseList.filter(t => t.acct === a.id).length;
                     if (cnt === 0) return null;
                     return (
@@ -551,7 +551,7 @@ function Transacoes({ variant, onAdd }) {
           <tbody>
             {visible.map((t, i) => {
               const c = categories[t.cat] || { label: t.cat, tint: '#888', emoji: '🏷️' };
-              const a = ACCOUNTS.find(x => x.id === t.acct);
+              const a = accounts.find(x => x.id === t.acct);
               const neg = t.val < 0;
               const isSel = selected.has(i);
               return (
@@ -684,7 +684,7 @@ function TxKpi({ label, value, accent, delta, spark, kind, variant, pendingCount
 
 // ─── Modal: Editar Transação ──────────────────────────────────
 function EditTxModal({ tx, onClose }) {
-  const { categories, updateTransaction, deleteTransaction } = useFides();
+  const { categories, updateTransaction, deleteTransaction, accounts } = useFides();
 
   const parseVal = (s) => {
     const clean = String(s).replace(/\./g, '').replace(',', '.');
@@ -696,7 +696,10 @@ function EditTxModal({ tx, onClose }) {
   const [val,    setVal]    = React.useState(Math.abs(tx.val).toLocaleString('pt-BR', { minimumFractionDigits: 2 }));
   const [date,   setDate]   = React.useState(tx.date  || '');
   const [cat,    setCat]    = React.useState(tx.cat   || '');
-  const [acct,   setAcct]   = React.useState(tx.acct  || ACCOUNTS[0]?.id || '');
+  const [acct,   setAcct]   = React.useState(tx.acct  || '');
+  React.useEffect(() => {
+    if (!acct && accounts.length > 0) setAcct(accounts[0].id);
+  }, [accounts]);
   const [status, setStatus] = React.useState(tx.status || 'pago');
 
   const handleSave = () => {
@@ -777,7 +780,7 @@ function EditTxModal({ tx, onClose }) {
           <div className="fds-field">
             <label className="fds-label">Conta</label>
             <select className="fds-select" value={acct} onChange={(e) => setAcct(e.target.value)}>
-              {ACCOUNTS.map(a => (
+              {accounts.map(a => (
                 <option key={a.id} value={a.id}>{a.name} ·· {a.tag}</option>
               ))}
             </select>
@@ -811,14 +814,20 @@ function EditTxModal({ tx, onClose }) {
 
 // ─── Modal: Nova Transação ────────────────────────────────────
 function NovaTransacaoModal({ open, onClose, onSave, variant }) {
-  const { categories, openCategoryModal } = useFides();
+  const { categories, openCategoryModal, accounts, cards } = useFides();
   const today = new Date();
   const todayStr = `${String(today.getDate()).padStart(2,'0')}/${String(today.getMonth()+1).padStart(2,'0')}/${today.getFullYear()}`;
 
   const [kind, setKind] = React.useState('despesa');
   const [pay, setPay] = React.useState('debito');
-  const [acct, setAcct] = React.useState('bradesco');
-  const [card, setCard] = React.useState(CARDS[0]?.id || '');
+  const [acct, setAcct] = React.useState('');
+  const [card, setCard] = React.useState('');
+  React.useEffect(() => {
+    if (!acct || !accounts.find(a => a.id === acct)) setAcct(accounts[0]?.id || '');
+  }, [accounts]);
+  React.useEffect(() => {
+    if (!card || !cards.find(c => c.id === card)) setCard(cards[0]?.id || '');
+  }, [cards]);
   const [cat, setCat] = React.useState('mercado');
   const [paid, setPaid] = React.useState(true);
   const [recur, setRecur] = React.useState(false);
@@ -857,7 +866,7 @@ function NovaTransacaoModal({ open, onClose, onSave, variant }) {
     return parts[0] && parts[1] ? `${parts[0].padStart(2,'0')}/${parts[1].padStart(2,'0')}` : todayStr.slice(0,5);
   };
 
-  const canSave = desc.trim() && parseVal(val) > 0;
+  const canSave = desc.trim() && parseVal(val) > 0 && (pay !== 'debito' || accounts.length > 0);
 
   // Build a list of transactions — one per parcela (crédito) ou por mês de recorrência (débito), ou apenas 1
   const buildTxs = () => {
@@ -872,7 +881,7 @@ function NovaTransacaoModal({ open, onClose, onSave, variant }) {
     const signed = kind === 'receita' ? Math.abs(each)
                   : kind === 'despesa' ? -Math.abs(each)
                   : 0;
-    const acctId = pay === 'debito' ? acct : (CARDS.find(c => c.id === card)?.id || acct);
+    const acctId = pay === 'debito' ? acct : (cards.find(c => c.id === card)?.id || acct);
     const groupId = N > 1 ? 'g' + Date.now() : null;
     // Parse date dd/mm[/yyyy]
     const parts = String(date).split('/').map(s => parseInt(s, 10));
@@ -1021,17 +1030,23 @@ function NovaTransacaoModal({ open, onClose, onSave, variant }) {
               <span>{pay === 'debito' ? 'Conta' : 'Cartão'}</span>
               <div className="fds-input-select">
                 {pay === 'debito' ? (
-                  <>
-                    <span className="fds-acct-mark-sm" style={{ background: ACCOUNTS.find(a => a.id === acct)?.color }}/>
-                    <select className="fds-select" value={acct} onChange={(e) => setAcct(e.target.value)}>
-                      {ACCOUNTS.map(a => <option key={a.id} value={a.id}>{a.name} ·· {a.tag}</option>)}
-                    </select>
-                  </>
+                  accounts.length === 0 ? (
+                    <span style={{ color: 'var(--warn)', fontSize: 13, padding: '0 4px', minHeight: 44, display: 'flex', alignItems: 'center', touchAction: 'manipulation' }}>
+                      Nenhuma conta cadastrada. Adicione uma conta primeiro.
+                    </span>
+                  ) : (
+                    <>
+                      <span className="fds-acct-mark-sm" style={{ background: accounts.find(a => a.id === acct)?.color }}/>
+                      <select className="fds-select" value={acct} onChange={(e) => setAcct(e.target.value)}>
+                        {accounts.map(a => <option key={a.id} value={a.id}>{a.name} ·· {a.tag}</option>)}
+                      </select>
+                    </>
+                  )
                 ) : (
                   <>
                     <Icon.Card size={14}/>
                     <select className="fds-select" value={card} onChange={(e) => setCard(e.target.value)}>
-                      {CARDS.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
+                      {cards.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
                     </select>
                   </>
                 )}
