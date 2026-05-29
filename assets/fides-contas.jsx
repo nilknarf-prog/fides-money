@@ -415,7 +415,7 @@ function ContasStudio({ onAdd }) {
     await addAccount({
       name:    fd.get('name')    || 'Nova conta',
       type:    fd.get('type')    || 'corrente',
-      tag:     fd.get('tag')     || '0000',
+      tag:     fd.get('tag')     || '',
       balance: parseFloat(fd.get('balance') || '0'),
       color:   BANK_COLORS[accounts.length % BANK_COLORS.length],
     });
@@ -427,7 +427,7 @@ function ContasStudio({ onAdd }) {
     const fd = new FormData(e.target);
     await addCard({
       name:          fd.get('name')      || 'Novo cartão',
-      tag:           fd.get('tag')       || '0000',
+      tag:           fd.get('tag')       || '',
       limit:         parseFloat(fd.get('limit') || '0'),
       due:           fd.get('due')       || '10',
       diaFechamento: fd.get('fechamento') || '03',
@@ -586,7 +586,7 @@ function ContasStudio({ onAdd }) {
               <div className="fds-modal-row two" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
                 <label className="fds-field">
                   <span>Últimos 4 dígitos</span>
-                  <input className="fds-input" name="tag" placeholder="0000" maxLength={4}/>
+                  <input className="fds-input" name="tag" placeholder="Opcional" maxLength={4}/>
                 </label>
                 <label className="fds-field">
                   <span>Saldo inicial (R$)</span>
@@ -617,7 +617,7 @@ function ContasStudio({ onAdd }) {
                 </label>
                 <label className="fds-field">
                   <span>Últimos 4 dígitos</span>
-                  <input className="fds-input" name="tag" placeholder="0000" maxLength={4}/>
+                  <input className="fds-input" name="tag" placeholder="Opcional" maxLength={4}/>
                 </label>
               </div>
               <div className="fds-modal-row two" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>

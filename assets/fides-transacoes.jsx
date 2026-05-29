@@ -973,9 +973,30 @@ function NovaTransacaoModal({ open, onClose, onSave, variant }) {
               </div>
             </label>
             <label className="fds-field">
-              <span>Categoria
-                <button type="button" className="fds-field-link" onClick={openCategoryModal}>
-                  <Icon.Plus size={11}/> Gerenciar
+              <span style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                Categoria
+                <button
+                  type="button"
+                  onClick={openCategoryModal}
+                  style={{
+                    background: 'var(--accent-soft)',
+                    color: 'var(--accent)',
+                    border: 'none',
+                    borderRadius: 8,
+                    padding: '0 10px',
+                    minHeight: 44,
+                    fontFamily: 'inherit',
+                    fontSize: 12,
+                    fontWeight: 600,
+                    cursor: 'pointer',
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: 4,
+                    touchAction: 'manipulation',
+                    WebkitTapHighlightColor: 'transparent',
+                  }}
+                >
+                  <Icon.Plus size={12}/> Gerenciar
                 </button>
               </span>
               <div className="fds-input-select">
