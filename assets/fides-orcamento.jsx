@@ -108,7 +108,7 @@ function OrcamentoStudio({ onAdd }) {
             <div className="stu-metric-lbl">Projeção fim de mês</div>
             <div className="stu-metric-val warn">{fmtBRL(projecaoFinal)}</div>
             <div className="stu-metric-tag">
-              <Icon.TrendUp size={11}/> ~{((projecaoFinal/totals.planned)*100 - 100).toFixed(0)}% do plano
+              <Icon.TrendUp size={11}/> {totals.planned > 0 ? `~${((projecaoFinal/totals.planned)*100 - 100).toFixed(0)}% do plano` : '—'}
             </div>
           </div>
         </div>

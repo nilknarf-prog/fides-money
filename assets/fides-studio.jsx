@@ -256,6 +256,9 @@ function StudioLogo({ size = 30 }) {
 }
 // ─── Slim icon-only sidebar ───────────────────────────────────
 function SidebarSlim({ active, onNav }) {
+  const { userName } = useFides();
+  const displayName = userName || 'Usuário';
+  const initials = displayName.split(' ').filter(Boolean).map(w => w[0]).slice(0, 2).join('').toUpperCase() || 'U';
   return (
     <aside className="fds-sb-slim">
       <div className="fds-sb-slim-head">
@@ -282,8 +285,8 @@ function SidebarSlim({ active, onNav }) {
           <Icon.Settings size={18}/>
           <span className="fds-sb-slim-tip">Configurações</span>
         </button>
-        <button className="fds-sb-slim-avatar" title={USER.name}>
-          {USER.initials}
+        <button className="fds-sb-slim-avatar" title={displayName}>
+          {initials}
         </button>
       </div>
     </aside>
@@ -536,7 +539,7 @@ function StudioMasthead({ onAdd }) {
 
 // ─── Studio dashboard ─────────────────────────────────────────
 function DashboardStudio({ onAdd, onNav }) {
-  const { monthTransactions, prevMonthTransactions, categories, spendByCategory, budgetGroups, openCategoryModal, selectedMonth, monthLabel, prevMonth, isEmpty } = useFides();
+  const { transactions, accounts, cards, goals, monthTransactions, prevMonthTransactions, categories, spendByCategory, budgetGroups, openCategoryModal, selectedMonth, monthLabel, prevMonth, isEmpty } = useFides();
 
   if (isEmpty) return (
     <div className="fds-page stu-page">
@@ -573,6 +576,26 @@ function DashboardStudio({ onAdd, onNav }) {
   const { int, dec } = splitBRL(Math.abs(saldoFinal));
   const top5 = spendByCategory.slice(0, 5);
   const totalSpend = spendByCategory.reduce((s,d) => s + d.val, 0);
+
+  // Metas: derivadas de goals reais (sem literais hardcoded)
+  const metaGuardado = goals.reduce((s, g) => s + (g.atual || 0), 0);
+  const metaAlvo     = goals.reduce((s, g) => s + (g.alvo  || 0), 0);
+  const temMetas     = goals.length > 0 && metaAlvo > 0;
+
+  // Série mensal real (últimos 7 meses até o mês selecionado) para os gráficos
+  const MONTH_LABELS = ['Jan','Fev','Mar','Abr','Mai','Jun','Jul','Ago','Set','Out','Nov','Dez'];
+  const flowData = (() => {
+    const [selY, selM] = selectedMonth.split('-').map(Number);
+    return Array.from({ length: 7 }, (_, i) => {
+      let mm = selM - (6 - i), yy = selY;
+      while (mm <= 0) { mm += 12; yy -= 1; }
+      const ym = `${yy}-${String(mm).padStart(2, '0')}`;
+      const monthTxs = transactions.filter(t => t.mes === ym);
+      const rec = monthTxs.filter(t => t.val > 0).reduce((s, t) => s + t.val, 0);
+      const des = monthTxs.filter(t => t.val < 0).reduce((s, t) => s + Math.abs(t.val), 0);
+      return { m: MONTH_LABELS[mm - 1], rec, des };
+    });
+  })();
 
   // Modo do gráfico de fluxo
   const [flowMode, setFlowMode] = React.useState('fluxo');
@@ -655,11 +678,11 @@ function DashboardStudio({ onAdd, onNav }) {
             warn: true,
             sub: <div className="stu-metric-tag"><Icon.Clock size={11}/> {pendCount} {pendCount === 1 ? 'item' : 'itens'}</div>,
           },
-          {
+          ...(temMetas ? [{
             label: 'Meta poupança',
-            value: <>R$ 668 <span className="stu-metric-of">/ 1.560</span></>,
-            sub: <ProgressBar value={668/1560} tint="var(--accent)" glow/>,
-          },
+            value: <>{fmtBRL(metaGuardado)} <span className="stu-metric-of">/ {fmtBRL(metaAlvo)}</span></>,
+            sub: <ProgressBar value={metaAlvo ? metaGuardado / metaAlvo : 0} tint="var(--accent)" glow/>,
+          }] : []),
         ]}
       />
 
@@ -688,10 +711,10 @@ function DashboardStudio({ onAdd, onNav }) {
           </div>
         </div>
         {flowMode === 'fluxo' && (
-          <AreaChart data={MONTHLY} height={240} accent="var(--accent)" glow/>
+          <AreaChart data={flowData} height={240} accent="var(--accent)" glow/>
         )}
         {flowMode === 'acumulado' && (
-          <AccumulatedChart data={MONTHLY} height={240} accent="var(--accent)"/>
+          <AccumulatedChart data={flowData} height={240} accent="var(--accent)"/>
         )}
         {flowMode === 'categoria' && (
           <CategoryChart data={spendByCategory} height={240}/>
@@ -767,7 +790,7 @@ function DashboardStudio({ onAdd, onNav }) {
         <div className="stu-recent-list">
           {recent.map((t, i) => {
             const c = categories[t.cat] || { label: t.cat, tint: '#888', emoji: '🏷️' };
-            const a = ACCOUNTS.find(x => x.id === t.acct);
+            const a = accounts.find(x => x.id === t.acct) || cards.find(x => x.id === t.acct);
             const neg = t.val < 0;
             return (
               <div className={`stu-tx${t._new ? ' stu-tx-new' : ''}`} key={t._id || i}>
@@ -804,10 +827,22 @@ function DashboardStudio({ onAdd, onNav }) {
 
       {/* ─── Capítulo IV · Contas & cartões ─── */}
       <ChapterMark roman="IV" title="Contas & cartões"
-                   caption={`${ACCOUNTS.length} contas conectadas · ${CARDS.length} cartões abertos`}
+                   caption={`${accounts.length} ${accounts.length === 1 ? 'conta conectada' : 'contas conectadas'} · ${cards.length} ${cards.length === 1 ? 'cartão aberto' : 'cartões abertos'}`}
                    action={<button className="stu-link" onClick={() => onNav?.('contas')}>Ver tudo <Icon.Right size={12}/></button>}/>
+      {accounts.length === 0 && cards.length === 0 ? (
+        <div className="fds-empty-state">
+          <div className="fds-empty-state-icon">🏦</div>
+          <h2 className="fds-empty-state-title">Nenhuma conta ou cartão ainda</h2>
+          <p className="fds-empty-state-lede">
+            Adicione sua primeira conta para acompanhar saldos e faturas por aqui.
+          </p>
+          <button className="fds-empty-state-btn" onClick={() => onNav?.('contas')}>
+            + Adicionar primeira conta
+          </button>
+        </div>
+      ) : (
       <div className="stu-accounts-strip">
-        {ACCOUNTS.map(a => (
+        {accounts.map(a => (
           <div className="stu-acct" key={a.id}>
             <div className="stu-acct-h">
               <div className="stu-acct-mark" style={{ background: a.color }}>
@@ -819,11 +854,11 @@ function DashboardStudio({ onAdd, onNav }) {
               </div>
             </div>
             <div className="stu-acct-bal">{fmtBRL(a.balance)}</div>
-            <Sparkline values={[3,4,3.5,4.2,5,4.7,5.3]} width={180} height={32} accent="var(--accent)" glow fill={false}/>
+            <Sparkline values={[a.balance, a.balance]} width={180} height={32} accent="var(--accent)" glow fill={false}/>
           </div>
         ))}
-        {CARDS.map(c => {
-          const pct = c.used / c.limit;
+        {cards.map(c => {
+          const pct = c.limit ? c.used / c.limit : 0;
           return (
             <div className="stu-acct stu-cc" key={c.id}>
               <div className="stu-acct-h">
@@ -845,6 +880,7 @@ function DashboardStudio({ onAdd, onNav }) {
           );
         })}
       </div>
+      )}
     </div>
   );
 }
