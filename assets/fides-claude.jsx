@@ -4,7 +4,7 @@
 // parseTxJson: detecta JSON de transação sugerida e oferece confirmação.
 
 function FidesAssistant() {
-  const { assistantOpen, closeAssistant, monthTransactions, spendByCategory, budgetGroups, selectedMonth, monthLabel, addTransaction } = useFides();
+  const { assistantOpen, closeAssistant, monthTransactions, spendByCategory, budgetGroups, selectedMonth, monthLabel, addTransaction, goals, accounts, cards, userName } = useFides();
   const lbl = monthLabel(selectedMonth);
 
   const [messages, setMessages] = React.useState([]); // {role, content, ts, pendingTx?}
@@ -18,7 +18,7 @@ function FidesAssistant() {
     if (assistantOpen && messages.length === 0) {
       setMessages([{
         role: 'assistant',
-        content: `Olá, ${USER.name.split(' ')[0]}! Sou o assistente do Fides. Posso responder sobre suas finanças, explicar funções do app, ou dar conselhos. Você está vendo o ${lbl.long} agora — pergunte algo!`,
+        content: `Olá${userName ? `, ${userName.split(' ')[0]}` : ''}! Sou o assistente do Fides. Posso responder sobre suas finanças, explicar funções do app, ou dar conselhos. Você está vendo o ${lbl.long} agora — pergunte algo!`,
         ts: Date.now(),
       }]);
     }
@@ -42,19 +42,19 @@ function FidesAssistant() {
     const orcStatus = budgetGroups.map(g =>
       `${g.label}: ${fmtBRL(g.spent)} de ${fmtBRL(g.limit)} (${Math.round((g.spent/g.limit||0)*100)}%)`
     ).join('; ');
-    const metasInfo = METAS.map(m =>
-      `${m.nome}: ${fmtBRL(m.atual)} de ${fmtBRL(m.alvo)} (${Math.round(m.atual/m.alvo*100)}%, aportando ${fmtBRL(m.contribuicao)}/mês)`
-    ).join('; ');
+    const metasInfo = goals.length > 0
+      ? goals.map(m => `${m.nome}: ${fmtBRL(m.atual)} de ${fmtBRL(m.alvo)} (${Math.round(m.alvo > 0 ? m.atual / m.alvo * 100 : 0)}%, aportando ${fmtBRL(m.contribuicao)}/mês)`).join('; ')
+      : 'nenhuma';
     return [
-      `Usuário: ${USER.name}, plano ${USER.plan}.`,
+      userName ? `Usuário: ${userName}.` : '',
       `Mês em foco: ${lbl.long}.`,
       `Receitas do mês: ${fmtBRL(receitas)}. Despesas: ${fmtBRL(despesas)}. Em aberto: ${fmtBRL(pendentes)}.`,
       `Top gastos por categoria: ${top3 || 'nenhum'}.`,
       `Status do Planejamento (50·30·20): ${orcStatus}.`,
       `Metas em curso: ${metasInfo}.`,
-      `Contas: ${ACCOUNTS.map(a => `${a.name} ${fmtBRL(a.balance)}`).join(', ')}.`,
-      `Cartões: ${CARDS.map(c => `${c.name} usa ${fmtBRL(c.used)}/${fmtBRL(c.limit)}`).join(', ')}.`,
-    ].join(' ');
+      accounts.length > 0 ? `Contas: ${accounts.map(a => `${a.name} ${fmtBRL(a.balance)}`).join(', ')}.` : '',
+      cards.length > 0 ? `Cartões: ${cards.map(c => `${c.name} usa ${fmtBRL(c.used)}/${fmtBRL(c.limit)}`).join(', ')}.` : '',
+    ].filter(Boolean).join(' ');
   };
 
   const SYSTEM = `Você é o assistente do Fides Money, um app brasileiro de finanças pessoais.
@@ -182,7 +182,7 @@ Quando o usuário perguntar se deve comprar algo no crédito ou débito, analise
                                 desc: d.desc || 'Transação via assistente',
                                 val: d.tipo === 'receita' ? Math.abs(parseFloat(d.valor) || 0) : -Math.abs(parseFloat(d.valor) || 0),
                                 cat: d.cat || 'outros',
-                                acct: d.pay === 'credito' ? (CARDS[0]?.id || 'bradesco') : 'bradesco',
+                                acct: d.pay === 'credito' ? (cards[0]?.id || accounts[0]?.id || '') : (accounts[0]?.id || ''),
                                 d: parts[0] && parts[1] ? `${parts[0].padStart(2,'0')}/${parts[1].padStart(2,'0')}` : `${String(today.getDate()).padStart(2,'0')}/${String(today.getMonth()+1).padStart(2,'0')}`,
                                 mes: mesStr,
                                 status: 'pago',

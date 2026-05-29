@@ -4,7 +4,7 @@
 // Reuses ProgressBar from fides-charts, tokens from fides-studio.css
 
 function OrcamentoStudio({ onAdd }) {
-  const { transactions, categories, budgetGroups, plannedOverrides, setPlanned, openCategoryModal, selectedMonth, monthLabel } = useFides();
+  const { transactions, accounts, categories, budgetGroups, plannedOverrides, setPlanned, openCategoryModal, selectedMonth, monthLabel } = useFides();
   const lbl = monthLabel(selectedMonth);
   const [showHelp, setShowHelp] = React.useState(false);
 
@@ -32,15 +32,31 @@ function OrcamentoStudio({ onAdd }) {
   const [collapsedGroups, setCollapsedGroups] = React.useState({});
   const toggleGroup = (groupId) => setCollapsedGroups(prev => ({ ...prev, [groupId]: !prev[groupId] }));
 
-  // ─── 6-month planned vs real (fabricated stable history) ──
-  const history = [
-    { m: 'Dez', plan: 8200, real: 7820 },
-    { m: 'Jan', plan: 8400, real: 8410 },
-    { m: 'Fev', plan: 8500, real: 7912 },
-    { m: 'Mar', plan: 8600, real: 9104 },
-    { m: 'Abr', plan: 8700, real: 8290 },
-    { m: 'Mai', plan: Math.max(totals.planned, 8700), real: totals.spent, partial: true },
-  ];
+  // ─── 6-month planned vs real (derived from real transactions) ──
+  const MONTH_LABELS = ['Jan','Fev','Mar','Abr','Mai','Jun','Jul','Ago','Set','Out','Nov','Dez'];
+  const history = (() => {
+    const [selY, selM] = selectedMonth.split('-').map(Number);
+    return Array.from({ length: 6 }, (_, i) => {
+      let m = selM - (5 - i);
+      let y = selY;
+      while (m <= 0) { m += 12; y -= 1; }
+      const ym = `${y}-${String(m).padStart(2, '0')}`;
+      const real = transactions
+        .filter(t => t.mes === ym && t.val < 0)
+        .reduce((s, t) => s + Math.abs(t.val), 0);
+      return { m: MONTH_LABELS[m - 1], plan: totals.planned, real, partial: ym === selectedMonth };
+    });
+  })();
+  const histCompleted    = history.filter(h => !h.partial);
+  const histAvgReal      = histCompleted.length > 0 ? histCompleted.reduce((s, h) => s + h.real, 0) / histCompleted.length : 0;
+  const hasPlan          = totals.planned > 0;
+  const histEstourados   = hasPlan ? histCompleted.filter(h => h.real > h.plan) : [];
+  const histAderenciaPct = hasPlan && histCompleted.length > 0
+    ? Math.round(histCompleted.filter(h => h.real <= h.plan).length / histCompleted.length * 100)
+    : null;
+  const histMaiorEstouro = histEstourados.length > 0
+    ? histEstourados.reduce((mx, h) => h.real / h.plan > mx.real / mx.plan ? h : mx, histEstourados[0])
+    : null;
 
   return (
     <div className="fds-page stu-page" data-od-id="orcamento">
@@ -263,7 +279,7 @@ function OrcamentoStudio({ onAdd }) {
                             </div>
                             <div className="orc-cat-detail-list">
                               {txs.map((t, i) => {
-                                const a = ACCOUNTS.find(x => x.id === t.acct);
+                                const a = accounts.find(x => x.id === t.acct);
                                 return (
                                   <div className="orc-cat-detail-tx" key={i}>
                                     <span className="orc-cat-detail-d">{t.d}</span>
@@ -313,50 +329,62 @@ function OrcamentoStudio({ onAdd }) {
       <div className="stu-card orc-history" data-od-id="orc-historico">
         <div className="orc-history-wrap">
         <div className="orc-history-grid">
-          {history.map(h => {
-            const max = Math.max(...history.flatMap(x => [x.plan, x.real])) * 1.1;
-            const planH = (h.plan / max) * 180;
-            const realH = (h.real / max) * 180;
-            const ratio = h.real / h.plan;
-            const over = ratio > 1 && !h.partial;
-            return (
-              <div className="orc-history-col" key={h.m}>
-                <div className="orc-history-bars">
-                  <div className="orc-history-bar plan" style={{ height: planH }}>
-                    <span className="orc-history-bar-val">{(h.plan/1000).toFixed(1)}k</span>
+          {(() => {
+            const maxVal = Math.max(1, ...history.flatMap(x => [x.plan, x.real])) * 1.1;
+            return history.map(h => {
+              const planH = (h.plan / maxVal) * 180;
+              const realH = (h.real / maxVal) * 180;
+              const ratio = h.plan > 0 ? h.real / h.plan : 0;
+              const over  = h.plan > 0 && ratio > 1 && !h.partial;
+              return (
+                <div className="orc-history-col" key={h.m}>
+                  <div className="orc-history-bars">
+                    <div className="orc-history-bar plan" style={{ height: planH }}>
+                      {h.plan > 0 && <span className="orc-history-bar-val">{(h.plan/1000).toFixed(1)}k</span>}
+                    </div>
+                    <div className={`orc-history-bar real ${over ? 'over' : ''} ${h.partial ? 'partial' : ''}`}
+                         style={{ height: realH }}>
+                      {h.real > 0 && <span className="orc-history-bar-val">{(h.real/1000).toFixed(1)}k</span>}
+                    </div>
                   </div>
-                  <div className={`orc-history-bar real ${over ? 'over' : ''} ${h.partial ? 'partial' : ''}`}
-                       style={{ height: realH }}>
-                    <span className="orc-history-bar-val">{(h.real/1000).toFixed(1)}k</span>
+                  <div className="orc-history-meta">
+                    <div className="orc-history-month">{h.m}</div>
+                    <div className={`orc-history-pct ${over ? 'over' : ''} ${h.partial ? 'partial' : ''}`}>
+                      {h.plan > 0
+                        ? (h.partial
+                            ? `${Math.round(ratio * 100)}% até hoje`
+                            : over
+                            ? `+${Math.round((ratio - 1) * 100)}%`
+                            : `${Math.round(ratio * 100)}%`)
+                        : (h.real > 0 ? fmtBRL(h.real) : '—')}
+                    </div>
                   </div>
                 </div>
-                <div className="orc-history-meta">
-                  <div className="orc-history-month">{h.m}</div>
-                  <div className={`orc-history-pct ${over ? 'over' : ''} ${h.partial ? 'partial' : ''}`}>
-                    {h.partial ? `${Math.round(ratio*100)}% até hoje` : over ? `+${Math.round((ratio-1)*100)}%` : `${Math.round(ratio*100)}%`}
-                  </div>
-                </div>
-              </div>
-            );
-          })}
+              );
+            });
+          })()}
         </div>
         </div>{/* /orc-history-wrap */}
         <div className="orc-history-foot">
           <div className="orc-history-foot-stat">
             <div className="orc-history-foot-lbl">Média realizado</div>
-            <div className="orc-history-foot-val">{fmtBRL(history.filter(h=>!h.partial).reduce((s,h)=>s+h.real,0) / (history.length-1))}</div>
+            <div className="orc-history-foot-val">{histCompleted.length > 0 ? fmtBRL(histAvgReal) : '—'}</div>
           </div>
           <div className="orc-history-foot-stat">
             <div className="orc-history-foot-lbl">Aderência ao plano</div>
-            <div className="orc-history-foot-val">96%</div>
+            <div className="orc-history-foot-val">{histAderenciaPct !== null ? `${histAderenciaPct}%` : '—'}</div>
           </div>
           <div className="orc-history-foot-stat">
             <div className="orc-history-foot-lbl">Meses estourados</div>
-            <div className="orc-history-foot-val">1 <span className="fds-muted">/ 5</span></div>
+            <div className="orc-history-foot-val">
+              {hasPlan ? <>{histEstourados.length} <span className="fds-muted">/ {histCompleted.length}</span></> : '—'}
+            </div>
           </div>
           <div className="orc-history-foot-stat">
             <div className="orc-history-foot-lbl">Maior estouro</div>
-            <div className="orc-history-foot-val">Mar · +6%</div>
+            <div className="orc-history-foot-val">
+              {histMaiorEstouro ? `${histMaiorEstouro.m} · +${Math.round((histMaiorEstouro.real / histMaiorEstouro.plan - 1) * 100)}%` : '—'}
+            </div>
           </div>
         </div>
       </div>

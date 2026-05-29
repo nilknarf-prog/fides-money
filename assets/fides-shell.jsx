@@ -51,6 +51,9 @@ const NAV = [
 ];
 
 function Sidebar({ active, onNav, variant }) {
+  const { userName, userEmail } = useFides();
+  const displayName = userName || 'Usuário';
+  const initials = displayName.split(' ').filter(Boolean).map(w => w[0]).slice(0, 2).join('').toUpperCase() || 'U';
   return (
     <aside className="fds-sb" data-od-id="sidebar">
       <div className="fds-sb-head" data-od-id="sidebar-logo">
@@ -61,11 +64,10 @@ function Sidebar({ active, onNav, variant }) {
         <div className="fds-sb-section-label">Workspace</div>
         <button className="fds-workspace">
           <div className="fds-workspace-mark" style={{ background: 'var(--accent)' }}>
-            <span>{USER.initials}</span>
+            <span>{initials}</span>
           </div>
           <div className="fds-workspace-meta">
-            <div className="fds-workspace-name">{USER.name}</div>
-            <div className="fds-workspace-plan">Plano {USER.plan}</div>
+            <div className="fds-workspace-name">{displayName}</div>
           </div>
           <Icon.Down size={14} style={{ opacity: 0.45 }}/>
         </button>
@@ -94,10 +96,10 @@ function Sidebar({ active, onNav, variant }) {
           </div>
         </div>
         <button className="fds-sb-user">
-          <div className="fds-avatar">{USER.initials}</div>
+          <div className="fds-avatar">{initials}</div>
           <div style={{ flex: 1, textAlign: 'left' }}>
-            <div className="fds-user-name">{USER.name}</div>
-            <div className="fds-user-sub">{USER.email}</div>
+            <div className="fds-user-name">{displayName}</div>
+            {userEmail && <div className="fds-user-sub">{userEmail}</div>}
           </div>
           <Icon.Settings size={15} style={{ opacity: 0.5 }}/>
         </button>

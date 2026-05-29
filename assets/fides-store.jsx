@@ -107,6 +107,8 @@ function normalizeCategory(row) {
 function FidesProvider({ children }) {
   const [mode, setMode] = React.useState('loading');
   const [userId, setUserId] = React.useState(null);
+  const [userName,  setUserName]  = React.useState('');
+  const [userEmail, setUserEmail] = React.useState('');
 
   // Data state — starts with mock data; replaced on live login
   const [transactions, setTransactions] = React.useState(() =>
@@ -197,6 +199,8 @@ function FidesProvider({ children }) {
     setAccounts(ACCOUNTS.slice());
     setCards(CARDS.slice());
     setGoals(METAS.slice());
+    setUserName('');
+    setUserEmail('');
   }, []);
 
   React.useEffect(() => {
@@ -208,13 +212,18 @@ function FidesProvider({ children }) {
 
     let mounted = true;
 
-    getAuthUser().then(user => {
+    getAuthUser().then(async user => {
       if (!mounted) return;
       if (user) {
         setUserId(user.id);
         setMode('live');
+        setUserEmail(user.email || '');
         setTransactions([]); setAccounts([]); setCards([]); setGoals([]);
         refreshData(user.id);
+        try {
+          const { data: profile } = await window.fidesDb.from('profiles').select('name').eq('id', user.id).single();
+          if (mounted) setUserName(profile?.name || '');
+        } catch (_) {}
         console.log('[Fides] Store: modo live — userId:', user.id);
       } else {
         setMode('mock');
@@ -228,8 +237,15 @@ function FidesProvider({ children }) {
       if (user) {
         setUserId(user.id);
         setMode('live');
+        setUserEmail(user.email || '');
         setTransactions([]); setAccounts([]); setCards([]); setGoals([]);
         refreshData(user.id);
+        (async () => {
+          try {
+            const { data: profile } = await window.fidesDb.from('profiles').select('name').eq('id', user.id).single();
+            if (mounted) setUserName(profile?.name || '');
+          } catch (_) {}
+        })();
         console.log('[Fides] Store: modo live — userId:', user.id);
       } else {
         setUserId(null);
@@ -692,6 +708,7 @@ function FidesProvider({ children }) {
   const value = {
     // Mode & auth
     mode, userId, isLoading, isEmpty,
+    userName, userEmail,
     refreshData: () => refreshData(userId),
     goals,
     // Transactions
@@ -731,6 +748,7 @@ function useFides() {
   if (ctx) return ctx;
   return {
     mode: 'mock', userId: null, isLoading: false, isEmpty: false,
+    userName: '', userEmail: '',
     refreshData: async () => {},
     goals: [],
     transactions: TRANSACTIONS,
