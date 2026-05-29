@@ -390,6 +390,46 @@ function PagarFaturaDebModal({ card, accounts, onClose, onConfirm }) {
   );
 }
 
+// ─── ColorPicker ──────────────────────────────────────────────
+const CTN_TINTS = (typeof CATEGORY_TINTS !== 'undefined' ? CATEGORY_TINTS : null) ||
+  ['#F59E0B','#EF4444','#DC2626','#7C3AED','#0EA5E9','#16A34A','#F97316',
+   '#0891B2','#CA8A04','#EC4899','#A855F7','#22C55E','#8B5CF6','#06B6D4',
+   '#F43F5E','#B91C1C','#0F766E','#10B981','#84CC16','#3B82F6','#6366F1'];
+
+function ColorPicker({ value, onChange }) {
+  return (
+    <div style={{ display: 'flex', flexWrap: 'wrap', gap: 2 }}>
+      {CTN_TINTS.map(t => (
+        <button
+          key={t}
+          type="button"
+          onClick={() => onChange(t)}
+          style={{
+            touchAction: 'manipulation',
+            WebkitTapHighlightColor: 'transparent',
+            minWidth: 44, minHeight: 44,
+            padding: 10,
+            background: 'none', border: 'none', cursor: 'pointer',
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+          }}
+          aria-label={`Cor ${t}`}
+        >
+          <span style={{
+            display: 'block',
+            width: 20, height: 20,
+            borderRadius: '50%',
+            background: t,
+            boxSizing: 'border-box',
+            boxShadow: value === t
+              ? `0 0 0 2px var(--surface, #fff), 0 0 0 4px ${t}`
+              : 'none',
+          }}/>
+        </button>
+      ))}
+    </div>
+  );
+}
+
 function ContasStudio({ onAdd }) {
   const {
     transactions, categories, payCartaoFatura, updateTransaction,
@@ -408,6 +448,10 @@ function ContasStudio({ onAdd }) {
   // payDebModal = { card } when open, null when closed
 
   const BANK_COLORS = ['#2D5A3D','#2C5282','#B45309','#7C3AED','#0F766E','#9B2C2C'];
+  const [addContaColor,   setAddContaColor]   = React.useState(BANK_COLORS[0]);
+  const [addCartaoColor,  setAddCartaoColor]  = React.useState('#1A1A2E');
+  const [editContaColor,  setEditContaColor]  = React.useState('#00C37B');
+  const [editCartaoColor, setEditCartaoColor] = React.useState('#1A1A2E');
 
   async function handleAddConta(e) {
     e.preventDefault();
@@ -417,7 +461,7 @@ function ContasStudio({ onAdd }) {
       type:    fd.get('type')    || 'corrente',
       tag:     fd.get('tag')     || '',
       balance: parseFloat(fd.get('balance') || '0'),
-      color:   BANK_COLORS[accounts.length % BANK_COLORS.length],
+      color:   addContaColor,
     });
     setAddModal(null);
   }
@@ -431,6 +475,7 @@ function ContasStudio({ onAdd }) {
       limit:         parseFloat(fd.get('limit') || '0'),
       due:           fd.get('due')       || '10',
       diaFechamento: fd.get('fechamento') || '03',
+      color:         addCartaoColor,
     });
     setAddModal(null);
   }
@@ -443,6 +488,7 @@ function ContasStudio({ onAdd }) {
       type:    fd.get('type')    || editConta.type,
       tag:     fd.get('tag')     || editConta.tag,
       balance: parseFloat(fd.get('balance') ?? editConta.balance),
+      color:   editContaColor,
     });
     setEditConta(null);
   }
@@ -456,9 +502,13 @@ function ContasStudio({ onAdd }) {
       limit:         parseFloat(fd.get('limit') ?? editCartao.limit),
       due:           fd.get('due')        || editCartao.due,
       diaFechamento: fd.get('fechamento') || editCartao.diaFechamento,
+      color:         editCartaoColor,
     });
     setEditCartao(null);
   }
+
+  const openAddContaModal  = () => { setAddModal('conta');  setAddContaColor(BANK_COLORS[accounts.length % BANK_COLORS.length]); };
+  const openAddCartaoModal = () => { setAddModal('cartao'); setAddCartaoColor('#1A1A2E'); };
 
   async function handleConfirmDelete() {
     if (!deleteTarget) return;
@@ -516,6 +566,10 @@ function ContasStudio({ onAdd }) {
                 <label className="fds-field"><span>Últimos 4 dígitos</span><input className="fds-input" name="tag" defaultValue={editConta.tag} maxLength={4}/></label>
                 <label className="fds-field"><span>Saldo atual (R$)</span><input className="fds-input" name="balance" type="number" step="0.01" defaultValue={editConta.balance}/></label>
               </div>
+              <div className="fds-field">
+                <span className="fds-field-lbl" style={{ fontSize: 12, color: 'var(--ink-3)', display: 'block', marginBottom: 2 }}>Cor de identificação</span>
+                <ColorPicker value={editContaColor} onChange={setEditContaColor}/>
+              </div>
               <div className="fds-modal-foot" style={{ display: 'flex', justifyContent: 'flex-end', gap: 8, padding: '12px 0 0' }}>
                 <button type="button" className="fds-btn-ghost" onClick={() => setEditConta(null)}>Cancelar</button>
                 <button type="submit" className="fds-btn-primary"><Icon.Check size={13}/> Salvar alterações</button>
@@ -545,6 +599,10 @@ function ContasStudio({ onAdd }) {
                 <label className="fds-field"><span>Vencimento (dia)</span><input className="fds-input" name="due" type="number" min={1} max={31} defaultValue={String(editCartao.diaVencimento || editCartao.due || '')}/></label>
               </div>
               <label className="fds-field"><span>Fechamento da fatura (dia)</span><input className="fds-input" name="fechamento" type="number" min={1} max={31} defaultValue={editCartao.diaFechamento}/></label>
+              <div className="fds-field">
+                <span className="fds-field-lbl" style={{ fontSize: 12, color: 'var(--ink-3)', display: 'block', marginBottom: 2 }}>Cor do cartão</span>
+                <ColorPicker value={editCartaoColor} onChange={setEditCartaoColor}/>
+              </div>
               <div className="fds-modal-foot" style={{ display: 'flex', justifyContent: 'flex-end', gap: 8, padding: '12px 0 0' }}>
                 <button type="button" className="fds-btn-ghost" onClick={() => setEditCartao(null)}>Cancelar</button>
                 <button type="submit" className="fds-btn-primary"><Icon.Check size={13}/> Salvar alterações</button>
@@ -585,6 +643,10 @@ function ContasStudio({ onAdd }) {
                   <span>Saldo inicial (R$)</span>
                   <input className="fds-input" name="balance" type="number" step="0.01" placeholder="0,00"/>
                 </label>
+              </div>
+              <div className="fds-field">
+                <span className="fds-field-lbl" style={{ fontSize: 12, color: 'var(--ink-3)', display: 'block', marginBottom: 2 }}>Cor de identificação</span>
+                <ColorPicker value={addContaColor} onChange={setAddContaColor}/>
               </div>
               <div className="fds-modal-foot" style={{ display: 'flex', justifyContent: 'flex-end', gap: 8, padding: '12px 0 0' }}>
                 <button type="button" className="fds-btn-ghost" onClick={() => setAddModal(null)}>Cancelar</button>
@@ -627,6 +689,10 @@ function ContasStudio({ onAdd }) {
                 <span>Fechamento da fatura (dia)</span>
                 <input className="fds-input" name="fechamento" type="number" min={1} max={31} placeholder="03"/>
               </label>
+              <div className="fds-field">
+                <span className="fds-field-lbl" style={{ fontSize: 12, color: 'var(--ink-3)', display: 'block', marginBottom: 2 }}>Cor do cartão</span>
+                <ColorPicker value={addCartaoColor} onChange={setAddCartaoColor}/>
+              </div>
               <div className="fds-modal-foot" style={{ display: 'flex', justifyContent: 'flex-end', gap: 8, padding: '12px 0 0' }}>
                 <button type="button" className="fds-btn-ghost" onClick={() => setAddModal(null)}>Cancelar</button>
                 <button type="submit" className="fds-btn-primary"><Icon.Check size={13}/> Adicionar</button>
@@ -694,7 +760,7 @@ function ContasStudio({ onAdd }) {
       {/* ─── Capítulo I · Contas ─── */}
       <ChapterMark roman="I" title="Contas"
                    caption={`${accounts.length} contas correntes e digitais`}
-                   action={<button className="stu-link" onClick={() => setAddModal('conta')}><Icon.Plus size={12}/> Adicionar conta</button>}/>
+                   action={<button className="stu-link" onClick={openAddContaModal}><Icon.Plus size={12}/> Adicionar conta</button>}/>
       <div className="ctn-accounts" data-od-id="ctn-lista-contas">
         {accounts.length === 0 ? (
           <div className="fds-empty-state">
@@ -703,7 +769,7 @@ function ContasStudio({ onAdd }) {
             <p className="fds-empty-state-lede">
               Adicione sua primeira conta para acompanhar seu saldo e movimentações.
             </p>
-            <button className="fds-empty-state-btn" onClick={() => setAddModal('conta')}
+            <button className="fds-empty-state-btn" onClick={openAddContaModal}
                     style={{ touchAction: 'manipulation', minHeight: 44 }}>
               + Adicionar primeira conta
             </button>
@@ -726,7 +792,7 @@ function ContasStudio({ onAdd }) {
                 <DotsMenu
                   align="left"
                   items={[
-                    { id: 'edit',   label: 'Editar conta',  icon: 'Edit',  onClick: () => setEditConta(a) },
+                    { id: 'edit',   label: 'Editar conta',  icon: 'Edit',  onClick: () => { setEditConta(a); setEditContaColor(a.color || '#00C37B'); } },
                     { id: 'delete', label: 'Excluir conta', icon: 'Trash', danger: true, onClick: () => setDeleteTarget({ type: 'conta', id: a.id, name: a.name }) },
                   ]}
                 />
@@ -778,7 +844,7 @@ function ContasStudio({ onAdd }) {
       {/* ─── Capítulo II · Cartões ─── */}
       <ChapterMark roman="II" title="Cartões de crédito"
                    caption={`${cards.length} cartões · ${fmtBRL(totalUsadoCartoes)} de fatura aberta`}
-                   action={<button className="stu-link" onClick={() => setAddModal('cartao')}><Icon.Plus size={12}/> Adicionar cartão</button>}/>
+                   action={<button className="stu-link" onClick={openAddCartaoModal}><Icon.Plus size={12}/> Adicionar cartão</button>}/>
       <div className="ctn-cards" data-od-id="ctn-lista-cartoes">
         {cards.length === 0 ? (
           <div className="fds-empty-state">
@@ -787,7 +853,7 @@ function ContasStudio({ onAdd }) {
             <p className="fds-empty-state-lede">
               Adicione um cartão de crédito para acompanhar faturas e limite disponível.
             </p>
-            <button className="fds-empty-state-btn" onClick={() => setAddModal('cartao')}
+            <button className="fds-empty-state-btn" onClick={openAddCartaoModal}
                     style={{ touchAction: 'manipulation', minHeight: 44 }}>
               + Adicionar cartão
             </button>
@@ -823,18 +889,14 @@ function ContasStudio({ onAdd }) {
                       align="left"
                       items={[
                         { id: 'pay',    label: 'Pagar fatura',  icon: 'Check', onClick: () => setPayDebModal({ card: c }) },
-                        { id: 'edit',   label: 'Editar cartão', icon: 'Edit',  onClick: () => setEditCartao(c) },
+                        { id: 'edit',   label: 'Editar cartão', icon: 'Edit',  onClick: () => { setEditCartao(c); setEditCartaoColor(c.color || '#1A1A2E'); } },
                         { id: 'delete', label: 'Excluir cartão',icon: 'Trash', danger: true, onClick: () => setDeleteTarget({ type: 'cartao', id: c.id, name: c.name }) },
                       ]}
                     />
                   </div>
                 </div>
                 <div className="ctn-card-visual-num">•••• •••• •••• {c.tag.replace(/[^\d]/g,'').slice(-4) || '0000'}</div>
-                <div className="ctn-card-visual-foot">
-                  <div>
-                    <div className="ctn-card-visual-lbl">Titular</div>
-                    <div className="ctn-card-visual-val">TITULAR</div>
-                  </div>
+                <div className="ctn-card-visual-foot" style={{ justifyContent: 'flex-end' }}>
                   <div>
                     <div className="ctn-card-visual-lbl">Vence</div>
                     <div className="ctn-card-visual-val">{c.due}</div>
