@@ -1,0 +1,145 @@
+-- =============================================
+-- Fides Money — Schema v1
+-- Executar no Supabase SQL Editor em ordem
+-- =============================================
+
+create extension if not exists "uuid-ossp";
+
+-- ─────────────────────────────────────────────
+-- TABELA: profiles
+-- ─────────────────────────────────────────────
+create table if not exists public.profiles (
+  id          uuid references auth.users(id) on delete cascade primary key,
+  name        text not null default '',
+  plan        text not null default 'free' check (plan in ('free', 'pro', 'family')),
+  created_at  timestamptz not null default now()
+);
+
+-- ─────────────────────────────────────────────
+-- TABELA: accounts
+-- ─────────────────────────────────────────────
+create table if not exists public.accounts (
+  id          uuid primary key default uuid_generate_v4(),
+  user_id     uuid references public.profiles(id) on delete cascade not null,
+  name        text not null,
+  type        text not null default 'checking',
+  tag         text not null default '',
+  balance     numeric(12,2) not null default 0,
+  color       text not null default '#00C37B',
+  bank        text not null default '',
+  created_at  timestamptz not null default now()
+);
+
+-- ─────────────────────────────────────────────
+-- TABELA: cards
+-- ─────────────────────────────────────────────
+create table if not exists public.cards (
+  id              uuid primary key default uuid_generate_v4(),
+  user_id         uuid references public.profiles(id) on delete cascade not null,
+  name            text not null,
+  tag             text not null default '',
+  card_limit      numeric(12,2) not null default 0,
+  used            numeric(12,2) not null default 0,
+  due_day         int not null default 10,
+  closing_day     int not null default 3,
+  color           text not null default '#1A1A2E',
+  bank            text not null default '',
+  created_at      timestamptz not null default now()
+);
+
+-- ─────────────────────────────────────────────
+-- TABELA: transactions
+-- ─────────────────────────────────────────────
+create table if not exists public.transactions (
+  id           uuid primary key default uuid_generate_v4(),
+  user_id      uuid references public.profiles(id) on delete cascade not null,
+  description  text not null,
+  value        numeric(12,2) not null,
+  category     text not null default 'outros',
+  account      text not null default '',
+  date         date not null,
+  month        text not null,
+  status       text not null default 'cleared'
+               check (status in ('cleared','pending','scheduled')),
+  recurrent    boolean not null default false,
+  subscription boolean not null default false,
+  account_id   uuid references public.accounts(id) on delete set null,
+  card_id      uuid references public.cards(id) on delete set null,
+  created_at   timestamptz not null default now()
+);
+
+-- ─────────────────────────────────────────────
+-- TABELA: goals
+-- ─────────────────────────────────────────────
+create table if not exists public.goals (
+  id              uuid primary key default uuid_generate_v4(),
+  user_id         uuid references public.profiles(id) on delete cascade not null,
+  name            text not null,
+  emoji           text not null default '🎯',
+  target          numeric(12,2) not null,
+  current         numeric(12,2) not null default 0,
+  monthly_contrib numeric(12,2) not null default 0,
+  tint            text not null default '#00C37B',
+  completed       boolean not null default false,
+  completed_at    timestamptz,
+  created_at      timestamptz not null default now()
+);
+
+-- ─────────────────────────────────────────────
+-- TABELA: user_categories
+-- Categorias customizadas por usuário (defaults ficam hardcoded no app).
+-- ─────────────────────────────────────────────
+create table if not exists public.user_categories (
+  id          uuid primary key default uuid_generate_v4(),
+  user_id     uuid references public.profiles(id) on delete cascade not null,
+  cat_key     text not null,
+  label       text not null,
+  emoji       text not null default '🏷️',
+  tint        text not null default '#94A3B8',
+  grp         text not null default 'estilo',
+  custom      boolean not null default true,
+  created_at  timestamptz not null default now(),
+  unique (user_id, cat_key)
+);
+
+-- ─────────────────────────────────────────────
+-- ROW LEVEL SECURITY
+-- ─────────────────────────────────────────────
+alter table public.profiles        enable row level security;
+alter table public.accounts        enable row level security;
+alter table public.cards           enable row level security;
+alter table public.transactions    enable row level security;
+alter table public.goals           enable row level security;
+alter table public.user_categories enable row level security;
+
+create policy "profiles: próprio usuário"     on public.profiles
+  for all using (auth.uid() = id);
+create policy "accounts: próprio usuário"     on public.accounts
+  for all using (auth.uid() = user_id);
+create policy "cards: próprio usuário"        on public.cards
+  for all using (auth.uid() = user_id);
+create policy "transactions: próprio usuário" on public.transactions
+  for all using (auth.uid() = user_id);
+create policy "goals: próprio usuário"        on public.goals
+  for all using (auth.uid() = user_id);
+create policy "user_categories: próprio usuário" on public.user_categories
+  for all using (auth.uid() = user_id);
+
+-- ─────────────────────────────────────────────
+-- TRIGGER: criar profile ao cadastrar usuário
+-- ─────────────────────────────────────────────
+create or replace function public.handle_new_user()
+returns trigger language plpgsql security definer set search_path = public as $$
+begin
+  insert into public.profiles (id, name)
+  values (
+    new.id,
+    coalesce(new.raw_user_meta_data->>'name', split_part(new.email, '@', 1))
+  );
+  return new;
+end;
+$$;
+
+create or replace trigger on_auth_user_created
+  after insert on auth.users
+  for each row execute procedure public.handle_new_user();

@@ -1,106 +1,622 @@
-// fides-store.jsx — Shared state (transactions, categories, budgets)
-// React context lifted at <FidesStudio> level so Dashboard / Transações
-// / Orçamento all see the same data and reflect new lançamentos.
+// fides-store.jsx — Shared state with Supabase live/mock dual-mode
 //
-// Also exposes:
-//   • <CategoryAvatar cat={id} size={n}/>  — colored chip with emoji
-//   • <CategoriaModal/>                    — CRUD for categories
-//   • useFides()                           — hook to consume the store
+// Modes:
+//   'loading' → checking auth on first render
+//   'mock'    → no Supabase or no user; uses static data from fides-data.jsx
+//   'live'    → authenticated user; reads/writes Supabase
+//
+// Components always consume the same useFides() API regardless of mode.
 
 const FidesStoreContext = React.createContext(null);
 
+// ─── Supabase helpers ──────────────────────────────────────────
+
+function isSupabaseReady() {
+  return !!(window.fidesDb && window.fidesAuth);
+}
+
+async function getAuthUser() {
+  if (!isSupabaseReady()) return null;
+  try {
+    const { data: { user } } = await window.fidesAuth.getUser();
+    return user || null;
+  } catch (_) {
+    return null;
+  }
+}
+
+// ─── Data normalization (Supabase → UI) ───────────────────────
+
+const STATUS_TO_UI = { cleared: 'pago', pending: 'pendente', scheduled: 'agendado' };
+const STATUS_TO_DB = { pago: 'cleared', pendente: 'pending', agendado: 'scheduled' };
+
+function normalizeTx(row) {
+  const dateStr = row.date || '';
+  const d = dateStr.length >= 10
+    ? dateStr.slice(8, 10) + '/' + dateStr.slice(5, 7)
+    : '';
+  return {
+    _id: row.id,
+    val: Number(row.value),
+    d,
+    desc: row.description,
+    cat: row.category,
+    acct: row.card_id || row.account_id || row.account || '',
+    status: STATUS_TO_UI[row.status] || row.status,
+    mes: row.month,
+    recur: row.recurrent ? 'mensal' : null,
+    subscription: !!row.subscription,
+  };
+}
+
+function normalizeAccount(row) {
+  return {
+    id: row.id,
+    name: row.name,
+    type: row.type || 'corrente',
+    tag: row.tag || '',
+    balance: Number(row.balance),
+    color: row.color || '#00C37B',
+    bank: row.bank || row.name || '',
+  };
+}
+
+function normalizeCard(row) {
+  return {
+    id: row.id,
+    name: row.name,
+    tag: row.tag || '',
+    limit: Number(row.card_limit),
+    used: Number(row.used),
+    diaVencimento: row.due_day,
+    diaFechamento: row.closing_day,
+    due: String(row.due_day),
+    color: row.color || '#1A1A2E',
+    bank: row.bank || '',
+  };
+}
+
+function normalizeGoal(row) {
+  const d = new Date(row.created_at || Date.now());
+  return {
+    id: row.id,
+    nome: row.name,
+    descricao: '',
+    emoji: row.emoji || '🎯',
+    tint: row.tint || '#00C37B',
+    alvo: Number(row.target),
+    atual: Number(row.current),
+    contribuicao: Number(row.monthly_contrib),
+    criadaEm: String(d.getMonth() + 1).padStart(2, '0') + '/' + d.getFullYear(),
+  };
+}
+
+// user_categories row → UI category shape. A chave do objeto é row.cat_key.
+function normalizeCategory(row) {
+  return {
+    label: row.label,
+    group: row.grp,
+    tint:  row.tint,
+    emoji: row.emoji,
+    custom: true,
+  };
+}
+
+// ─── FidesProvider ─────────────────────────────────────────────
+
 function FidesProvider({ children }) {
+  const [mode, setMode] = React.useState('loading');
+  const [userId, setUserId] = React.useState(null);
+
+  // Data state — starts with mock data; replaced on live login
   const [transactions, setTransactions] = React.useState(() =>
     TRANSACTIONS.slice().map((t, i) => ({ ...t, _id: t._id ?? `tx-${i}` }))
   );
-  const [categories, setCategories]     = React.useState(() => ({ ...CATEGORIES }));
+  const [accounts, setAccounts] = React.useState(() => ACCOUNTS.slice());
+  const [cards,    setCards]    = React.useState(() => CARDS.slice());
+  const [goals,    setGoals]    = React.useState(() => METAS.slice());
+
+  const [categories, setCategories]           = React.useState(() => ({ ...CATEGORIES }));
   const [plannedOverrides, setPlannedOverrides] = React.useState({});
   const [categoryModalOpen, setCategoryModalOpen] = React.useState(false);
-  // Mês selecionado em todas as telas (formato 'YYYY-MM'). Default: mês dos mocks.
-  const [selectedMonth, setSelectedMonth] = React.useState('2026-05');
-  const [assistantOpen, setAssistantOpen] = React.useState(false);
-  const [accounts, setAccounts] = React.useState(() => ACCOUNTS.slice());
-  const [cards, setCards]       = React.useState(() => CARDS.slice());
+  const [selectedMonth, setSelectedMonth]         = React.useState('2026-05');
+  const [assistantOpen, setAssistantOpen]         = React.useState(false);
 
-  // ─── Helpers ───────────────────────────────────────────────
-  const ensureMes = (tx) => ({ ...tx, mes: tx.mes || `2026-${String(tx.d).split('/')[1]}` });
+  // ─── Helpers ─────────────────────────────────────────────────
 
-  const addTransaction = React.useCallback((tx) => {
+  const ensureMes = (tx) => ({
+    ...tx,
+    mes: tx.mes || `2026-${String(tx.d).split('/')[1]}`,
+  });
+
+  // Convert UI tx format to Supabase row, using current cards to detect card txs
+  function txToRow(tx, uid, liveCards) {
+    const [dd = '01', mm = '01'] = (tx.d || '01/01').split('/');
+    const [yyyy = '2026']        = (tx.mes || '2026-01').split('-');
+    const cardIdSet = new Set((liveCards || []).map(c => c.id));
+    const isCard    = cardIdSet.has(tx.acct);
+    return {
+      user_id:      uid,
+      description:  tx.desc || '',
+      value:        Number(tx.val) || 0,
+      category:     tx.cat || 'outros',
+      account:      tx.acct || '',
+      date:         `${yyyy}-${mm}-${dd}`,
+      month:        tx.mes || '',
+      status:       STATUS_TO_DB[tx.status] || 'cleared',
+      recurrent:    !!(tx.recur || tx.recurrent),
+      subscription: !!tx.subscription,
+      account_id:   isCard ? null : (tx.acct || null),
+      card_id:      isCard ? tx.acct : null,
+    };
+  }
+
+  // ─── Data refresh (live only) ─────────────────────────────────
+
+  const refreshData = React.useCallback(async (uidOverride) => {
+    const uid = uidOverride != null ? uidOverride : userId;
+    if (!uid || !isSupabaseReady()) return;
+    try {
+      const [txRes, acctRes, cardRes, goalRes, catRes] = await Promise.all([
+        window.fidesDb.from('transactions').select('*').eq('user_id', uid).order('date', { ascending: false }),
+        window.fidesDb.from('accounts').select('*').eq('user_id', uid).order('created_at'),
+        window.fidesDb.from('cards').select('*').eq('user_id', uid).order('created_at'),
+        window.fidesDb.from('goals').select('*').eq('user_id', uid).order('created_at'),
+        window.fidesDb.from('user_categories').select('*').eq('user_id', uid).order('created_at'),
+      ]);
+      if (!txRes.error)   setTransactions((txRes.data   || []).map(normalizeTx));
+      if (!acctRes.error) setAccounts((acctRes.data     || []).map(normalizeAccount));
+      if (!cardRes.error) setCards((cardRes.data         || []).map(normalizeCard));
+      if (!goalRes.error) setGoals((goalRes.data         || []).map(normalizeGoal));
+      if (txRes.error)   console.error('[Fides] Erro transações:',  txRes.error.message);
+      if (acctRes.error) console.error('[Fides] Erro contas:',      acctRes.error.message);
+      if (cardRes.error) console.error('[Fides] Erro cartões:',     cardRes.error.message);
+      // Categorias: defaults fixos + customizadas do usuário (híbrido).
+      // Isolado em try/catch para nunca quebrar o load do restante dos dados.
+      try {
+        if (catRes && !catRes.error) {
+          const custom = Object.fromEntries((catRes.data || []).map(r => [r.cat_key, normalizeCategory(r)]));
+          setCategories({ ...CATEGORIES, ...custom });
+        } else {
+          if (catRes && catRes.error) console.error('[Fides] Erro categorias:', catRes.error.message);
+          setCategories({ ...CATEGORIES });
+        }
+      } catch (catErr) {
+        console.error('[Fides] Erro categorias:', catErr.message);
+        setCategories({ ...CATEGORIES });
+      }
+    } catch (err) {
+      console.error('[Fides] Erro refreshData:', err.message);
+    }
+  }, [userId]);
+
+  // ─── Auth bootstrap ───────────────────────────────────────────
+
+  const resetToMock = React.useCallback(() => {
+    setTransactions(TRANSACTIONS.slice().map((t, i) => ({ ...t, _id: t._id ?? `tx-${i}` })));
+    setAccounts(ACCOUNTS.slice());
+    setCards(CARDS.slice());
+    setGoals(METAS.slice());
+  }, []);
+
+  React.useEffect(() => {
+    if (!isSupabaseReady()) {
+      setMode('mock');
+      console.log('[Fides] Store: modo mock (Supabase não disponível)');
+      return;
+    }
+
+    let mounted = true;
+
+    getAuthUser().then(user => {
+      if (!mounted) return;
+      if (user) {
+        setUserId(user.id);
+        setMode('live');
+        setTransactions([]); setAccounts([]); setCards([]); setGoals([]);
+        refreshData(user.id);
+        console.log('[Fides] Store: modo live — userId:', user.id);
+      } else {
+        setMode('mock');
+        console.log('[Fides] Store: modo mock (sem usuário autenticado)');
+      }
+    });
+
+    const { data: { subscription } } = window.fidesAuth.onAuthStateChange((event, session) => {
+      if (!mounted) return;
+      const user = session?.user || null;
+      if (user) {
+        setUserId(user.id);
+        setMode('live');
+        setTransactions([]); setAccounts([]); setCards([]); setGoals([]);
+        refreshData(user.id);
+        console.log('[Fides] Store: modo live — userId:', user.id);
+      } else {
+        setUserId(null);
+        setMode('mock');
+        resetToMock();
+        console.log('[Fides] Store: modo mock (sem usuário autenticado)');
+      }
+    });
+
+    return () => {
+      mounted = false;
+      subscription?.unsubscribe?.();
+    };
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // ─── Transactions ─────────────────────────────────────────────
+
+  const addTransaction = React.useCallback(async (tx) => {
+    const merged = ensureMes({ ...tx });
+    if (mode === 'live' && userId) {
+      try {
+        const row = txToRow(merged, userId, cards);
+        const { error } = await window.fidesDb.from('transactions').insert(row);
+        if (error) throw error;
+        // Update account balance for account transactions
+        if (row.account_id && merged.val !== 0) {
+          const { data: acct } = await window.fidesDb
+            .from('accounts').select('balance').eq('id', row.account_id).single();
+          if (acct) {
+            await window.fidesDb.from('accounts')
+              .update({ balance: Number(acct.balance) + Number(merged.val) })
+              .eq('id', row.account_id);
+          }
+        }
+        // Update card used for card transactions
+        if (row.card_id && merged.val < 0) {
+          const { data: card } = await window.fidesDb
+            .from('cards').select('used').eq('id', row.card_id).single();
+          if (card) {
+            await window.fidesDb.from('cards')
+              .update({ used: Number(card.used) + Math.abs(Number(merged.val)) })
+              .eq('id', row.card_id);
+          }
+        }
+        await refreshData(userId);
+      } catch (err) {
+        console.error('[Fides] addTransaction:', err.message);
+      }
+      return;
+    }
     setTransactions(prev => [
-      ensureMes({ ...tx, _new: true, _id: tx._id ?? (Date.now() + Math.random()) }),
+      { ...merged, _new: true, _id: merged._id ?? (Date.now() + Math.random()) },
       ...prev,
     ]);
-  }, []);
-  const addTransactions = React.useCallback((txs) => {
+  }, [mode, userId, cards, refreshData]);
+
+  const addTransactions = React.useCallback(async (txs) => {
+    if (mode === 'live' && userId) {
+      try {
+        const rows = txs.map(tx => txToRow(ensureMes(tx), userId, cards));
+        const { error } = await window.fidesDb.from('transactions').insert(rows);
+        if (error) throw error;
+        await refreshData(userId);
+      } catch (err) {
+        console.error('[Fides] addTransactions:', err.message);
+      }
+      return;
+    }
     const stamp = Date.now();
     setTransactions(prev => [
-      ...txs.map((tx, i) => ensureMes({ ...tx, _new: true, _id: tx._id ?? (stamp + i / 1000) })),
+      ...txs.map((tx, i) => ({
+        ...ensureMes(tx), _new: true,
+        _id: tx._id ?? (stamp + i / 1000),
+      })),
       ...prev,
     ]);
-  }, []);
-  // Marca todas as transações de um cartão num mês de fatura como pagas
-  const payCartaoFatura = React.useCallback((cardId, mesFatura) => {
-    setTransactions(prev => prev.map(t => {
-      if (t.acct !== cardId || t.status === 'pago') return t;
-      const fat = mesFaturaFor(t.d, CARDS.find(c => c.id === cardId), parseInt(t.mes?.split('-')[0] || '2026', 10));
-      if (fat === mesFatura) return { ...t, status: 'pago' };
-      return t;
-    }));
-  }, []);
-  const updateTransaction = React.useCallback((id, patch) => {
-    setTransactions(prev => prev.map(t => t._id === id ? { ...t, ...patch } : t));
-  }, []);
-  const deleteTransaction = React.useCallback((id) => {
-    setTransactions(prev => prev.filter(t => t._id !== id));
-  }, []);
+  }, [mode, userId, cards, refreshData]);
 
-  const addAccount = React.useCallback((acct) => {
+  const updateTransaction = React.useCallback(async (id, patch) => {
+    if (mode === 'live' && userId) {
+      try {
+        const dbPatch = {};
+        if (patch.status !== undefined) dbPatch.status = STATUS_TO_DB[patch.status] || patch.status;
+        if (patch.desc    !== undefined) dbPatch.description = patch.desc;
+        if (patch.val     !== undefined) dbPatch.value       = patch.val;
+        if (patch.cat     !== undefined) dbPatch.category    = patch.cat;
+        const { error } = await window.fidesDb.from('transactions').update(dbPatch).eq('id', id);
+        if (error) throw error;
+        await refreshData(userId);
+      } catch (err) {
+        console.error('[Fides] updateTransaction:', err.message);
+      }
+      return;
+    }
+    setTransactions(prev => prev.map(t => t._id === id ? { ...t, ...patch } : t));
+  }, [mode, userId, refreshData]);
+
+  const deleteTransaction = React.useCallback(async (id) => {
+    if (mode === 'live' && userId) {
+      try {
+        const { error } = await window.fidesDb.from('transactions').delete().eq('id', id);
+        if (error) throw error;
+        await refreshData(userId);
+      } catch (err) {
+        console.error('[Fides] deleteTransaction:', err.message);
+      }
+      return;
+    }
+    setTransactions(prev => prev.filter(t => t._id !== id));
+  }, [mode, userId, refreshData]);
+
+  // payCartaoFatura: new signature { cartaoId, accountId, valor }
+  // Live: inserts payment tx + debits account + resets card.used
+  // Mock: marks card's transactions as paid locally
+  const payCartaoFatura = React.useCallback(async ({ cartaoId, accountId, valor } = {}) => {
+    if (mode === 'live' && userId && cartaoId && accountId && valor > 0) {
+      try {
+        const today = new Date();
+        const isoDate = today.toISOString().slice(0, 10);
+        const mes = isoDate.slice(0, 7);
+        const [, mm, dd] = isoDate.split('-');
+        await window.fidesDb.from('transactions').insert({
+          user_id:      userId,
+          description:  'Pagamento de fatura',
+          value:        -valor,
+          category:     'divida',
+          account:      accountId,
+          date:         isoDate,
+          month:        mes,
+          status:       'cleared',
+          recurrent:    false,
+          subscription: false,
+          account_id:   accountId,
+          card_id:      null,
+        });
+        const { data: acct } = await window.fidesDb
+          .from('accounts').select('balance').eq('id', accountId).single();
+        if (acct) {
+          await window.fidesDb.from('accounts')
+            .update({ balance: Number(acct.balance) - valor })
+            .eq('id', accountId);
+        }
+        await window.fidesDb.from('cards').update({ used: 0 }).eq('id', cartaoId);
+        await refreshData(userId);
+      } catch (err) {
+        console.error('[Fides] payCartaoFatura:', err.message);
+      }
+      return;
+    }
+    if (cartaoId) {
+      setTransactions(prev => prev.map(t =>
+        t.acct === cartaoId && t.status !== 'pago' ? { ...t, status: 'pago' } : t
+      ));
+    }
+  }, [mode, userId, refreshData]);
+
+  // ─── Accounts ─────────────────────────────────────────────────
+
+  const addAccount = React.useCallback(async (acct) => {
+    if (mode === 'live' && userId) {
+      try {
+        const { error } = await window.fidesDb.from('accounts').insert({
+          user_id: userId,
+          name:    acct.name || '',
+          type:    acct.type || 'checking',
+          tag:     acct.tag  || '',
+          balance: Number(acct.balance) || 0,
+          color:   acct.color || '#00C37B',
+          bank:    acct.bank || acct.name || '',
+        });
+        if (error) throw error;
+        await refreshData(userId);
+      } catch (err) {
+        console.error('[Fides] addAccount:', err.message);
+      }
+      return;
+    }
     setAccounts(prev => [
       { ...acct, id: acct.id ?? ('acct_' + Date.now()), _new: true },
       ...prev,
     ]);
-  }, []);
-  const addCard = React.useCallback((card) => {
+  }, [mode, userId, refreshData]);
+
+  const updateAccount = React.useCallback(async (id, patch) => {
+    if (mode === 'live' && userId) {
+      try {
+        const { error } = await window.fidesDb.from('accounts').update(patch).eq('id', id);
+        if (error) throw error;
+        await refreshData(userId);
+      } catch (err) {
+        console.error('[Fides] updateAccount:', err.message);
+      }
+      return;
+    }
+    setAccounts(prev => prev.map(a => a.id === id ? { ...a, ...patch } : a));
+  }, [mode, userId, refreshData]);
+
+  const deleteAccount = React.useCallback(async (id) => {
+    if (mode === 'live' && userId) {
+      try {
+        const { error } = await window.fidesDb.from('accounts').delete().eq('id', id);
+        if (error) throw error;
+        await refreshData(userId);
+      } catch (err) {
+        console.error('[Fides] deleteAccount:', err.message);
+      }
+      return;
+    }
+    setAccounts(prev => prev.filter(a => a.id !== id));
+  }, [mode, userId, refreshData]);
+
+  // ─── Cards ────────────────────────────────────────────────────
+
+  const addCard = React.useCallback(async (card) => {
+    if (mode === 'live' && userId) {
+      try {
+        const { error } = await window.fidesDb.from('cards').insert({
+          user_id:     userId,
+          name:        card.name        || '',
+          tag:         card.tag         || '',
+          card_limit:  Number(card.limit) || 0,
+          used:        0,
+          due_day:     parseInt(card.due || card.diaVencimento || 10),
+          closing_day: parseInt(card.diaFechamento || 3),
+          color:       card.color || '#1A1A2E',
+          bank:        card.bank || card.name || '',
+        });
+        if (error) throw error;
+        await refreshData(userId);
+      } catch (err) {
+        console.error('[Fides] addCard:', err.message);
+      }
+      return;
+    }
     setCards(prev => [
       { ...card, id: card.id ?? ('card_' + Date.now()), used: 0, _new: true },
       ...prev,
     ]);
-  }, []);
+  }, [mode, userId, refreshData]);
 
-  const addCategory = React.useCallback((id, cat) => {
-    setCategories(prev => ({ ...prev, [id]: { ...cat, custom: true } }));
-  }, []);
-  const updateCategory = React.useCallback((id, patch) => {
-    setCategories(prev => ({ ...prev, [id]: { ...prev[id], ...patch } }));
-  }, []);
-  const deleteCategory = React.useCallback((id) => {
-    setCategories(prev => {
-      const n = { ...prev };
-      delete n[id];
-      return n;
-    });
-  }, []);
+  const updateCard = React.useCallback(async (id, patch) => {
+    if (mode === 'live' && userId) {
+      try {
+        const dbPatch = { ...patch };
+        if (patch.limit         !== undefined) { dbPatch.card_limit  = patch.limit;         delete dbPatch.limit; }
+        if (patch.diaVencimento !== undefined) { dbPatch.due_day     = patch.diaVencimento; delete dbPatch.diaVencimento; }
+        if (patch.diaFechamento !== undefined) { dbPatch.closing_day = patch.diaFechamento; delete dbPatch.diaFechamento; }
+        const { error } = await window.fidesDb.from('cards').update(dbPatch).eq('id', id);
+        if (error) throw error;
+        await refreshData(userId);
+      } catch (err) {
+        console.error('[Fides] updateCard:', err.message);
+      }
+      return;
+    }
+    setCards(prev => prev.map(c => c.id === id ? { ...c, ...patch } : c));
+  }, [mode, userId, refreshData]);
+
+  const deleteCard = React.useCallback(async (id) => {
+    if (mode === 'live' && userId) {
+      try {
+        const { error } = await window.fidesDb.from('cards').delete().eq('id', id);
+        if (error) throw error;
+        await refreshData(userId);
+      } catch (err) {
+        console.error('[Fides] deleteCard:', err.message);
+      }
+      return;
+    }
+    setCards(prev => prev.filter(c => c.id !== id));
+  }, [mode, userId, refreshData]);
+
+  // ─── Categories (híbrido: defaults fixos + custom persistidas no Supabase) ─
+
+  // Cria uma categoria custom. Garante chave única contra defaults + custom.
+  // Otimista local; no modo live também grava em user_categories (revert em erro).
+  const addCategory = React.useCallback(async (id, draft) => {
+    // Garante unicidade da chave contra TODAS as categorias atuais.
+    let uniqueId = id;
+    let n = 2;
+    while (categories[uniqueId]) {
+      uniqueId = `${id}-${n}`;
+      n += 1;
+    }
+    const newCat = {
+      label: draft.label,
+      emoji: draft.emoji,
+      tint:  draft.tint,
+      group: draft.group,
+      custom: true,
+    };
+    setCategories(prev => ({ ...prev, [uniqueId]: newCat }));
+    if (mode === 'live' && userId) {
+      try {
+        const { error } = await window.fidesDb.from('user_categories').insert({
+          user_id: userId,
+          cat_key: uniqueId,
+          label:   draft.label,
+          emoji:   draft.emoji,
+          tint:    draft.tint,
+          grp:     draft.group,
+        });
+        if (error) throw error;
+      } catch (err) {
+        console.error('[Fides] addCategory:', err.message);
+        setCategories(prev => { const nx = { ...prev }; delete nx[uniqueId]; return nx; });
+        window.alert('Não foi possível salvar a categoria. Tente novamente.');
+      }
+    }
+    return uniqueId;
+  }, [mode, userId, categories]);
+
+  // Atualiza uma categoria. Defaults permanecem read-only no banco — apenas
+  // categorias custom são persistidas. Estado local é otimista (revert em erro).
+  const updateCategory = React.useCallback(async (id, patch) => {
+    const prevCat = categories[id];
+    if (!prevCat) return;
+    setCategories(prev => prev[id] ? { ...prev, [id]: { ...prev[id], ...patch } } : prev);
+    if (mode === 'live' && userId && prevCat.custom) {
+      try {
+        const dbPatch = {};
+        if (patch.label !== undefined) dbPatch.label = patch.label;
+        if (patch.emoji !== undefined) dbPatch.emoji = patch.emoji;
+        if (patch.tint  !== undefined) dbPatch.tint  = patch.tint;
+        if (patch.group !== undefined) dbPatch.grp   = patch.group;
+        if (Object.keys(dbPatch).length) {
+          const { error } = await window.fidesDb.from('user_categories')
+            .update(dbPatch).eq('user_id', userId).eq('cat_key', id);
+          if (error) throw error;
+        }
+      } catch (err) {
+        console.error('[Fides] updateCategory:', err.message);
+        setCategories(prev => ({ ...prev, [id]: prevCat }));
+        window.alert('Não foi possível atualizar a categoria. Tente novamente.');
+      }
+    }
+  }, [mode, userId, categories]);
+
+  // Exclui uma categoria custom. Reatribui as transações dela para 'outros'
+  // (local + banco) antes de remover. Em erro em qualquer etapa, reverte tudo.
+  const deleteCategory = React.useCallback(async (id) => {
+    const prevCat = categories[id];
+    if (!prevCat || !prevCat.custom) return; // defaults não podem ser excluídos
+    const txSnapshot = transactions;
+    setTransactions(prev => prev.map(t => t.cat === id ? { ...t, cat: 'outros' } : t));
+    setCategories(prev => { const nx = { ...prev }; delete nx[id]; return nx; });
+    if (mode === 'live' && userId) {
+      try {
+        const { error: txErr } = await window.fidesDb.from('transactions')
+          .update({ category: 'outros' }).eq('user_id', userId).eq('category', id);
+        if (txErr) throw txErr;
+        const { error: catErr } = await window.fidesDb.from('user_categories')
+          .delete().eq('user_id', userId).eq('cat_key', id);
+        if (catErr) throw catErr;
+      } catch (err) {
+        console.error('[Fides] deleteCategory:', err.message);
+        setTransactions(txSnapshot);
+        setCategories(prev => ({ ...prev, [id]: prevCat }));
+        window.alert('Não foi possível excluir a categoria. Tente novamente.');
+      }
+    }
+  }, [mode, userId, categories, transactions]);
+
+  // Mudar de grupo é só um update de `grp` (persistido apenas para custom).
+  const moveCategory = React.useCallback((id, newGroup) => {
+    updateCategory(id, { group: newGroup });
+  }, [updateCategory]);
   const setPlanned = React.useCallback((catId, value) => {
     setPlannedOverrides(p => ({ ...p, [catId]: value }));
   }, []);
 
-  // ─── Helpers de mês ────────────────────────────────────────
+  // ─── Month helpers ────────────────────────────────────────────
+
   const prevMonth = (ym) => {
     const [y, m] = ym.split('-').map(s => parseInt(s, 10));
     if (m === 1) return `${y - 1}-12`;
     return `${y}-${String(m - 1).padStart(2, '0')}`;
   };
   const monthLabel = (ym) => {
-    const meses = ['Jan','Fev','Mar','Abr','Mai','Jun','Jul','Ago','Set','Out','Nov','Dez'];
+    const meses      = ['Jan','Fev','Mar','Abr','Mai','Jun','Jul','Ago','Set','Out','Nov','Dez'];
     const mesesLongos = ['Janeiro','Fevereiro','Março','Abril','Maio','Junho','Julho','Agosto','Setembro','Outubro','Novembro','Dezembro'];
     const [y, m] = ym.split('-').map(s => parseInt(s, 10));
     return { short: `${meses[m - 1]} · ${y}`, long: `${mesesLongos[m - 1]} de ${y}` };
   };
 
-  // ─── Derived: transações do mês selecionado (pelo mês da COMPRA) ─
-  // No Fides, gastos no cartão entram no orçamento do mês em que
-  // foram feitos — não no mês da fatura. Isso evita o "bug do
-  // PlannerFin" onde compras de fim de mês inflavam o mês seguinte.
+  // ─── Derived state ────────────────────────────────────────────
+
   const monthTransactions = React.useMemo(() =>
     transactions.filter(t => txMonth(t) === selectedMonth),
   [transactions, selectedMonth]);
@@ -110,13 +626,10 @@ function FidesProvider({ children }) {
     return transactions.filter(t => txMonth(t) === pm);
   }, [transactions, selectedMonth]);
 
-  // ─── Derived: spend by category — mês selecionado ──────────
   const spendByCategory = React.useMemo(() => {
     const map = {};
     monthTransactions.forEach(t => {
-      if (t.val < 0) {
-        map[t.cat] = (map[t.cat] || 0) + Math.abs(t.val);
-      }
+      if (t.val < 0) map[t.cat] = (map[t.cat] || 0) + Math.abs(t.val);
     });
     return Object.entries(map).map(([key, val]) => {
       const c = categories[key] || { label: key, tint: '#888', emoji: '🏷️' };
@@ -124,7 +637,6 @@ function FidesProvider({ children }) {
     }).sort((a, b) => b.val - a.val);
   }, [monthTransactions, categories]);
 
-  // ─── Derived: budget groups — mês selecionado ──────────────
   const budgetGroups = React.useMemo(() => {
     return ['essencial', 'estilo', 'divida'].map(groupId => {
       const def = BUDGET_GROUPS.find(g => g.id === groupId);
@@ -144,14 +656,16 @@ function FidesProvider({ children }) {
     });
   }, [monthTransactions, categories, plannedOverrides]);
 
-  // ─── Derived: faturas em aberto agrupadas por cartão+mêsFatura ─
+  // faturasPorCartao: mode-aware so live card UUIDs resolve correctly
   const faturasPorCartao = React.useMemo(() => {
     const map = {};
+    const cardList  = mode === 'live' ? cards : CARDS;
+    const cardIdSet = new Set(cardList.map(c => c.id));
     transactions.forEach(t => {
-      if (!isCardId(t.acct) || t.status === 'pago') return;
-      const card = CARDS.find(c => c.id === t.acct);
-      const yr = parseInt((t.mes || '2026-01').split('-')[0], 10);
-      const fat = mesFaturaFor(t.d, card, yr);
+      if (!cardIdSet.has(t.acct) || t.status === 'pago') return;
+      const card = cardList.find(c => c.id === t.acct);
+      const yr   = parseInt((t.mes || '2026-01').split('-')[0], 10);
+      const fat  = mesFaturaFor(t.d, card, yr);
       if (!fat) return;
       const key = `${t.acct}|${fat}`;
       if (!map[key]) map[key] = { cardId: t.acct, mesFatura: fat, total: 0, txs: [] };
@@ -159,18 +673,39 @@ function FidesProvider({ children }) {
       map[key].txs.push(t);
     });
     return map;
-  }, [transactions]);
+  }, [transactions, cards, mode]);
+
+  // ─── Computed flags ───────────────────────────────────────────
+
+  const isLoading = mode === 'loading';
+  const isEmpty   = mode === 'live'
+    && transactions.length === 0
+    && accounts.length === 0
+    && cards.length === 0;
+
+  // ─── Context value ────────────────────────────────────────────
 
   const value = {
+    // Mode & auth
+    mode, userId, isLoading, isEmpty,
+    refreshData: () => refreshData(userId),
+    goals,
+    // Transactions
     transactions, addTransaction, addTransactions, payCartaoFatura,
     updateTransaction, deleteTransaction,
-    accounts, addAccount,
-    cards, addCard,
-    categories, addCategory, updateCategory, deleteCategory,
+    // Accounts
+    accounts, addAccount, updateAccount, deleteAccount,
+    // Cards
+    cards, addCard, updateCard, deleteCard,
+    // Categories
+    categories, addCategory, updateCategory, deleteCategory, moveCategory,
     plannedOverrides, setPlanned,
+    // Month
     selectedMonth, setSelectedMonth, prevMonth, monthLabel,
+    // Derived
     monthTransactions, prevMonthTransactions,
     spendByCategory, budgetGroups, faturasPorCartao,
+    // UI toggles
     categoryModalOpen,
     assistantOpen,
     openCategoryModal:  () => setCategoryModalOpen(true),
@@ -186,21 +721,23 @@ function FidesProvider({ children }) {
   );
 }
 
-// Hook with safe fallback to the static mock data (so V3 reference
-// dashboards keep working without a provider).
+// Hook with safe fallback so V3 reference dashboards work without a provider.
 function useFides() {
   const ctx = React.useContext(FidesStoreContext);
   if (ctx) return ctx;
   return {
+    mode: 'mock', userId: null, isLoading: false, isEmpty: false,
+    refreshData: async () => {},
+    goals: [],
     transactions: TRANSACTIONS,
     monthTransactions: TRANSACTIONS,
     prevMonthTransactions: [],
     addTransaction: () => {}, addTransactions: () => {}, payCartaoFatura: () => {},
     updateTransaction: () => {}, deleteTransaction: () => {},
-    accounts: ACCOUNTS, addAccount: () => {},
-    cards: CARDS, addCard: () => {},
+    accounts: ACCOUNTS, addAccount: () => {}, updateAccount: () => {}, deleteAccount: () => {},
+    cards: CARDS, addCard: () => {}, updateCard: () => {}, deleteCard: () => {},
     categories: CATEGORIES,
-    addCategory: () => {}, updateCategory: () => {}, deleteCategory: () => {},
+    addCategory: () => {}, updateCategory: () => {}, deleteCategory: () => {}, moveCategory: () => {},
     plannedOverrides: {}, setPlanned: () => {},
     selectedMonth: '2026-05', setSelectedMonth: () => {},
     prevMonth: (ym) => ym, monthLabel: (ym) => ({ short: ym, long: ym }),
@@ -209,18 +746,15 @@ function useFides() {
     faturasPorCartao: {},
     openCategoryModal: () => {}, closeCategoryModal: () => {},
     openAssistant: () => {}, closeAssistant: () => {},
-    assistantOpen: false,
+    assistantOpen: false, categoryModalOpen: false,
   };
 }
 
 // ─── <CategoryAvatar/> ────────────────────────────────────────
-// Renders a colored chip with the category's emoji. Falls back to
-// first letter if the category has no emoji. Used everywhere we
-// used to render a single-letter circle.
 function CategoryAvatar({ cat, size = 32, categories: categoriesProp }) {
-  const ctx = React.useContext(FidesStoreContext);
+  const ctx  = React.useContext(FidesStoreContext);
   const cats = categoriesProp || ctx?.categories || CATEGORIES;
-  const c = cats[cat] || { label: cat || '?', tint: '#888', emoji: null };
+  const c    = cats[cat] || { label: cat || '?', tint: '#888', emoji: null };
   const radius = Math.max(6, size * 0.28);
   return (
     <span className="fds-cat-avatar"
@@ -234,16 +768,70 @@ function CategoryAvatar({ cat, size = 32, categories: categoriesProp }) {
             fontSize: Math.round(size * 0.52),
             lineHeight: 1,
             flex: 'none',
-            fontFamily:
-              '"Apple Color Emoji","Segoe UI Emoji","Noto Color Emoji",system-ui,sans-serif',
+            fontFamily: '"Apple Color Emoji","Segoe UI Emoji","Noto Color Emoji",system-ui,sans-serif',
           }}>
-      {c.emoji || <span style={{ color: c.tint, fontSize: size * 0.42, fontWeight: 600, fontFamily: 'inherit' }}>{(c.label || '?')[0]}</span>}
+      {c.emoji || (
+        <span style={{ color: c.tint, fontSize: size * 0.42, fontWeight: 600, fontFamily: 'inherit' }}>
+          {(c.label || '?')[0]}
+        </span>
+      )}
     </span>
   );
 }
 
-// ─── <CategoriaModal/> — CRUD ────────────────────────────────
-// Opens via store.openCategoryModal() OR via prop `open`.
+// ─── <MoveCatDropdown/> ───────────────────────────────────────
+function MoveCatDropdown({ id, currentGroup }) {
+  const { moveCategory } = useFides();
+  const [open, setOpen]  = React.useState(false);
+  const ref              = React.useRef(null);
+
+  React.useEffect(() => {
+    if (!open) return;
+    const close = (e) => {
+      if (ref.current && !ref.current.contains(e.target)) setOpen(false);
+    };
+    document.addEventListener('mousedown', close);
+    document.addEventListener('touchstart', close, { passive: true });
+    return () => {
+      document.removeEventListener('mousedown', close);
+      document.removeEventListener('touchstart', close);
+    };
+  }, [open]);
+
+  const groups = [
+    { id: 'essencial', label: 'Essencial',        pct: '50%' },
+    { id: 'estilo',    label: 'Estilo de vida',    pct: '30%' },
+    { id: 'divida',    label: 'Dívidas & invest.', pct: '20%' },
+  ].filter(g => g.id !== currentGroup);
+
+  return (
+    <div ref={ref} style={{ position: 'relative' }}>
+      <button
+        className="cat-move-btn"
+        title="Mover para outro grupo"
+        onPointerUp={(e) => { e.stopPropagation(); setOpen(v => !v); }}
+      >
+        <Icon.Arrow size={13}/>
+      </button>
+      {open && (
+        <div className="cat-move-dd">
+          {groups.map(g => (
+            <button
+              key={g.id}
+              className="cat-move-dd-item"
+              onPointerUp={() => { moveCategory(id, g.id); setOpen(false); }}
+            >
+              <span className="pct">{g.pct}</span>
+              {g.label}
+            </button>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ─── <CategoriaModal/> ────────────────────────────────────────
 const CATEGORY_TINTS = [
   '#F59E0B','#EF4444','#DC2626','#7C3AED','#0EA5E9','#16A34A','#F97316',
   '#0891B2','#CA8A04','#EC4899','#A855F7','#22C55E','#8B5CF6','#06B6D4',
@@ -251,31 +839,37 @@ const CATEGORY_TINTS = [
 ];
 
 function CategoriaModal({ open, onClose }) {
-  const { categories, addCategory, deleteCategory } = useFides();
+  const { categories, addCategory, updateCategory, deleteCategory, moveCategory } = useFides();
   const [activeGroup, setActiveGroup] = React.useState('essencial');
-  const [creating, setCreating] = React.useState(false);
-  const [draft, setDraft] = React.useState({
-    label: '',
-    emoji: '🛒',
-    tint: '#F59E0B',
-    group: 'essencial',
+  const [creating, setCreating]       = React.useState(false);
+  const [draft, setDraft]             = React.useState({
+    label: '', emoji: '🛒', tint: '#F59E0B', group: 'essencial',
   });
 
   if (!open) return null;
 
   const grouped = ['essencial', 'estilo', 'divida', 'receita'].map(g => ({
     id: g,
-    label: g === 'essencial' ? 'Essencial' : g === 'estilo' ? 'Estilo de vida' : g === 'divida' ? 'Dívidas & investimentos' : 'Receitas',
+    label: g === 'essencial' ? 'Essencial'
+         : g === 'estilo'    ? 'Estilo de vida'
+         : g === 'divida'    ? 'Dívidas & investimentos'
+         : 'Receitas',
     cats: Object.entries(categories).filter(([, c]) => c.group === g),
   }));
 
   const handleSave = () => {
     if (!draft.label.trim()) return;
     const id = draft.label.toLowerCase()
-      .normalize('NFD').replace(/[\u0300-\u036f]/g, '')
+      .normalize('NFD').replace(/[̀-ͯ]/g, '')
       .replace(/[^a-z0-9]+/g, '_').replace(/^_+|_+$/g, '')
       .slice(0, 20) || 'custom_' + Date.now();
-    addCategory(id, draft);
+    // Editar uma categoria custom existente não pode chamar insert (viola unique):
+    // roteia para updateCategory. Caso contrário, cria nova via addCategory.
+    if (categories[id] && categories[id].custom) {
+      updateCategory(id, draft);
+    } else {
+      addCategory(id, draft);
+    }
     setCreating(false);
     setDraft({ label: '', emoji: '🛒', tint: '#F59E0B', group: activeGroup });
   };
@@ -291,7 +885,6 @@ function CategoriaModal({ open, onClose }) {
           <button className="fds-icon-btn" onClick={onClose}><Icon.X size={16}/></button>
         </header>
 
-        {/* Group tabs */}
         <div className="cat-tabs">
           {grouped.map(g => (
             <button key={g.id}
@@ -304,7 +897,6 @@ function CategoriaModal({ open, onClose }) {
         </div>
 
         <div className="cat-modal-body">
-          {/* Inline create form */}
           {creating ? (
             <div className="cat-create">
               <div className="cat-create-row">
@@ -384,7 +976,6 @@ function CategoriaModal({ open, onClose }) {
             </button>
           )}
 
-          {/* Categories grid for the active group */}
           <div className="cat-grid">
             {grouped.find(g => g.id === activeGroup)?.cats.map(([id, c]) => (
               <div className="cat-card" key={id}>
@@ -393,6 +984,7 @@ function CategoriaModal({ open, onClose }) {
                   <div className="cat-card-name">{c.label}</div>
                   <div className="cat-card-sub">{c.custom ? 'Personalizada' : 'Padrão'}</div>
                 </div>
+                <MoveCatDropdown id={id} currentGroup={activeGroup}/>
                 {c.custom && (
                   <button className="cat-card-del" onClick={() => deleteCategory(id)} title="Excluir">
                     <Icon.X size={13}/>
@@ -417,4 +1009,5 @@ function CategoriaModal({ open, onClose }) {
 Object.assign(window, {
   FidesStoreContext, FidesProvider, useFides,
   CategoryAvatar, CategoriaModal, CATEGORY_TINTS,
+  MoveCatDropdown,
 });

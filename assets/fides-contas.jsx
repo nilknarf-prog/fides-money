@@ -60,53 +60,421 @@ function BankLogo({ bank = '', name = '', size = 40 }) {
   );
 }
 
+// ─── Ícones locais (não estão no Icon global) ─────────────────
+const __ctnIco = (paths) => ({ size = 16, style, className }) =>
+  React.createElement('svg', {
+    width: size, height: size, viewBox: '0 0 24 24',
+    fill: 'none', stroke: 'currentColor',
+    strokeWidth: 1.6, strokeLinecap: 'round', strokeLinejoin: 'round',
+    style, className,
+  }, paths);
+
+const CtnIcon = {
+  Edit:  __ctnIco(React.createElement(React.Fragment, null,
+    React.createElement('path', { d: 'M11 4H5a2 2 0 00-2 2v12a2 2 0 002 2h12a2 2 0 002-2v-6' }),
+    React.createElement('path', { d: 'M17.5 2.5a2.12 2.12 0 013 3L12 14l-4 1 1-4 7.5-8.5z' }),
+  )),
+  Trash: __ctnIco(React.createElement(React.Fragment, null,
+    React.createElement('polyline', { points: '3 6 5 6 21 6' }),
+    React.createElement('path', { d: 'M19 6l-1 14H6L5 6M10 11v6M14 11v6M9 6V4h6v2' }),
+  )),
+};
+
+// ─── DotsMenu — dropdown contextual reutilizável ──────────────
+// Props:
+//   items: Array<{ id, label, icon, danger?, onClick }>
+//   align: 'left' | 'right' (default 'right')
+function DotsMenu({ items, align = 'right' }) {
+  const [open, setOpen] = React.useState(false);
+  const ref = React.useRef(null);
+
+  React.useEffect(() => {
+    if (!open) return;
+    const handler = (e) => {
+      if (ref.current && !ref.current.contains(e.target)) {
+        setOpen(false);
+      }
+    };
+    document.addEventListener('mousedown', handler);
+    document.addEventListener('touchstart', handler, { passive: true });
+    return () => {
+      document.removeEventListener('mousedown', handler);
+      document.removeEventListener('touchstart', handler);
+    };
+  }, [open]);
+
+  return (
+    <div className="ctn-dots-wrap" ref={ref}>
+      <button
+        className="fds-icon-btn"
+        aria-label="Opções"
+        aria-expanded={open}
+        aria-haspopup="menu"
+        onClick={() => setOpen(v => !v)}
+        style={{ touchAction: 'manipulation', WebkitTapHighlightColor: 'transparent' }}
+      >
+        <Icon.Dots size={16}/>
+      </button>
+
+      {open && (
+        <div
+          className={`ctn-dots-dd ${align === 'left' ? 'ctn-dots-dd--left' : ''}`}
+          role="menu"
+          onClick={e => e.stopPropagation()}
+        >
+          {items.map(item => {
+            const Ic = item.icon ? (CtnIcon[item.icon] || Icon[item.icon] || null) : null;
+            return (
+              <button
+                key={item.id}
+                role="menuitem"
+                className={`ctn-dots-item${item.danger ? ' danger' : ''}`}
+                onPointerUp={() => { item.onClick?.(); setOpen(false); }}
+                style={{ touchAction: 'manipulation', WebkitTapHighlightColor: 'transparent' }}
+              >
+                {Ic && <Ic size={14}/>}
+                {item.label}
+              </button>
+            );
+          })}
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ─── ConfirmDeleteModal ────────────────────────────────────────
+function ConfirmDeleteModal({ open, title, desc, onConfirm, onCancel }) {
+  if (!open) return null;
+  return (
+    <div className="fds-modal-backdrop" onClick={onCancel}>
+      <div className="fds-modal" style={{ maxWidth: 400 }} onClick={e => e.stopPropagation()}>
+        <div className="fds-modal-head">
+          <div className="fds-modal-title" style={{ color: 'var(--bad)' }}>
+            <CtnIcon.Trash size={16} style={{ marginRight: 8, verticalAlign: 'middle' }}/>
+            {title}
+          </div>
+          <button className="fds-icon-btn" onClick={onCancel}><Icon.X size={16}/></button>
+        </div>
+        <div className="fds-modal-body">
+          <p style={{ fontSize: 14, color: 'var(--ink-3)', lineHeight: 1.6, margin: 0 }}>{desc}</p>
+        </div>
+        <div className="fds-modal-foot" style={{ display: 'flex', justifyContent: 'flex-end', gap: 8 }}>
+          <button className="fds-btn-ghost" onClick={onCancel}>Cancelar</button>
+          <button
+            className="fds-btn-primary"
+            style={{ background: 'var(--bad)' }}
+            onClick={onConfirm}
+          >
+            <CtnIcon.Trash size={13}/> Excluir
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function PagarFaturaModal({ modal, onClose, onConfirm }) {
+  const { categories } = useFides();
+  const [selected, setSelected] = React.useState(() =>
+    new Set(modal.txs.map(t => t._id))
+  );
+
+  const toggle = (id) => setSelected(prev => {
+    const next = new Set(prev);
+    next.has(id) ? next.delete(id) : next.add(id);
+    return next;
+  });
+
+  const toggleAll = () => {
+    if (selected.size === modal.txs.length) {
+      setSelected(new Set());
+    } else {
+      setSelected(new Set(modal.txs.map(t => t._id)));
+    }
+  };
+
+  const totalSelecionado = modal.txs
+    .filter(t => selected.has(t._id))
+    .reduce((sum, t) => sum + Math.abs(t.val), 0);
+
+  const allSelected = selected.size === modal.txs.length;
+  const noneSelected = selected.size === 0;
+
+  return (
+    <div className="fds-modal-backdrop" onClick={onClose}
+         style={{ position: 'fixed', inset: 0, zIndex: 200 }}>
+      <div className="fds-modal" style={{ maxWidth: 480 }}
+           onClick={e => e.stopPropagation()}>
+
+        <div className="fds-modal-head">
+          <div>
+            <div className="fds-modal-eyebrow">Pagar fatura</div>
+            <div className="fds-modal-title">{modal.cardName}</div>
+          </div>
+          <button className="fds-icon-btn" onClick={onClose}
+                  style={{ touchAction: 'manipulation', WebkitTapHighlightColor: 'transparent' }}>
+            <Icon.X size={16}/>
+          </button>
+        </div>
+
+        <div className="fds-modal-body" style={{ padding: '0 0 4px' }}>
+
+          {/* Linha selecionar todos */}
+          <div className="pfm-select-all">
+            <button className="pfm-check-btn" onClick={toggleAll}
+                    style={{ touchAction: 'manipulation', WebkitTapHighlightColor: 'transparent' }}>
+              <span className={`pfm-checkbox ${allSelected ? 'checked' : ''}`}>
+                {allSelected && <Icon.Check size={11}/>}
+              </span>
+              <span className="pfm-select-all-lbl">
+                {allSelected ? 'Desmarcar todos' : 'Selecionar todos'}
+              </span>
+            </button>
+            <span className="pfm-count">{selected.size} de {modal.txs.length}</span>
+          </div>
+
+          {/* Lista de transações */}
+          <div className="pfm-list">
+            {modal.txs.map(t => {
+              const cat = categories[t.cat] || { label: t.cat, emoji: '🏷️', tint: '#888' };
+              const isSelected = selected.has(t._id);
+              return (
+                <button key={t._id}
+                        className={`pfm-item ${isSelected ? 'selected' : ''}`}
+                        onClick={() => toggle(t._id)}
+                        style={{ touchAction: 'manipulation', WebkitTapHighlightColor: 'transparent' }}>
+                  <span className={`pfm-checkbox ${isSelected ? 'checked' : ''}`}>
+                    {isSelected && <Icon.Check size={11}/>}
+                  </span>
+                  <CategoryAvatar cat={t.cat} size={28}/>
+                  <span className="pfm-item-desc">{t.desc}</span>
+                  <span className="pfm-item-d">{t.d}</span>
+                  <span className="pfm-item-val">
+                    −R$ {Math.abs(t.val).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
+                  </span>
+                </button>
+              );
+            })}
+          </div>
+        </div>
+
+        <div className="fds-modal-foot" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 8 }}>
+          <div className="pfm-total">
+            <span className="pfm-total-lbl">Total selecionado</span>
+            <span className="pfm-total-val">{fmtBRL(totalSelecionado)}</span>
+          </div>
+          <div style={{ display: 'flex', gap: 8 }}>
+            <button className="fds-btn-ghost" onClick={onClose}
+                    style={{ touchAction: 'manipulation', WebkitTapHighlightColor: 'transparent' }}>
+              Cancelar
+            </button>
+            <button className="fds-btn-primary"
+                    disabled={noneSelected}
+                    onClick={() => onConfirm(selected)}
+                    style={{ touchAction: 'manipulation', WebkitTapHighlightColor: 'transparent' }}>
+              <Icon.Check size={13}/>
+              Confirmar pagamento
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ─── Modal: Pagar fatura (débito em conta) ────────────────────
+function PagarFaturaDebModal({ card, accounts, onClose, onConfirm }) {
+  const totalFatura = card.used;
+  const [selectedAccount, setSelectedAccount] = React.useState(accounts[0]?.id || '');
+  const [success, setSuccess]   = React.useState(false);
+  const [loading, setLoading]   = React.useState(false);
+
+  const selectedAcct        = accounts.find(a => a.id === selectedAccount);
+  const saldoInsuficiente   = selectedAcct && selectedAcct.balance < totalFatura;
+  const semContas           = accounts.length === 0;
+
+  if (success) return (
+    <div className="fds-modal-backdrop" onPointerUp={onClose}
+         style={{ position: 'fixed', inset: 0, zIndex: 200 }}>
+      <div className="fds-modal" style={{ maxWidth: 420, textAlign: 'center' }}
+           onPointerUp={e => e.stopPropagation()}>
+        <div className="fds-modal-body" style={{ padding: '32px 24px' }}>
+          <div style={{ fontSize: 48, lineHeight: 1 }}>✅</div>
+          <div style={{ fontWeight: 700, fontSize: 18, marginTop: 12 }}>Fatura paga!</div>
+          <div style={{ color: 'var(--ink-3)', marginTop: 8, fontSize: 14 }}>
+            {fmtBRL(totalFatura)} debitados de {selectedAcct?.name}
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+
+  return (
+    <div className="fds-modal-backdrop" onPointerUp={onClose}
+         style={{ position: 'fixed', inset: 0, zIndex: 200 }}>
+      <div className="fds-modal" style={{ maxWidth: 420 }}
+           onPointerUp={e => e.stopPropagation()}>
+        <div className="fds-modal-head">
+          <div>
+            <div className="fds-modal-eyebrow">Pagar fatura</div>
+            <div className="fds-modal-title">{card.name}</div>
+          </div>
+          <button className="fds-icon-btn" onPointerUp={onClose}
+                  style={{ touchAction: 'manipulation', WebkitTapHighlightColor: 'transparent' }}>
+            <Icon.X size={16}/>
+          </button>
+        </div>
+
+        <div className="fds-modal-body" style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+          <label className="fds-field">
+            <span>Total da fatura</span>
+            <input className="fds-input" readOnly value={fmtBRL(totalFatura)}
+                   style={{ color: 'var(--bad)', fontWeight: 600, cursor: 'default' }}/>
+          </label>
+
+          {semContas ? (
+            <div style={{ color: 'var(--bad)', fontSize: 13 }}>
+              Você não tem contas cadastradas. Adicione uma conta primeiro.
+            </div>
+          ) : (
+            <>
+              <label className="fds-field">
+                <span>Débitar da conta</span>
+                <select className="fds-input" value={selectedAccount}
+                        onChange={e => setSelectedAccount(e.target.value)}
+                        style={{ touchAction: 'manipulation', minHeight: 44 }}>
+                  {accounts.map(a => (
+                    <option key={a.id} value={a.id}>
+                      {a.name} · saldo {fmtBRL(a.balance)}
+                    </option>
+                  ))}
+                </select>
+              </label>
+              {saldoInsuficiente && (
+                <div style={{ color: 'var(--bad)', fontSize: 13, display: 'flex', alignItems: 'center', gap: 6 }}>
+                  <Icon.X size={13}/>
+                  Saldo insuficiente — faltam {fmtBRL(totalFatura - (selectedAcct?.balance || 0))}.
+                </div>
+              )}
+            </>
+          )}
+        </div>
+
+        <div className="fds-modal-foot" style={{ display: 'flex', justifyContent: 'flex-end', gap: 8 }}>
+          <button className="fds-btn-ghost" onPointerUp={onClose}
+                  style={{ touchAction: 'manipulation', minHeight: 44 }}>
+            Cancelar
+          </button>
+          <button
+            className="fds-btn-primary"
+            disabled={saldoInsuficiente || semContas || loading}
+            onPointerUp={async () => {
+              if (saldoInsuficiente || semContas || loading || !selectedAccount) return;
+              setLoading(true);
+              try {
+                await onConfirm(selectedAccount);
+                setSuccess(true);
+                setTimeout(onClose, 2000);
+              } catch (_) {
+                setLoading(false);
+              }
+            }}
+            style={{ touchAction: 'manipulation', minHeight: 44 }}
+          >
+            <Icon.Check size={13}/> Confirmar pagamento
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 function ContasStudio({ onAdd }) {
-  const { transactions, categories, payCartaoFatura, faturasPorCartao, selectedMonth, monthLabel } = useFides();
+  const {
+    transactions, categories, payCartaoFatura, updateTransaction,
+    faturasPorCartao, selectedMonth, monthLabel,
+    accounts, cards,
+    addAccount, addCard, updateAccount, deleteAccount, updateCard, deleteCard,
+  } = useFides();
   const lbl = monthLabel(selectedMonth);
 
-  // ─── Local state extends ACCOUNTS / CARDS ─────────────────
-  const [localAccounts, setLocalAccounts] = React.useState(ACCOUNTS);
-  const [localCards, setLocalCards]       = React.useState(CARDS);
-  const [addModal, setAddModal]           = React.useState(null); // 'conta' | 'cartao'
+  const [addModal, setAddModal]         = React.useState(null);
+  const [editConta, setEditConta]       = React.useState(null);
+  const [editCartao, setEditCartao]     = React.useState(null);
+  const [deleteTarget, setDeleteTarget] = React.useState(null);
+  const [payModal, setPayModal]         = React.useState(null);
+  const [payDebModal, setPayDebModal]   = React.useState(null);
+  // payDebModal = { card } when open, null when closed
 
   const BANK_COLORS = ['#2D5A3D','#2C5282','#B45309','#7C3AED','#0F766E','#9B2C2C'];
 
-  function handleAddConta(e) {
+  async function handleAddConta(e) {
     e.preventDefault();
     const fd = new FormData(e.target);
-    const newAcct = {
-      id:      'acct-' + Date.now(),
-      name:    fd.get('name') || 'Nova conta',
-      type:    fd.get('type') || 'corrente',
-      tag:     fd.get('tag') || '0000',
+    await addAccount({
+      name:    fd.get('name')    || 'Nova conta',
+      type:    fd.get('type')    || 'corrente',
+      tag:     fd.get('tag')     || '0000',
       balance: parseFloat(fd.get('balance') || '0'),
-      color:   BANK_COLORS[localAccounts.length % BANK_COLORS.length],
-    };
-    setLocalAccounts(prev => [...prev, newAcct]);
+      color:   BANK_COLORS[accounts.length % BANK_COLORS.length],
+    });
     setAddModal(null);
   }
 
-  function handleAddCartao(e) {
+  async function handleAddCartao(e) {
     e.preventDefault();
     const fd = new FormData(e.target);
-    const newCard = {
-      id:            'card-' + Date.now(),
-      name:          fd.get('name') || 'Novo cartão',
-      tag:           fd.get('tag') || '0000',
+    await addCard({
+      name:          fd.get('name')      || 'Novo cartão',
+      tag:           fd.get('tag')       || '0000',
       limit:         parseFloat(fd.get('limit') || '0'),
-      used:          0,
-      due:           fd.get('due') || '10',
+      due:           fd.get('due')       || '10',
       diaFechamento: fd.get('fechamento') || '03',
-    };
-    setLocalCards(prev => [...prev, newCard]);
+    });
     setAddModal(null);
   }
 
-  // ─── Totals use localAccounts / localCards ─────────────────
-  const totalContas = localAccounts.reduce((s, a) => s + a.balance, 0);
-  const totalUsadoCartoes = localCards.reduce((s, c) => s + c.used, 0);
-  const totalLimiteCartoes = localCards.reduce((s, c) => s + c.limit, 0);
-  const proximaFatura = localCards.reduce((m, c) =>
+  async function handleEditConta(e) {
+    e.preventDefault();
+    const fd = new FormData(e.target);
+    await updateAccount(editConta.id, {
+      name:    fd.get('name')    || editConta.name,
+      type:    fd.get('type')    || editConta.type,
+      tag:     fd.get('tag')     || editConta.tag,
+      balance: parseFloat(fd.get('balance') ?? editConta.balance),
+    });
+    setEditConta(null);
+  }
+
+  async function handleEditCartao(e) {
+    e.preventDefault();
+    const fd = new FormData(e.target);
+    await updateCard(editCartao.id, {
+      name:          fd.get('name')       || editCartao.name,
+      tag:           fd.get('tag')        || editCartao.tag,
+      limit:         parseFloat(fd.get('limit') ?? editCartao.limit),
+      due:           fd.get('due')        || editCartao.due,
+      diaFechamento: fd.get('fechamento') || editCartao.diaFechamento,
+    });
+    setEditCartao(null);
+  }
+
+  async function handleConfirmDelete() {
+    if (!deleteTarget) return;
+    if (deleteTarget.type === 'conta') {
+      await deleteAccount(deleteTarget.id);
+    } else {
+      await deleteCard(deleteTarget.id);
+    }
+    setDeleteTarget(null);
+  }
+
+  // ─── Totals use store accounts / cards ─────────────────────
+  const totalContas         = accounts.reduce((s, a) => s + a.balance, 0);
+  const totalUsadoCartoes   = cards.reduce((s, c) => s + c.used, 0);
+  const totalLimiteCartoes  = cards.reduce((s, c) => s + c.limit, 0);
+  const proximaFatura       = cards.reduce((m, c) =>
     (!m || c.due < m.due) ? c : m, null);
 
   // Account sparklines — fabricated stable historical balances
@@ -126,6 +494,73 @@ function ContasStudio({ onAdd }) {
   return (
     <div className="fds-page stu-page" data-od-id="contas">
       {/* ─── Modals ─── */}
+      <ConfirmDeleteModal
+        open={!!deleteTarget}
+        title={deleteTarget?.type === 'conta' ? 'Excluir conta' : 'Excluir cartão'}
+        desc={deleteTarget?.type === 'conta'
+          ? `Tem certeza que deseja excluir a conta "${deleteTarget?.name}"? Esta ação não pode ser desfeita.`
+          : `Tem certeza que deseja excluir o cartão "${deleteTarget?.name}"? Esta ação não pode ser desfeita.`}
+        onConfirm={handleConfirmDelete}
+        onCancel={() => setDeleteTarget(null)}
+      />
+
+      {editConta && (
+        <div className="fds-modal-backdrop" onClick={() => setEditConta(null)}>
+          <div className="fds-modal" style={{ maxWidth: 460 }} onClick={e => e.stopPropagation()}>
+            <div className="fds-modal-head">
+              <div>
+                <div className="fds-modal-eyebrow">Editar</div>
+                <div className="fds-modal-title">{editConta.name}</div>
+              </div>
+              <button className="fds-icon-btn" onClick={() => setEditConta(null)}><Icon.X size={16}/></button>
+            </div>
+            <form className="fds-modal-body" onSubmit={handleEditConta} style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
+              <div className="fds-modal-row two">
+                <label className="fds-field"><span>Nome do banco</span><input className="fds-input" name="name" defaultValue={editConta.name} required/></label>
+                <label className="fds-field"><span>Tipo</span><select className="fds-input" name="type" defaultValue={editConta.type}><option value="corrente">Corrente</option><option value="digital">Digital</option><option value="poupança">Poupança</option></select></label>
+              </div>
+              <div className="fds-modal-row two">
+                <label className="fds-field"><span>Últimos 4 dígitos</span><input className="fds-input" name="tag" defaultValue={editConta.tag} maxLength={4}/></label>
+                <label className="fds-field"><span>Saldo atual (R$)</span><input className="fds-input" name="balance" type="number" step="0.01" defaultValue={editConta.balance}/></label>
+              </div>
+              <div className="fds-modal-foot" style={{ display: 'flex', justifyContent: 'flex-end', gap: 8, padding: '12px 0 0' }}>
+                <button type="button" className="fds-btn-ghost" onClick={() => setEditConta(null)}>Cancelar</button>
+                <button type="submit" className="fds-btn-primary"><Icon.Check size={13}/> Salvar alterações</button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {editCartao && (
+        <div className="fds-modal-backdrop" onClick={() => setEditCartao(null)}>
+          <div className="fds-modal" style={{ maxWidth: 460 }} onClick={e => e.stopPropagation()}>
+            <div className="fds-modal-head">
+              <div>
+                <div className="fds-modal-eyebrow">Editar</div>
+                <div className="fds-modal-title">{editCartao.name}</div>
+              </div>
+              <button className="fds-icon-btn" onClick={() => setEditCartao(null)}><Icon.X size={16}/></button>
+            </div>
+            <form className="fds-modal-body" onSubmit={handleEditCartao} style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
+              <div className="fds-modal-row two">
+                <label className="fds-field"><span>Nome do cartão</span><input className="fds-input" name="name" defaultValue={editCartao.name} required/></label>
+                <label className="fds-field"><span>Últimos 4 dígitos</span><input className="fds-input" name="tag" defaultValue={editCartao.tag.replace(/[^\d]/g,'')} maxLength={4}/></label>
+              </div>
+              <div className="fds-modal-row two">
+                <label className="fds-field"><span>Limite total (R$)</span><input className="fds-input" name="limit" type="number" step="0.01" defaultValue={editCartao.limit} required/></label>
+                <label className="fds-field"><span>Vencimento (dia)</span><input className="fds-input" name="due" type="number" min={1} max={31} defaultValue={String(editCartao.diaVencimento || editCartao.due || '')}/></label>
+              </div>
+              <label className="fds-field"><span>Fechamento da fatura (dia)</span><input className="fds-input" name="fechamento" type="number" min={1} max={31} defaultValue={editCartao.diaFechamento}/></label>
+              <div className="fds-modal-foot" style={{ display: 'flex', justifyContent: 'flex-end', gap: 8, padding: '12px 0 0' }}>
+                <button type="button" className="fds-btn-ghost" onClick={() => setEditCartao(null)}>Cancelar</button>
+                <button type="submit" className="fds-btn-primary"><Icon.Check size={13}/> Salvar alterações</button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
       {addModal === 'conta' && (
         <div className="fds-modal-backdrop" onClick={() => setAddModal(null)}>
           <div className="fds-modal" style={{ maxWidth: 460 }} onClick={e => e.stopPropagation()}>
@@ -223,8 +658,8 @@ function ContasStudio({ onAdd }) {
           distribuídos.
         </h2>
         <p className="stu-hero-lede">
-          <strong className="stu-num">{localAccounts.length} contas</strong> ativas e{' '}
-          <strong className="stu-num">{localCards.length} cartões</strong> abertos. Você comprometeu{' '}
+          <strong className="stu-num">{accounts.length} contas</strong> ativas e{' '}
+          <strong className="stu-num">{cards.length} cartões</strong> abertos. Você comprometeu{' '}
           <strong className="stu-num">{fmtBRL(totalUsadoCartoes)}</strong> de{' '}
           <strong className="stu-num">{fmtBRL(totalLimiteCartoes)}</strong> em limite — {((totalUsadoCartoes/totalLimiteCartoes)*100).toFixed(0)}%.
           {proximaFatura && <> Próxima fatura: <strong className="stu-num">{proximaFatura.name}</strong> vence em <em>{proximaFatura.due}</em>.</>}
@@ -235,7 +670,7 @@ function ContasStudio({ onAdd }) {
             <div className="stu-metric-lbl">Saldo em contas</div>
             <div className="stu-metric-val pos">{fmtBRL(totalContas)}</div>
             <div className="stu-metric-tag" style={{ color: 'var(--muted)' }}>
-              <Icon.Bank size={11}/> {ACCOUNTS.length} contas
+              <Icon.Bank size={11}/> {accounts.length} contas
             </div>
           </div>
           <div className="stu-metric-sep"/>
@@ -265,10 +700,10 @@ function ContasStudio({ onAdd }) {
 
       {/* ─── Capítulo I · Contas ─── */}
       <ChapterMark roman="I" title="Contas"
-                   caption={`${localAccounts.length} contas correntes e digitais`}
+                   caption={`${accounts.length} contas correntes e digitais`}
                    action={<button className="stu-link" onClick={() => setAddModal('conta')}><Icon.Plus size={12}/> Adicionar conta</button>}/>
       <div className="ctn-accounts" data-od-id="ctn-lista-contas">
-        {localAccounts.map(a => {
+        {accounts.map(a => {
           const txs = txByAcct(a.id);
           const last = lastByAcct(a.id);
           const last7 = acctHistory[a.id] || [a.balance];
@@ -284,7 +719,13 @@ function ContasStudio({ onAdd }) {
                     Conta {a.type === 'digital' ? 'digital' : 'corrente'} · ••{a.tag}
                   </div>
                 </div>
-                <button className="fds-icon-btn"><Icon.Dots size={16}/></button>
+                <DotsMenu
+                  align="left"
+                  items={[
+                    { id: 'edit',   label: 'Editar conta',  icon: 'Edit',  onClick: () => setEditConta(a) },
+                    { id: 'delete', label: 'Excluir conta', icon: 'Trash', danger: true, onClick: () => setDeleteTarget({ type: 'conta', id: a.id, name: a.name }) },
+                  ]}
+                />
               </div>
 
               <div className="ctn-account-bal-row">
@@ -336,10 +777,10 @@ function ContasStudio({ onAdd }) {
 
       {/* ─── Capítulo II · Cartões ─── */}
       <ChapterMark roman="II" title="Cartões de crédito"
-                   caption={`${localCards.length} cartões · ${fmtBRL(totalUsadoCartoes)} de fatura aberta`}
+                   caption={`${cards.length} cartões · ${fmtBRL(totalUsadoCartoes)} de fatura aberta`}
                    action={<button className="stu-link" onClick={() => setAddModal('cartao')}><Icon.Plus size={12}/> Adicionar cartão</button>}/>
       <div className="ctn-cards" data-od-id="ctn-lista-cartoes">
-        {localCards.map(c => {
+        {cards.map(c => {
           const pct = c.used / c.limit;
           const over = pct > 0.85;
           // Encontra a fatura corrente para este cartão (mês de fatura = selectedMonth)
@@ -349,7 +790,7 @@ function ContasStudio({ onAdd }) {
           const faturaTxs = faturaCorrente?.txs || [];
           const handlePay = () => {
             if (faturaCorrente && faturaTxs.length > 0) {
-              payCartaoFatura(c.id, selectedMonth);
+              setPayModal({ cardId: c.id, cardName: c.name, txs: faturaTxs });
             }
           };
           return (
@@ -364,7 +805,17 @@ function ContasStudio({ onAdd }) {
                     <BankLogo bank={c.bank || ''} name={c.name || ''} size={28}/>
                     <span>{c.name}</span>
                   </div>
-                  <Icon.Wifi size={16}/>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                    <Icon.Wifi size={16}/>
+                    <DotsMenu
+                      align="left"
+                      items={[
+                        { id: 'pay',    label: 'Pagar fatura',  icon: 'Check', onClick: () => setPayDebModal({ card: c }) },
+                        { id: 'edit',   label: 'Editar cartão', icon: 'Edit',  onClick: () => setEditCartao(c) },
+                        { id: 'delete', label: 'Excluir cartão',icon: 'Trash', danger: true, onClick: () => setDeleteTarget({ type: 'cartao', id: c.id, name: c.name }) },
+                      ]}
+                    />
+                  </div>
                 </div>
                 <div className="ctn-card-visual-num">•••• •••• •••• {c.tag.replace(/[^\d]/g,'').slice(-4) || '0000'}</div>
                 <div className="ctn-card-visual-foot">
@@ -444,24 +895,24 @@ function ContasStudio({ onAdd }) {
                    caption="Como seu dinheiro está dividido entre as contas"/>
       <div className="stu-card ctn-dist" data-od-id="ctn-distribuicao">
         <div className="ctn-dist-bar">
-          {ACCOUNTS.map(a => {
-            const w = (a.balance / totalContas) * 100;
+          {accounts.map(a => {
+            const w = totalContas > 0 ? (a.balance / totalContas) * 100 : 0;
             return (
               <div key={a.id} className="ctn-dist-seg"
-                   style={{ width: `${w}%`, background: a.color }}
+                   style={{ width: `${w}%`, background: a.color || '#888' }}
                    title={`${a.name}: ${w.toFixed(1)}%`}/>
             );
           })}
         </div>
         <div className="ctn-dist-rows">
-          {ACCOUNTS.map(a => {
-            const pct = (a.balance / totalContas) * 100;
+          {accounts.map(a => {
+            const pct = totalContas > 0 ? (a.balance / totalContas) * 100 : 0;
             return (
               <div className="ctn-dist-row" key={a.id}>
-                <span className="ctn-dist-dot" style={{ background: a.color }}/>
+                <span className="ctn-dist-dot" style={{ background: a.color || '#888' }}/>
                 <span className="ctn-dist-name">{a.name}</span>
                 <div className="ctn-dist-track">
-                  <div className="ctn-dist-fill" style={{ width: `${pct}%`, background: a.color }}/>
+                  <div className="ctn-dist-fill" style={{ width: `${pct}%`, background: a.color || '#888' }}/>
                 </div>
                 <span className="ctn-dist-pct">{pct.toFixed(1)}%</span>
                 <span className="ctn-dist-val">{fmtBRL(a.balance)}</span>
@@ -470,6 +921,32 @@ function ContasStudio({ onAdd }) {
           })}
         </div>
       </div>
+
+      {payModal && (
+        <PagarFaturaModal
+          modal={payModal}
+          onClose={() => setPayModal(null)}
+          onConfirm={(selectedIds) => {
+            selectedIds.forEach(id => updateTransaction(id, { status: 'pago' }));
+            setPayModal(null);
+          }}
+        />
+      )}
+
+      {payDebModal && (
+        <PagarFaturaDebModal
+          card={payDebModal.card}
+          accounts={accounts}
+          onClose={() => setPayDebModal(null)}
+          onConfirm={async (accountId) => {
+            await payCartaoFatura({
+              cartaoId:  payDebModal.card.id,
+              accountId,
+              valor:     payDebModal.card.used,
+            });
+          }}
+        />
+      )}
     </div>
   );
 }

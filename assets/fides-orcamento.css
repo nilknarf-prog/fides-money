@@ -108,8 +108,17 @@
   font-weight: 600; font-size: 13px;
   letter-spacing: -0.005em;
   color: var(--ink);
+  background: none;
+  border: none;
   border-bottom: 1px solid var(--border);
+  width: 100%;
+  text-align: left;
+  cursor: pointer;
+  touch-action: manipulation;
+  -webkit-tap-highlight-color: transparent;
+  min-height: 44px;
 }
+.fds-studio .orc-cats-group:hover { color: var(--ink-2); }
 .fds-studio .orc-cats-group-dot {
   width: 8px; height: 8px; border-radius: 2px;
 }

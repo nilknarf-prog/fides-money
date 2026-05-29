@@ -1,0 +1,158 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover"/>
+<meta name="apple-mobile-web-app-capable" content="yes"/>
+<meta name="apple-mobile-web-app-status-bar-style" content="default"/>
+<title>Fides Money</title>
+<meta name="theme-color" content="#2D5A3D"/>
+
+<!-- Configuração de ambiente -->
+<script src="/fides-config.js"></script>
+<!-- Supabase SDK -->
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
+<!-- Módulo Fides Supabase -->
+<script src="assets/fides-supabase.js"></script>
+
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+
+<link rel="stylesheet" href="assets/tokens.css">
+<link rel="stylesheet" href="assets/fides.css"/>
+<link rel="stylesheet" href="assets/fides-studio.css"/>
+<link rel="stylesheet" href="assets/fides-store.css"/>
+<link rel="stylesheet" href="assets/fides-orcamento.css"/>
+<link rel="stylesheet" href="assets/fides-contas.css"/>
+<link rel="stylesheet" href="assets/fides-metas.css"/>
+<link rel="stylesheet" href="assets/fides-claude.css"/>
+<link rel="stylesheet" href="assets/fides-responsive.css"/>
+<link rel="stylesheet" href="assets/fides-auth.css?v=2"/>
+
+<style>
+  /* ─── Standalone overrides ─────────────────────────────────
+     The canvas uses a fixed 1440px width for side-by-side
+     artboards. In standalone, fill the viewport. */
+  html {
+    margin: 0;
+    height: 100%;
+    background: var(--bg, #F4F5F1);
+    /* clip não cria scroll container — position:fixed ancora no viewport real no iOS Safari */
+    overflow-x: clip;
+    max-width: 100vw;
+    scroll-behavior: smooth;
+  }
+  body {
+    margin: 0;
+    height: 100%;
+    background: var(--bg, #F4F5F1);
+    overflow-x: clip;
+    font-family: 'Manrope', ui-sans-serif, system-ui;
+  }
+  #root {
+    min-height: 100%;
+    overflow-x: clip;
+    /* Contain any child that might try to push beyond viewport */
+    max-width: 100vw;
+  }
+
+  .fds-studio {
+    width: 100% !important;
+    max-width: 100vw;
+    min-height: 100vh;
+    overflow-x: clip;
+  }
+
+  /* Old fds-app wrapper (if it renders anywhere) must also be contained */
+  .fds-app {
+    width: 100% !important;
+    max-width: 100vw !important;
+    overflow-x: clip;
+  }
+
+  /* Sidebar sticky em desktop */
+  @media (min-width: 769px) {
+    .fds-studio .fds-sb-slim {
+      position: sticky;
+      top: 0;
+      height: 100vh;
+    }
+  }
+
+  .fds-studio .stu-mast {
+    position: sticky;
+    top: 0;
+    z-index: 20;
+    backdrop-filter: blur(8px);
+    background: color-mix(in oklab, var(--bg, #F4F5F1) 88%, transparent);
+  }
+
+  /* Mobile: remove backdrop-filter from masthead to avoid creating a containing block
+     for position:fixed children (picker, notif panel) */
+  @media (max-width: 768px) {
+    .fds-studio .stu-mast { backdrop-filter: none; -webkit-backdrop-filter: none; }
+  }
+
+  /* Wider page padding on big screens */
+  @media (min-width: 1600px) {
+    .fds-studio .stu-mast { padding-left: 48px; padding-right: 48px; }
+    .fds-studio .stu-page { padding-left: 48px; padding-right: 48px; }
+  }
+
+  /* Modal backdrop covers full viewport in standalone */
+  .fds-modal-backdrop { position: fixed !important; inset: 0; }
+
+  /* Hide masthead search on medium screens */
+  @media (max-width: 1100px) {
+    .fds-studio .stu-mast-search { display: none; }
+  }
+</style>
+</head>
+<body>
+<div id="root"></div>
+
+<script src="https://unpkg.com/react@18.3.1/umd/react.development.js" integrity="sha384-hD6/rw4ppMLGNu3tX5cjIb+uRZ7UkRJ6BPkLpg4hAu/6onKUg4lLsHAs9EBPT82L" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/react-dom@18.3.1/umd/react-dom.development.js" integrity="sha384-u6aeetuaXnQ38mYT8rp6sbXaQe3NL9t+IBXmnYxwkUI2Hw4bsp2Wvmx4yRQF1uAm" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/@babel/standalone@7.29.0/babel.min.js" integrity="sha384-m08KidiNqLdpJqLq95G/LEi8Qvjl/xUYll3QILypMoQ65QorJ9Lvtp2RXYGBFj1y" crossorigin="anonymous"></script>
+
+<script type="text/babel" src="assets/fides-data.jsx"></script>
+<script type="text/babel" src="assets/fides-store.jsx"></script>
+<script type="text/babel" src="assets/fides-auth.jsx?v=2"></script>
+<script type="text/babel" src="assets/fides-charts.jsx"></script>
+<script type="text/babel" src="assets/fides-shell.jsx"></script>
+<script type="text/babel" src="assets/fides-dashboard.jsx"></script>
+<script type="text/babel" src="assets/fides-transacoes.jsx"></script>
+<script type="text/babel" src="assets/fides-studio.jsx"></script>
+<script type="text/babel" src="assets/fides-orcamento.jsx"></script>
+<script type="text/babel" src="assets/fides-contas.jsx"></script>
+<script type="text/babel" src="assets/fides-metas.jsx"></script>
+<script type="text/babel" src="assets/fides-claude.jsx"></script>
+
+<script type="text/babel" data-presets="react">
+  // Read initial page from URL hash so deep-links work in dev / Vercel
+  // (?page=orcamento or #orcamento)
+  function readInitialPage() {
+    const hash = (location.hash || '').replace('#','').trim();
+    const params = new URLSearchParams(location.search);
+    const p = hash || params.get('page') || 'dashboard';
+    const valid = ['dashboard','transacoes','orcamento','planejamento','contas','metas','dividas','familia'];
+    const alias = { planejamento: 'orcamento' };
+    const out = alias[p] || p;
+    return valid.includes(p) ? out : 'dashboard';
+  }
+
+  function App() {
+    const [page, setPage] = React.useState(readInitialPage);
+    React.useEffect(() => {
+      const onHash = () => setPage(readInitialPage());
+      window.addEventListener('hashchange', onHash);
+      return () => window.removeEventListener('hashchange', onHash);
+    }, []);
+    return <FidesStudio page={page}/>;
+  }
+
+  ReactDOM.createRoot(document.getElementById('root')).render(<App/>);
+</script>
+</body>
+</html>
