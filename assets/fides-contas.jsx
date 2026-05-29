@@ -477,13 +477,6 @@ function ContasStudio({ onAdd }) {
   const proximaFatura       = cards.reduce((m, c) =>
     (!m || c.due < m.due) ? c : m, null);
 
-  // Account sparklines — fabricated stable historical balances
-  const acctHistory = {
-    bradesco: [4830, 4612, 4925, 5106, 4720, 4318, 4218.30],
-    nubank:   [1420, 1680, 1530, 1890, 2105, 1985, 1892.44],
-    infinity: [0, 0, 200, 450, 380, 520, 700.12],
-  };
-
   const lastByAcct = id => transactions.find(t => t.acct === id);
 
   // ─── Hero ────────────────────────────────────────────────
@@ -661,7 +654,7 @@ function ContasStudio({ onAdd }) {
           <strong className="stu-num">{accounts.length} contas</strong> ativas e{' '}
           <strong className="stu-num">{cards.length} cartões</strong> abertos. Você comprometeu{' '}
           <strong className="stu-num">{fmtBRL(totalUsadoCartoes)}</strong> de{' '}
-          <strong className="stu-num">{fmtBRL(totalLimiteCartoes)}</strong> em limite — {((totalUsadoCartoes/totalLimiteCartoes)*100).toFixed(0)}%.
+          <strong className="stu-num">{fmtBRL(totalLimiteCartoes)}</strong> em limite — {totalLimiteCartoes ? ((totalUsadoCartoes/totalLimiteCartoes)*100).toFixed(0) : 0}%.
           {proximaFatura && <> Próxima fatura: <strong className="stu-num">{proximaFatura.name}</strong> vence em <em>{proximaFatura.due}</em>.</>}
         </p>
 
@@ -677,7 +670,7 @@ function ContasStudio({ onAdd }) {
           <div className="stu-metric">
             <div className="stu-metric-lbl">Usado em crédito</div>
             <div className="stu-metric-val">−{fmtBRL(totalUsadoCartoes)}</div>
-            <ProgressBar value={totalUsadoCartoes/totalLimiteCartoes} tint="var(--accent)" glow/>
+            <ProgressBar value={totalLimiteCartoes ? totalUsadoCartoes/totalLimiteCartoes : 0} tint="var(--accent)" glow/>
           </div>
           <div className="stu-metric-sep"/>
           <div className="stu-metric">
@@ -703,12 +696,23 @@ function ContasStudio({ onAdd }) {
                    caption={`${accounts.length} contas correntes e digitais`}
                    action={<button className="stu-link" onClick={() => setAddModal('conta')}><Icon.Plus size={12}/> Adicionar conta</button>}/>
       <div className="ctn-accounts" data-od-id="ctn-lista-contas">
-        {accounts.map(a => {
+        {accounts.length === 0 ? (
+          <div className="fds-empty-state">
+            <div className="fds-empty-state-icon">🏦</div>
+            <h2 className="fds-empty-state-title">Nenhuma conta cadastrada</h2>
+            <p className="fds-empty-state-lede">
+              Adicione sua primeira conta para acompanhar seu saldo e movimentações.
+            </p>
+            <button className="fds-empty-state-btn" onClick={() => setAddModal('conta')}
+                    style={{ touchAction: 'manipulation', minHeight: 44 }}>
+              + Adicionar primeira conta
+            </button>
+          </div>
+        ) : accounts.map(a => {
           const txs = txByAcct(a.id);
           const last = lastByAcct(a.id);
-          const last7 = acctHistory[a.id] || [a.balance];
-          const delta = last7[last7.length - 1] - last7[0];
-          const deltaPct = last7[0] ? (delta / last7[0]) * 100 : 0;
+          // Sem histórico real disponível: linha plana no saldo atual.
+          const last7 = [a.balance, a.balance];
           return (
             <div className="ctn-account" key={a.id}>
               <div className="ctn-account-head">
@@ -732,10 +736,6 @@ function ContasStudio({ onAdd }) {
                 <div>
                   <div className="ctn-account-bal-lbl">Saldo atual</div>
                   <div className="ctn-account-bal">{fmtBRL(a.balance)}</div>
-                  <div className={`ctn-account-delta ${delta >= 0 ? 'pos' : 'neg'}`}>
-                    {delta >= 0 ? <Icon.ArrowUp size={11}/> : <Icon.ArrowDown size={11}/>}
-                    {fmtBRL(Math.abs(delta))} ({deltaPct >= 0 ? '+' : '−'}{Math.abs(deltaPct).toFixed(1)}%) · 7 dias
-                  </div>
                 </div>
                 <div className="ctn-account-spark">
                   <Sparkline values={last7} width={180} height={56} accent={a.color} glow fill/>
@@ -780,7 +780,19 @@ function ContasStudio({ onAdd }) {
                    caption={`${cards.length} cartões · ${fmtBRL(totalUsadoCartoes)} de fatura aberta`}
                    action={<button className="stu-link" onClick={() => setAddModal('cartao')}><Icon.Plus size={12}/> Adicionar cartão</button>}/>
       <div className="ctn-cards" data-od-id="ctn-lista-cartoes">
-        {cards.map(c => {
+        {cards.length === 0 ? (
+          <div className="fds-empty-state">
+            <div className="fds-empty-state-icon">💳</div>
+            <h2 className="fds-empty-state-title">Nenhum cartão cadastrado</h2>
+            <p className="fds-empty-state-lede">
+              Adicione um cartão de crédito para acompanhar faturas e limite disponível.
+            </p>
+            <button className="fds-empty-state-btn" onClick={() => setAddModal('cartao')}
+                    style={{ touchAction: 'manipulation', minHeight: 44 }}>
+              + Adicionar cartão
+            </button>
+          </div>
+        ) : cards.map(c => {
           const pct = c.used / c.limit;
           const over = pct > 0.85;
           // Encontra a fatura corrente para este cartão (mês de fatura = selectedMonth)
@@ -796,9 +808,9 @@ function ContasStudio({ onAdd }) {
           return (
             <div className="ctn-card" key={c.id}>
               <div className="ctn-card-visual" style={{
-                background: c.id === 'nu'
-                  ? 'linear-gradient(135deg, #820AD1 0%, #4C0B7E 100%)'
-                  : 'linear-gradient(135deg, #FF7A00 0%, #B25700 100%)',
+                background: c.color
+                  ? `linear-gradient(135deg, ${c.color} 0%, ${c.color}BB 100%)`
+                  : 'linear-gradient(135deg, #1A1A2E 0%, #16213E 100%)',
               }}>
                 <div className="ctn-card-visual-top">
                   <div className="ctn-card-visual-brand">
@@ -821,7 +833,7 @@ function ContasStudio({ onAdd }) {
                 <div className="ctn-card-visual-foot">
                   <div>
                     <div className="ctn-card-visual-lbl">Titular</div>
-                    <div className="ctn-card-visual-val">{USER.name.toUpperCase()}</div>
+                    <div className="ctn-card-visual-val">TITULAR</div>
                   </div>
                   <div>
                     <div className="ctn-card-visual-lbl">Vence</div>
