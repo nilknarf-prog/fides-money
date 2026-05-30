@@ -361,7 +361,7 @@ function ColorPicker({ value, onChange }) {
 function ContasStudio({ onAdd }) {
   const {
     transactions, categories, payCartaoFatura, updateTransaction,
-    faturasPorCartao, selectedMonth, monthLabel,
+    faturaAbertaPorCartao, selectedMonth, monthLabel,
     accounts, cards,
     addAccount, addCard, updateAccount, deleteAccount, updateCard, deleteCard,
   } = useFides();
@@ -787,13 +787,11 @@ function ContasStudio({ onAdd }) {
         ) : cards.map(c => {
           const pct = c.used / c.limit;
           const over = pct > 0.85;
-          // Encontra a fatura corrente para este cartão (mês de fatura = selectedMonth)
-          const fatKey = `${c.id}|${selectedMonth}`;
-          const faturaCorrente = faturasPorCartao[fatKey];
-          const faturaValor = faturaCorrente?.total || c.used;
-          const faturaTxs = faturaCorrente?.txs || [];
+          const faturaAberta = faturaAbertaPorCartao[c.id];
+          const faturaTxs   = faturaAberta?.txs   || [];
+          const faturaValor = faturaAberta?.total || 0;
           const handlePay = () => {
-            if (faturaCorrente && faturaTxs.length > 0) {
+            if (faturaTxs.length > 0) {
               setPayModal({ cardId: c.id, cardName: c.name, txs: faturaTxs });
             }
           };
@@ -835,12 +833,12 @@ function ContasStudio({ onAdd }) {
               <div className="ctn-card-info">
                 <div className="ctn-card-fatura">
                   <div className="ctn-card-fatura-l">
-                    <div className="ctn-stat-lbl">Fatura de {lbl.short.toLowerCase()}</div>
-                    <div className="ctn-card-fatura-val">{faturaTxs.length > 0 ? fmtBRL(faturaValor) : fmtBRL(0)}</div>
+                    <div className="ctn-stat-lbl">Fatura em aberto</div>
+                    <div className="ctn-card-fatura-val">{fmtBRL(faturaValor)}</div>
                     <div className="ctn-card-fatura-meta">
                       {faturaTxs.length > 0
-                        ? `${faturaTxs.length} ${faturaTxs.length === 1 ? 'lançamento' : 'lançamentos'} · vence ${c.due}`
-                        : `Em dia · próxima fecha dia ${c.diaFechamento}`}
+                        ? `${faturaTxs.length} ${faturaTxs.length === 1 ? 'lançamento' : 'lançamentos'} · fecha dia ${c.diaFechamento} · vence dia ${c.due}`
+                        : `Em dia · fecha dia ${c.diaFechamento}`}
                     </div>
                   </div>
                   {faturaTxs.length > 0 ? (

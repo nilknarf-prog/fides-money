@@ -709,6 +709,22 @@ function FidesProvider({ children }) {
     return map;
   }, [transactions, cards, mode]);
 
+  // faturaAbertaPorCartao: agrega TODAS as txs não quitadas do cartão, independente
+  // do mês de fatura — permite pagar a qualquer tempo (antes do fechamento).
+  const faturaAbertaPorCartao = React.useMemo(() => {
+    const map = {};
+    const cardList  = mode === 'live' ? cards : CARDS;
+    const cardIdSet = new Set(cardList.map(c => c.id));
+    transactions.forEach(t => {
+      const isSettled = mode === 'live' ? t.settled : (t.status === 'pago');
+      if (!cardIdSet.has(t.acct) || isSettled) return;
+      if (!map[t.acct]) map[t.acct] = { cardId: t.acct, total: 0, txs: [] };
+      map[t.acct].total += Math.abs(t.val);
+      map[t.acct].txs.push(t);
+    });
+    return map;
+  }, [transactions, cards, mode]);
+
   // ─── Computed flags ───────────────────────────────────────────
 
   const isLoading = mode === 'loading';
@@ -739,7 +755,7 @@ function FidesProvider({ children }) {
     selectedMonth, setSelectedMonth, prevMonth, monthLabel,
     // Derived
     monthTransactions, prevMonthTransactions,
-    spendByCategory, budgetGroups, faturasPorCartao,
+    spendByCategory, budgetGroups, faturasPorCartao, faturaAbertaPorCartao,
     // UI toggles
     categoryModalOpen,
     assistantOpen,
@@ -780,6 +796,7 @@ function useFides() {
     spendByCategory: SPEND_BY_CATEGORY,
     budgetGroups: BUDGET_GROUPS,
     faturasPorCartao: {},
+    faturaAbertaPorCartao: {},
     openCategoryModal: () => {}, closeCategoryModal: () => {},
     openAssistant: () => {}, closeAssistant: () => {},
     assistantOpen: false, categoryModalOpen: false,
