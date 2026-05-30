@@ -46,6 +46,8 @@ function normalizeTx(row) {
     mes: row.month,
     recur: row.recurrent ? 'mensal' : null,
     subscription: !!row.subscription,
+    settled: !!row.settled,
+    paidAt: row.paid_at || null,
   };
 }
 
@@ -357,50 +359,61 @@ function FidesProvider({ children }) {
     setTransactions(prev => prev.filter(t => t._id !== id));
   }, [mode, userId, refreshData]);
 
-  // payCartaoFatura: new signature { cartaoId, accountId, valor }
-  // Live: inserts payment tx + debits account + resets card.used
-  // Mock: marks card's transactions as paid locally
-  const payCartaoFatura = React.useCallback(async ({ cartaoId, accountId, valor } = {}) => {
-    if (mode === 'live' && userId && cartaoId && accountId && valor > 0) {
+  // payCartaoFatura: new signature { cartaoId, accountId, txIds }
+  // Live: inserts payment tx + debits account + marks txs settled + reduces card.used
+  // Mock: marks selected txs as paid (status:'pago') locally
+  const payCartaoFatura = React.useCallback(async ({ cartaoId, accountId, txIds } = {}) => {
+    if (!txIds?.length) return;
+    const total = transactions
+      .filter(t => txIds.includes(t._id))
+      .reduce((sum, t) => sum + Math.abs(Number(t.val) || 0), 0);
+    if (mode === 'live' && userId && cartaoId && accountId && txIds?.length) {
       try {
         const today = new Date();
         const isoDate = today.toISOString().slice(0, 10);
         const mes = isoDate.slice(0, 7);
-        const [, mm, dd] = isoDate.split('-');
         await window.fidesDb.from('transactions').insert({
           user_id:      userId,
           description:  'Pagamento de fatura',
-          value:        -valor,
+          value:        -total,
           category:     'divida',
           account:      accountId,
+          account_id:   accountId,
+          card_id:      null,
           date:         isoDate,
           month:        mes,
           status:       'cleared',
           recurrent:    false,
           subscription: false,
-          account_id:   accountId,
-          card_id:      null,
+          settled:      true,
         });
         const { data: acct } = await window.fidesDb
           .from('accounts').select('balance').eq('id', accountId).single();
         if (acct) {
           await window.fidesDb.from('accounts')
-            .update({ balance: Number(acct.balance) - valor })
+            .update({ balance: Number(acct.balance) - total })
             .eq('id', accountId);
         }
-        await window.fidesDb.from('cards').update({ used: 0 }).eq('id', cartaoId);
+        await window.fidesDb.from('transactions')
+          .update({ settled: true, paid_at: new Date().toISOString() })
+          .in('id', txIds);
+        const { data: card } = await window.fidesDb
+          .from('cards').select('used').eq('id', cartaoId).single();
+        if (card) {
+          await window.fidesDb.from('cards')
+            .update({ used: Math.max(0, Number(card.used) - total) })
+            .eq('id', cartaoId);
+        }
         await refreshData(userId);
       } catch (err) {
         console.error('[Fides] payCartaoFatura:', err.message);
       }
       return;
     }
-    if (cartaoId) {
-      setTransactions(prev => prev.map(t =>
-        t.acct === cartaoId && t.status !== 'pago' ? { ...t, status: 'pago' } : t
-      ));
-    }
-  }, [mode, userId, refreshData]);
+    setTransactions(prev => prev.map(t =>
+      txIds.includes(t._id) ? { ...t, status: 'pago' } : t
+    ));
+  }, [mode, userId, transactions, refreshData]);
 
   // ─── Accounts ─────────────────────────────────────────────────
 
@@ -682,7 +695,8 @@ function FidesProvider({ children }) {
     const cardList  = mode === 'live' ? cards : CARDS;
     const cardIdSet = new Set(cardList.map(c => c.id));
     transactions.forEach(t => {
-      if (!cardIdSet.has(t.acct) || t.status === 'pago') return;
+      const isSettled = mode === 'live' ? t.settled : (t.status === 'pago');
+      if (!cardIdSet.has(t.acct) || isSettled) return;
       const card = cardList.find(c => c.id === t.acct);
       const yr   = parseInt((t.mes || '2026-01').split('-')[0], 10);
       const fat  = mesFaturaFor(t.d, card, yr);
