@@ -48,6 +48,7 @@ function normalizeTx(row) {
     subscription: !!row.subscription,
     settled: !!row.settled,
     paidAt: row.paid_at || null,
+    isTransfer: !!row.is_transfer,
   };
 }
 
@@ -630,7 +631,7 @@ function FidesProvider({ children }) {
   const spendByCategory = React.useMemo(() => {
     const map = {};
     monthTransactions.forEach(t => {
-      if (t.val < 0) map[t.cat] = (map[t.cat] || 0) + Math.abs(t.val);
+      if (t.val < 0 && !t.isTransfer) map[t.cat] = (map[t.cat] || 0) + Math.abs(t.val);
     });
     return Object.entries(map).map(([key, val]) => {
       const c = categories[key] || { label: key, tint: '#888', emoji: '🏷️' };
@@ -648,7 +649,7 @@ function FidesProvider({ children }) {
         .map(([id, c]) => {
           const limit = plannedOverrides[id] ?? 0;
           const spent = monthTransactions
-            .filter(t => t.cat === id && t.val < 0)
+            .filter(t => t.cat === id && t.val < 0 && !t.isTransfer)
             .reduce((s, t) => s + Math.abs(t.val), 0);
           return { cat: id, limit, spent, _custom: c.custom === true };
         })

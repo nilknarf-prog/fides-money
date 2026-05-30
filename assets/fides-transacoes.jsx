@@ -54,8 +54,11 @@ function Transacoes({ variant, onAdd }) {
 
   // Mostra as do mês corrente (a chip de mês na barra é redundante mas mantida visualmente)
   const baseList = monthTransactions;
+  // Aggregations (totais/contagens) excluem movimentações; a lista renderizada usa baseList completo.
+  const flow = baseList.filter(t => !t.isTransfer);
 
   const filtered = baseList.filter(t => {
+    if ((filter === 'receitas' || filter === 'despesas') && t.isTransfer) return false;
     if (filter === 'receitas' && t.val < 0) return false;
     if (filter === 'despesas' && t.val > 0) return false;
     if (filter === 'pendentes' && t.status !== 'pendente') return false;
@@ -199,9 +202,9 @@ function Transacoes({ variant, onAdd }) {
   }, [categories, addTransaction, selectedMonth]);
 
   const tot = {
-    receitas: baseList.filter(t => t.val > 0).reduce((s,t) => s + t.val, 0),
-    despesas: -baseList.filter(t => t.val < 0 && t.status === 'pago').reduce((s,t) => s + t.val, 0),
-    pendentes: -baseList.filter(t => t.val < 0 && t.status === 'pendente').reduce((s,t) => s + t.val, 0),
+    receitas: flow.filter(t => t.val > 0).reduce((s,t) => s + t.val, 0),
+    despesas: -flow.filter(t => t.val < 0 && t.status === 'pago').reduce((s,t) => s + t.val, 0),
+    pendentes: -flow.filter(t => t.val < 0 && t.status === 'pendente').reduce((s,t) => s + t.val, 0),
   };
   const saldo = tot.receitas - tot.despesas;
 
@@ -244,7 +247,8 @@ function Transacoes({ variant, onAdd }) {
         <TxKpi label="Saldo do mês"    value={saldo}        accent="var(--ink)"  variant={variant}/>
         <TxKpi label="Receitas"        value={tot.receitas} accent="var(--ok)"   delta={+8.2} variant={variant} spark={[6,8,7,9,10,11,12]}/>
         <TxKpi label="Despesas pagas"  value={-tot.despesas} accent="var(--bad)" delta={-6.3} variant={variant} spark={[10,9,11,8,9,7,6]}/>
-        <TxKpi label="Pendentes"       value={-tot.pendentes} accent="var(--warn)" kind="pending" pendingCount={transactions.filter(t=>t.status==='pendente').length} variant={variant}/>
+        <TxKpi label="Pendentes"       value={-tot.pendentes} accent="var(--warn)" kind="pending" pendingCount={transactions.filter(t=>t.status==='pendente').length} variant={variant}
+               onSeePending={() => { setFilter('pendentes'); document.querySelector('.fds-tx-table-card')?.scrollIntoView({ behavior:'smooth', block:'start' }); }}/>
       </section>
 
       {/* Filter Bar */}
@@ -270,8 +274,8 @@ function Transacoes({ variant, onAdd }) {
           <div className="fds-tx-chips">
             {[
               ['todas','Todas',baseList.length],
-              ['receitas','Receitas',baseList.filter(t=>t.val>0).length],
-              ['despesas','Despesas',baseList.filter(t=>t.val<0).length],
+              ['receitas','Receitas',flow.filter(t=>t.val>0).length],
+              ['despesas','Despesas',flow.filter(t=>t.val<0).length],
               ['pendentes','Pendentes',baseList.filter(t=>t.status==='pendente').length],
             ].map(([k,l,c]) => (
               <button key={k} className={`fds-chip${filter === k ? ' on' : ''}`} onClick={() => setFilter(k)}>
@@ -655,7 +659,7 @@ function Transacoes({ variant, onAdd }) {
 }
 
 // ─── TX KPI tile (compact) ────────────────────────────────────
-function TxKpi({ label, value, accent, delta, spark, kind, variant, pendingCount }) {
+function TxKpi({ label, value, accent, delta, spark, kind, variant, pendingCount, onSeePending }) {
   return (
     <div className="fds-card fds-tx-kpi">
       <div className="fds-tx-kpi-head">
@@ -675,7 +679,7 @@ function TxKpi({ label, value, accent, delta, spark, kind, variant, pendingCount
       {kind === 'pending' && (
         <div className="fds-tx-kpi-pending">
           <span><Icon.Clock size={11}/> {pendingCount ?? 0} {(pendingCount ?? 0) === 1 ? 'item em aberto' : 'itens em aberto'}</span>
-          <span className="fds-link-sm">Ver →</span>
+          <button type="button" className="fds-link-sm" onClick={onSeePending} style={{ background:'none', border:'none', padding:'8px 4px', minHeight:44, touchAction:'manipulation', WebkitTapHighlightColor:'transparent', color:'var(--accent)', cursor:'pointer' }}>Ver →</button>
         </div>
       )}
     </div>
