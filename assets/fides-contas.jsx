@@ -928,8 +928,8 @@ function ContasStudio({ onAdd }) {
           accounts={accounts}
           onClose={() => setPayModal(null)}
           onConfirm={async ({ txIds, accountId }) => {
-            await payCartaoFatura({ cartaoId: payModal.cardId, accountId, txIds });
-            setPayModal(null);
+            const ok = await payCartaoFatura({ cartaoId: payModal.cardId, accountId, txIds });
+            if (ok) setPayModal(null);
           }}
         />
       )}

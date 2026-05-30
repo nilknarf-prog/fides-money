@@ -360,60 +360,32 @@ function FidesProvider({ children }) {
   }, [mode, userId, refreshData]);
 
   // payCartaoFatura: new signature { cartaoId, accountId, txIds }
-  // Live: inserts payment tx + debits account + marks txs settled + reduces card.used
+  // Live: atomic via RPC pay_card_invoice — server inserts payment tx, debits
+  //       account, marks txs settled and reduces card.used in one transaction
   // Mock: marks selected txs as paid (status:'pago') locally
   const payCartaoFatura = React.useCallback(async ({ cartaoId, accountId, txIds } = {}) => {
-    if (!txIds?.length) return;
-    const total = transactions
-      .filter(t => txIds.includes(t._id))
-      .reduce((sum, t) => sum + Math.abs(Number(t.val) || 0), 0);
-    if (mode === 'live' && userId && cartaoId && accountId && txIds?.length) {
+    if (!txIds?.length) return false;
+    if (mode === 'live' && userId && cartaoId && accountId) {
       try {
-        const today = new Date();
-        const isoDate = today.toISOString().slice(0, 10);
-        const mes = isoDate.slice(0, 7);
-        await window.fidesDb.from('transactions').insert({
-          user_id:      userId,
-          description:  'Pagamento de fatura',
-          value:        -total,
-          category:     'divida',
-          account:      accountId,
-          account_id:   accountId,
-          card_id:      null,
-          date:         isoDate,
-          month:        mes,
-          status:       'cleared',
-          recurrent:    false,
-          subscription: false,
-          settled:      true,
+        const { error } = await window.fidesDb.rpc('pay_card_invoice', {
+          p_card_id:    cartaoId,
+          p_account_id: accountId,
+          p_tx_ids:     txIds,
         });
-        const { data: acct } = await window.fidesDb
-          .from('accounts').select('balance').eq('id', accountId).single();
-        if (acct) {
-          await window.fidesDb.from('accounts')
-            .update({ balance: Number(acct.balance) - total })
-            .eq('id', accountId);
-        }
-        await window.fidesDb.from('transactions')
-          .update({ settled: true, paid_at: new Date().toISOString() })
-          .in('id', txIds);
-        const { data: card } = await window.fidesDb
-          .from('cards').select('used').eq('id', cartaoId).single();
-        if (card) {
-          await window.fidesDb.from('cards')
-            .update({ used: Math.max(0, Number(card.used) - total) })
-            .eq('id', cartaoId);
-        }
+        if (error) throw error;
         await refreshData(userId);
+        return true;
       } catch (err) {
         console.error('[Fides] payCartaoFatura:', err.message);
+        return false;
       }
-      return;
     }
+    // mock
     setTransactions(prev => prev.map(t =>
       txIds.includes(t._id) ? { ...t, status: 'pago' } : t
     ));
-  }, [mode, userId, transactions, refreshData]);
+    return true;
+  }, [mode, userId, refreshData]);
 
   // ─── Accounts ─────────────────────────────────────────────────
 
