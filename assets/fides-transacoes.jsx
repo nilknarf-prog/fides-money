@@ -818,13 +818,14 @@ function EditTxModal({ tx, onClose }) {
 
 // ─── Modal: Nova Transação ────────────────────────────────────
 function NovaTransacaoModal({ open, onClose, onSave, variant }) {
-  const { categories, openCategoryModal, accounts, cards } = useFides();
+  const { categories, openCategoryModal, accounts, cards, transferFunds } = useFides();
   const today = new Date();
   const todayStr = `${String(today.getDate()).padStart(2,'0')}/${String(today.getMonth()+1).padStart(2,'0')}/${today.getFullYear()}`;
 
   const [kind, setKind] = React.useState('despesa');
   const [pay, setPay] = React.useState('debito');
   const [acct, setAcct] = React.useState('');
+  const [toAcct, setToAcct] = React.useState('');
   const [card, setCard] = React.useState('');
   React.useEffect(() => {
     if (!acct || !accounts.find(a => a.id === acct)) setAcct(accounts[0]?.id || '');
@@ -870,7 +871,9 @@ function NovaTransacaoModal({ open, onClose, onSave, variant }) {
     return parts[0] && parts[1] ? `${parts[0].padStart(2,'0')}/${parts[1].padStart(2,'0')}` : todayStr.slice(0,5);
   };
 
-  const canSave = desc.trim() && parseVal(val) > 0 && (pay !== 'debito' || accounts.length > 0);
+  const canSave = kind === 'transferencia'
+    ? (acct && toAcct && acct !== toAcct && parseVal(val) > 0)
+    : (desc.trim() && parseVal(val) > 0 && (pay !== 'debito' || accounts.length > 0));
 
   // Build a list of transactions — one per parcela (crédito) ou por mês de recorrência (débito), ou apenas 1
   const buildTxs = () => {
@@ -914,8 +917,17 @@ function NovaTransacaoModal({ open, onClose, onSave, variant }) {
     });
   };
 
-  const handleSave = (keepOpen = false) => {
+  const handleSave = async (keepOpen = false) => {
     if (!canSave) return;
+    if (kind === 'transferencia') {
+      const p = String(date).split('/');
+      const iso = (p[0] && p[1])
+        ? `${p[2] || new Date().getFullYear()}-${p[1].padStart(2,'0')}-${p[0].padStart(2,'0')}`
+        : null;
+      const ok = await transferFunds({ from: acct, to: toAcct, val: parseVal(val), date: iso, desc: desc.trim() });
+      if (ok) { setVal(''); setDesc(''); setToAcct(''); if (!keepOpen) onClose?.(); }
+      return;
+    }
     const txs = buildTxs();
     onSave?.(txs.length === 1 ? txs[0] : txs);
     if (keepOpen) {
@@ -944,7 +956,7 @@ function NovaTransacaoModal({ open, onClose, onSave, variant }) {
             ['receita','Receita', Icon.TrendUp],
             ['transferencia','Transferência', Icon.Arrow],
           ].map(([k,l,Ic]) => (
-            <button key={k} className={`${kind===k?'on':''}`} onClick={() => setKind(k)}>
+            <button key={k} className={`${kind===k?'on':''}`} onClick={() => { setKind(k); if (k !== 'despesa') setPay('debito'); }}>
               <Ic size={14}/> {l}
             </button>
           ))}
@@ -953,7 +965,7 @@ function NovaTransacaoModal({ open, onClose, onSave, variant }) {
         <div className="fds-modal-body">
           <div className="fds-modal-row two">
             <label className="fds-field">
-              <span>Descrição</span>
+              <span>{kind === 'transferencia' ? 'Descrição (opcional)' : 'Descrição'}</span>
               <input className="fds-input" placeholder="ex: Mercado Atacadão"
                      value={desc} onChange={(e) => setDesc(e.target.value)}/>
             </label>
@@ -968,7 +980,7 @@ function NovaTransacaoModal({ open, onClose, onSave, variant }) {
             </label>
           </div>
 
-          <div className="fds-modal-row two">
+          <div className={`fds-modal-row${kind === 'transferencia' ? '' : ' two'}`}>
             <label className="fds-field">
               <span>Data</span>
               <div className="fds-input-icon">
@@ -976,6 +988,7 @@ function NovaTransacaoModal({ open, onClose, onSave, variant }) {
                 <input className="fds-input" value={date} onChange={(e) => setDate(e.target.value)}/>
               </div>
             </label>
+            {kind !== 'transferencia' && (
             <label className="fds-field">
               <span style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
                 Categoria
@@ -1035,9 +1048,35 @@ function NovaTransacaoModal({ open, onClose, onSave, variant }) {
                 <Icon.Down size={13} style={{ opacity: 0.5 }}/>
               </div>
             </label>
+            )}
           </div>
 
+          {/* Transferência: contas de origem e destino */}
+          {kind === 'transferencia' && (
+            <>
+              <label className="fds-field">
+                <span>Conta de origem</span>
+                <div className="fds-input-select">
+                  <select className="fds-select" value={acct} onChange={(e) => setAcct(e.target.value)} style={{ minHeight: 44, touchAction: 'manipulation' }}>
+                    <option value="">Selecione</option>
+                    {accounts.map(a => <option key={a.id} value={a.id}>{a.name} ·· {a.tag}</option>)}
+                  </select>
+                </div>
+              </label>
+              <label className="fds-field">
+                <span>Conta de destino</span>
+                <div className="fds-input-select">
+                  <select className="fds-select" value={toAcct} onChange={(e) => setToAcct(e.target.value)} style={{ minHeight: 44, touchAction: 'manipulation' }}>
+                    <option value="">Selecione</option>
+                    {accounts.filter(a => a.id !== acct).map(a => <option key={a.id} value={a.id}>{a.name} ·· {a.tag}</option>)}
+                  </select>
+                </div>
+              </label>
+            </>
+          )}
+
           {/* Pagamento segmented */}
+          {kind === 'despesa' && (
           <div className="fds-field">
             <span>Forma de pagamento</span>
             <div className="fds-seg fds-seg-2">
@@ -1049,7 +1088,9 @@ function NovaTransacaoModal({ open, onClose, onSave, variant }) {
               </button>
             </div>
           </div>
+          )}
 
+          {kind !== 'transferencia' && (
           <div className="fds-modal-row two">
             <label className="fds-field">
               <span>{pay === 'debito' ? 'Conta' : 'Cartão'}</span>
@@ -1086,6 +1127,7 @@ function NovaTransacaoModal({ open, onClose, onSave, variant }) {
               </div>
             </label>
           </div>
+          )}
 
           {/* Parcelamento — apenas para despesa no crédito */}
           {canParcelar && (
@@ -1138,6 +1180,7 @@ function NovaTransacaoModal({ open, onClose, onSave, variant }) {
             </div>
           )}
 
+          {kind !== 'transferencia' && (
           <div className="fds-toggles">
             <label className="fds-toggle">
               <input type="checkbox" checked={paid} onChange={(e) => setPaid(e.target.checked)}/>
@@ -1157,9 +1200,10 @@ function NovaTransacaoModal({ open, onClose, onSave, variant }) {
               )}
             </label>
           </div>
+          )}
 
           {/* Sub-controle de recorrência — só quando ligada e em débito */}
-          {recur && pay === 'debito' && (
+          {kind !== 'transferencia' && recur && pay === 'debito' && (
             <div className="fds-field parc-field">
               <span>
                 Duração da recorrência
