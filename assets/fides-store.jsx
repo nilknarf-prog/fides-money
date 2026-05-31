@@ -30,6 +30,11 @@ async function getAuthUser() {
 const STATUS_TO_UI = { cleared: 'pago', pending: 'pendente', scheduled: 'agendado' };
 const STATUS_TO_DB = { pago: 'cleared', pendente: 'pending', agendado: 'scheduled' };
 
+// Categorias do sistema (sintéticas) — não vivem em fides-data.jsx nem no banco.
+const SYSTEM_CATEGORIES = {
+  transferencia: { label: 'Transferência', emoji: '🔁', tint: 'var(--ink-3)', group: 'sistema' },
+};
+
 function normalizeTx(row) {
   const dateStr = row.date || '';
   const d = dateStr.length >= 10
@@ -121,7 +126,7 @@ function FidesProvider({ children }) {
   const [cards,    setCards]    = React.useState(() => CARDS.slice());
   const [goals,    setGoals]    = React.useState(() => METAS.slice());
 
-  const [categories, setCategories]           = React.useState(() => ({ ...CATEGORIES }));
+  const [categories, setCategories]           = React.useState(() => ({ ...CATEGORIES, ...SYSTEM_CATEGORIES }));
   const [plannedOverrides, setPlannedOverrides] = React.useState({});
   const [categoryModalOpen, setCategoryModalOpen] = React.useState(false);
   const [selectedMonth, setSelectedMonth]         = React.useState('2026-05');
@@ -181,10 +186,10 @@ function FidesProvider({ children }) {
       try {
         if (catRes && !catRes.error) {
           const custom = Object.fromEntries((catRes.data || []).map(r => [r.cat_key, normalizeCategory(r)]));
-          setCategories({ ...CATEGORIES, ...custom });
+          setCategories({ ...CATEGORIES, ...SYSTEM_CATEGORIES, ...custom });
         } else {
           if (catRes && catRes.error) console.error('[Fides] Erro categorias:', catRes.error.message);
-          setCategories({ ...CATEGORIES });
+          setCategories({ ...CATEGORIES, ...SYSTEM_CATEGORIES });
         }
       } catch (catErr) {
         console.error('[Fides] Erro categorias:', catErr.message);
@@ -385,6 +390,38 @@ function FidesProvider({ children }) {
     setTransactions(prev => prev.map(t =>
       txIds.includes(t._id) ? { ...t, status: 'pago' } : t
     ));
+    return true;
+  }, [mode, userId, refreshData]);
+
+  // transferFunds: movimentação entre contas (sem trava de saldo — permite negativo)
+  // Live: atomic via RPC transfer_funds. Mock: dois lançamentos locais marcados isTransfer.
+  const transferFunds = React.useCallback(async ({ from, to, val, date, desc } = {}) => {
+    if (!from || !to || from === to || !(Number(val) > 0)) return false;
+    if (mode === 'live' && userId) {
+      try {
+        const { error } = await window.fidesDb.rpc('transfer_funds', {
+          p_from:  from,
+          p_to:    to,
+          p_value: Number(val),
+          p_date:  date || null,        // 'YYYY-MM-DD' ou null
+          p_desc:  desc || null,
+        });
+        if (error) throw error;
+        await refreshData(userId);
+        return true;
+      } catch (err) {
+        console.error('[Fides] transferFunds:', err.message);
+        return false;
+      }
+    }
+    // mock: dois lançamentos locais (demo)
+    const grp = 'tf' + Date.now();
+    const mkMes = (d) => (d || new Date().toISOString().slice(0,10)).slice(0,7);
+    setTransactions(prev => ([
+      { _id: grp+'a', d: '', mes: mkMes(date), desc: desc || 'Transferência', cat: 'transferencia', acct: from, val: -Number(val), status: 'pago', isTransfer: true },
+      { _id: grp+'b', d: '', mes: mkMes(date), desc: desc || 'Transferência', cat: 'transferencia', acct: to,   val:  Number(val), status: 'pago', isTransfer: true },
+      ...prev,
+    ]));
     return true;
   }, [mode, userId, refreshData]);
 
@@ -715,7 +752,7 @@ function FidesProvider({ children }) {
     refreshData: () => refreshData(userId),
     goals,
     // Transactions
-    transactions, addTransaction, addTransactions, payCartaoFatura,
+    transactions, addTransaction, addTransactions, payCartaoFatura, transferFunds,
     updateTransaction, deleteTransaction,
     // Accounts
     accounts, addAccount, updateAccount, deleteAccount,
@@ -757,7 +794,7 @@ function useFides() {
     transactions: TRANSACTIONS,
     monthTransactions: TRANSACTIONS,
     prevMonthTransactions: [],
-    addTransaction: () => {}, addTransactions: () => {}, payCartaoFatura: () => {},
+    addTransaction: () => {}, addTransactions: () => {}, payCartaoFatura: () => {}, transferFunds: () => {},
     updateTransaction: () => {}, deleteTransaction: () => {},
     accounts: ACCOUNTS, addAccount: () => {}, updateAccount: () => {}, deleteAccount: () => {},
     cards: CARDS, addCard: () => {}, updateCard: () => {}, deleteCard: () => {},
