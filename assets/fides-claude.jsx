@@ -1,13 +1,13 @@
-// fides-claude.jsx — Assistente conversacional com Claude
-// Usa window.claude.complete (haiku 4.5, 1024 tokens). Injeta resumo
-// do mês selecionado como contexto pro modelo dar conselhos relevantes.
-// parseTxJson: detecta JSON de transação sugerida e oferece confirmação.
+// fides-claude.jsx — Assistente Fides com Gemini 2.5 Flash Lite
+// Chat puro (sem tools ainda — Lote A2 vai adicionar function calling).
+// Chama /api/assistant (serverless Vercel) que protege a API key e valida JWT.
+// Contexto financeiro do mês selecionado é injetado em toda mensagem.
 
 function FidesAssistant() {
-  const { assistantOpen, closeAssistant, monthTransactions, spendByCategory, budgetGroups, selectedMonth, monthLabel, addTransaction, goals, accounts, cards, userName } = useFides();
+  const { assistantOpen, closeAssistant, monthTransactions, spendByCategory, budgetGroups, selectedMonth, monthLabel, goals, accounts, cards, userName } = useFides();
   const lbl = monthLabel(selectedMonth);
 
-  const [messages, setMessages] = React.useState([]); // {role, content, ts, pendingTx?}
+  const [messages, setMessages] = React.useState([]); // {role, content, ts}
   const [input, setInput] = React.useState('');
   const [thinking, setThinking] = React.useState(false);
   const [error, setError] = React.useState(null);
@@ -18,7 +18,7 @@ function FidesAssistant() {
     if (assistantOpen && messages.length === 0) {
       setMessages([{
         role: 'assistant',
-        content: `Olá${userName ? `, ${userName.split(' ')[0]}` : ''}! Sou o assistente do Fides. Posso responder sobre suas finanças, explicar funções do app, ou dar conselhos. Você está vendo o ${lbl.long} agora — pergunte algo!`,
+        content: `Olá${userName ? `, ${userName.split(' ')[0]}` : ''}! Sou o Assistente Fides. Posso analisar seus gastos, falar sobre planejamento, metas e investimentos básicos. Você está vendo o ${lbl.long} agora — me pergunte algo.`,
         ts: Date.now(),
       }]);
     }
@@ -35,49 +35,42 @@ function FidesAssistant() {
 
   // ─── Contexto financeiro injetado em toda pergunta ──────────
   const buildContext = () => {
-    const receitas  = monthTransactions.filter(t => t.val > 0).reduce((s,t) => s + t.val, 0);
-    const despesas  = monthTransactions.filter(t => t.val < 0).reduce((s,t) => s + Math.abs(t.val), 0);
-    const pendentes = monthTransactions.filter(t => t.val < 0 && t.status === 'pendente').reduce((s,t) => s + Math.abs(t.val), 0);
-    const top3 = spendByCategory.slice(0, 3).map(c => `${c.label} ${fmtBRL(c.val)}`).join(', ');
-    const orcStatus = budgetGroups.map(g =>
-      `${g.label}: ${fmtBRL(g.spent)} de ${fmtBRL(g.limit)} (${Math.round((g.spent/g.limit||0)*100)}%)`
+    const receitas  = monthTransactions.filter(t => !t.isTransfer && t.val > 0).reduce((s,t) => s + t.val, 0);
+    const despesas  = monthTransactions.filter(t => !t.isTransfer && t.val < 0).reduce((s,t) => s + Math.abs(t.val), 0);
+    const pendentes = monthTransactions.filter(t => !t.isTransfer && t.val < 0 && t.status === 'pendente').reduce((s,t) => s + Math.abs(t.val), 0);
+    const top3 = (spendByCategory || []).slice(0, 3).map(c => `${c.label} ${fmtBRL(c.val)}`).join(', ');
+    const orcStatus = (budgetGroups || []).map(g =>
+      `${g.label}: ${fmtBRL(g.spent)} de ${fmtBRL(g.limit)} (${g.limit > 0 ? Math.round((g.spent/g.limit)*100) : 0}%)`
     ).join('; ');
-    const metasInfo = goals.length > 0
+    const metasInfo = (goals && goals.length > 0)
       ? goals.map(m => `${m.nome}: ${fmtBRL(m.atual)} de ${fmtBRL(m.alvo)} (${Math.round(m.alvo > 0 ? m.atual / m.alvo * 100 : 0)}%, aportando ${fmtBRL(m.contribuicao)}/mês)`).join('; ')
       : 'nenhuma';
     return [
       userName ? `Usuário: ${userName}.` : '',
       `Mês em foco: ${lbl.long}.`,
-      `Receitas do mês: ${fmtBRL(receitas)}. Despesas: ${fmtBRL(despesas)}. Em aberto: ${fmtBRL(pendentes)}.`,
-      `Top gastos por categoria: ${top3 || 'nenhum'}.`,
-      `Status do Planejamento (50·30·20): ${orcStatus}.`,
+      `Receitas do mês: ${fmtBRL(receitas)}. Despesas: ${fmtBRL(despesas)}. Em aberto (pendentes): ${fmtBRL(pendentes)}.`,
+      `Top gastos por categoria: ${top3 || 'nenhum gasto categorizado ainda'}.`,
+      `Status do Planejamento (50·30·20): ${orcStatus || 'sem limites definidos'}.`,
       `Metas em curso: ${metasInfo}.`,
-      accounts.length > 0 ? `Contas: ${accounts.map(a => `${a.name} ${fmtBRL(a.balance)}`).join(', ')}.` : '',
-      cards.length > 0 ? `Cartões: ${cards.map(c => `${c.name} usa ${fmtBRL(c.used)}/${fmtBRL(c.limit)}`).join(', ')}.` : '',
+      (accounts && accounts.length > 0) ? `Contas: ${accounts.map(a => `${a.name} saldo ${fmtBRL(a.balance)}`).join(', ')}.` : 'Nenhuma conta cadastrada.',
+      (cards && cards.length > 0) ? `Cartões: ${cards.map(c => `${c.name} usando ${fmtBRL(c.used)} de ${fmtBRL(c.limit)}`).join(', ')}.` : 'Nenhum cartão cadastrado.',
     ].filter(Boolean).join(' ');
   };
 
-  const SYSTEM = `Você é o assistente do Fides Money, um app brasileiro de finanças pessoais.
-Responda em português do Brasil, de forma concisa (máx. 4 parágrafos curtos), tom calmo e prático.
-Use os dados financeiros do contexto pra dar respostas específicas. Cite valores em R$.
-Pode falar sobre: funções do app, controle financeiro, orçamento, metas, dívidas, investimentos básicos.
-Não dê garantias de retorno; sempre lembre que investimentos têm risco.
-Se não souber, diga honestamente. Não invente dados.
-Formato: prosa curta, sem markdown pesado. Pode usar negrito ocasional pra valores ou termos-chave.
-
-Quando o usuário descrever uma transação (ex: "gastei X em Y", "paguei X de Y", "recebi X de Y"), retorne um JSON no seguinte formato ANTES da resposta em texto, numa linha própria:
-{"acao":"lancar_transacao","dados":{"desc":"","valor":0,"tipo":"despesa","cat":"outros","pay":"debito","data":""}}
-Preencha os campos com os dados interpretados da mensagem. O campo "tipo" deve ser "despesa" ou "receita". O campo "pay" deve ser "debito", "credito" ou "pix". O campo "data" deve ser no formato dd/mm/yyyy ou vazio. Se não for uma transação, retorne apenas texto normal, sem JSON.
-
-Quando o usuário perguntar se deve comprar algo no crédito ou débito, analise o saldo disponível em conta, o limite disponível no cartão e a proximidade do vencimento da fatura. Recomende a opção mais vantajosa com justificativa objetiva, comparando os valores reais das contas e cartões do contexto.`;
-
-  // ─── Detecta e extrai JSON de transação da resposta do modelo ─
-  const parseTxJson = (text) => {
-    try {
-      const match = text.match(/\{"acao"\s*:\s*"lancar_transacao"[^}]*\}/);
-      if (!match) return null;
-      return JSON.parse(match[0]);
-    } catch { return null; }
+  // ─── Traduz erros do backend pra mensagem amigável ──────────
+  const friendlyError = (errCode) => {
+    const map = {
+      JWT_MISSING:        'Sua sessão não foi reconhecida. Faça login de novo.',
+      JWT_INVALID:        'Sua sessão expirou. Faça login de novo.',
+      RATE_LIMIT:         'Muitas conversas agora — espere um minuto e tente de novo.',
+      GEMINI_KEY_MISSING: 'Configuração do assistente pendente. Avise o suporte.',
+      GEMINI_BAD_REQUEST: 'Não consegui entender sua mensagem. Tente reformular.',
+      EMPTY_REPLY:        'O assistente não conseguiu responder dessa vez. Tente reformular.',
+      GEMINI_ERROR:       'O assistente está temporariamente fora do ar. Tente em instantes.',
+      INTERNAL_ERROR:     'Algo deu errado do nosso lado. Tente novamente.',
+      NETWORK:            'Sem conexão. Verifique a internet.',
+    };
+    return map[errCode] || 'Não consegui responder agora. Tente de novo em instantes.';
   };
 
   const send = async (q) => {
@@ -90,31 +83,56 @@ Quando o usuário perguntar se deve comprar algo no crédito ou débito, analise
     setThinking(true);
 
     try {
-      const history = [...messages, userMsg].filter(m => m.role !== 'system').map(m => ({
-        role: m.role, content: m.content,
-      }));
+      // 1. Pegar JWT da sessão Supabase
+      let jwt = null;
+      if (window.fidesAuth && typeof window.fidesAuth.getSession === 'function') {
+        const { data: sessionData } = await window.fidesAuth.getSession();
+        jwt = sessionData?.session?.access_token || null;
+      }
+      if (!jwt) {
+        setError(friendlyError('JWT_MISSING'));
+        setThinking(false);
+        return;
+      }
+
+      // 2. Montar histórico (excluir mensagem de boas-vindas inicial pra não confundir o modelo)
+      const history = [...messages, userMsg]
+        .filter(m => m.role === 'user' || m.role === 'assistant')
+        .map(m => ({ role: m.role, content: m.content }));
+
+      // 3. Montar contexto financeiro
       const ctx = buildContext();
-      const reply = await window.claude.complete({
-        messages: [
-          { role: 'user', content: `[contexto] ${ctx}\n\n[instruções do sistema] ${SYSTEM}\n\nA partir daqui é a conversa.` },
-          { role: 'assistant', content: 'Entendi. Vou responder com base nesses dados.' },
-          ...history,
-        ],
+
+      // 4. Chamar serverless
+      const res = await fetch('/api/assistant', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ messages: history, context: ctx, jwt }),
       });
 
-      // Tenta parsear JSON de transação sugerida pelo modelo
-      const txJson = parseTxJson(reply);
-      // Remove a linha JSON da exibição, deixando só o texto em prosa
-      const displayText = reply.replace(/\{"acao"\s*:\s*"lancar_transacao"[^}]*\}\n?/, '').trim();
+      const data = await res.json().catch(() => ({}));
+
+      if (!res.ok) {
+        setError(friendlyError(data?.error));
+        setThinking(false);
+        return;
+      }
+
+      const reply = data?.reply;
+      if (!reply) {
+        setError(friendlyError('EMPTY_REPLY'));
+        setThinking(false);
+        return;
+      }
 
       setMessages(prev => [...prev, {
         role: 'assistant',
-        content: displayText,
+        content: reply,
         ts: Date.now(),
-        pendingTx: txJson?.dados ?? null,
       }]);
     } catch (err) {
-      setError(err?.message || 'Não consegui falar com o Claude agora.');
+      console.error('[FidesAssistant] send error', err);
+      setError(friendlyError('NETWORK'));
     } finally {
       setThinking(false);
     }
@@ -122,8 +140,7 @@ Quando o usuário perguntar se deve comprar algo no crédito ou débito, analise
 
   const quickPrompts = [
     'Onde eu gastei mais este mês?',
-    'Como acelero minha meta de Maceió?',
-    'Que dívida quito primeiro?',
+    'Como posso acelerar minhas metas?',
     'Vale a pena investir agora?',
     'Como o Fides trata gastos no crédito?',
   ];
@@ -140,7 +157,7 @@ Quando o usuário perguntar se deve comprar algo no crédito ou débito, analise
               <div className="cla-head-title">Assistente Fides</div>
             </div>
           </div>
-          <button className="fds-icon-btn" onClick={closeAssistant} title="Fechar">
+          <button className="fds-icon-btn" onClick={closeAssistant} title="Fechar" style={{ touchAction: 'manipulation', WebkitTapHighlightColor: 'transparent' }}>
             <Icon.X size={16}/>
           </button>
         </header>
@@ -160,40 +177,6 @@ Quando o usuário perguntar se deve comprar algo no crédito ou débito, analise
                 {m.content.split('\n').map((line, j) => (
                   <p key={j}>{line}</p>
                 ))}
-                {m.pendingTx && (
-                  <div className="cla-tx-confirm">
-                    <div className="cla-tx-confirm-preview">
-                      <span className="fds-mini-tag soft">
-                        {m.pendingTx.tipo === 'receita' ? '+' : '−'}R$ {parseFloat(m.pendingTx.valor || 0).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
-                      </span>
-                      <span>{m.pendingTx.desc}</span>
-                      <span className="fds-muted">{m.pendingTx.cat} · {m.pendingTx.pay}</span>
-                    </div>
-                    <button className="fds-btn-primary" style={{ fontSize: 12, padding: '5px 12px' }}
-                            onClick={() => {
-                              const d = m.pendingTx;
-                              const today = new Date();
-                              const dateStr = d.data || `${String(today.getDate()).padStart(2,'0')}/${String(today.getMonth()+1).padStart(2,'0')}/${today.getFullYear()}`;
-                              const parts = dateStr.split('/');
-                              const mesStr = parts[2] && parts[1]
-                                ? `${parts[2]}-${parts[1].padStart(2,'0')}`
-                                : `${today.getFullYear()}-${String(today.getMonth()+1).padStart(2,'0')}`;
-                              addTransaction({
-                                desc: d.desc || 'Transação via assistente',
-                                val: d.tipo === 'receita' ? Math.abs(parseFloat(d.valor) || 0) : -Math.abs(parseFloat(d.valor) || 0),
-                                cat: d.cat || 'outros',
-                                acct: d.pay === 'credito' ? (cards[0]?.id || accounts[0]?.id || '') : (accounts[0]?.id || ''),
-                                d: parts[0] && parts[1] ? `${parts[0].padStart(2,'0')}/${parts[1].padStart(2,'0')}` : `${String(today.getDate()).padStart(2,'0')}/${String(today.getMonth()+1).padStart(2,'0')}`,
-                                mes: mesStr,
-                                status: 'pago',
-                              });
-                              // Remove pendingTx da mensagem após confirmar
-                              setMessages(prev => prev.map((msg, idx) => idx === i ? { ...msg, pendingTx: null } : msg));
-                            }}>
-                      <Icon.Check size={12}/> Confirmar lançamento
-                    </button>
-                  </div>
-                )}
               </div>
             </div>
           ))}
@@ -215,7 +198,12 @@ Quando o usuário perguntar se deve comprar algo no crédito ou débito, analise
         {messages.length <= 1 && !thinking && (
           <div className="cla-suggestions">
             {quickPrompts.map(p => (
-              <button key={p} className="cla-suggestion" onClick={() => send(p)}>
+              <button
+                key={p}
+                className="cla-suggestion"
+                onClick={() => send(p)}
+                style={{ touchAction: 'manipulation', WebkitTapHighlightColor: 'transparent' }}
+              >
                 {p}
               </button>
             ))}
@@ -229,14 +217,15 @@ Quando o usuário perguntar se deve comprar algo no crédito ou débito, analise
             onChange={(e) => setInput(e.target.value)}
             placeholder="Pergunte sobre suas finanças, o app, investimentos…"
             disabled={thinking}
+            style={{ fontSize: 16 }}
             autoFocus/>
-          <button type="submit" disabled={!input.trim() || thinking}>
+          <button type="submit" disabled={!input.trim() || thinking} style={{ touchAction: 'manipulation', WebkitTapHighlightColor: 'transparent' }}>
             {thinking ? <Icon.Clock size={14}/> : <Icon.Right size={14}/>}
           </button>
         </form>
 
         <div className="cla-foot">
-          <span>Powered by Claude · respostas podem errar — confira valores</span>
+          <span>Powered by Gemini · respostas podem errar — confira valores. Conversas podem ser usadas pelo Google para melhorar o modelo.</span>
         </div>
       </aside>
     </>
@@ -248,7 +237,12 @@ function FidesAssistantFAB() {
   const { openAssistant, assistantOpen } = useFides();
   if (assistantOpen) return null;
   return (
-    <button className="cla-fab" onClick={openAssistant} title="Conversar com o Fides (Claude)">
+    <button
+      className="cla-fab"
+      onClick={openAssistant}
+      title="Conversar com o Assistente Fides"
+      style={{ touchAction: 'manipulation', WebkitTapHighlightColor: 'transparent' }}
+    >
       <Icon.Sparkles size={20}/>
       <span className="cla-fab-pulse"/>
     </button>

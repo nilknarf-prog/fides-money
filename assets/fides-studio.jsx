@@ -78,14 +78,17 @@ function TransacoesStudio({ onAdd }) {
   const { monthTransactions, prevMonthTransactions, selectedMonth, monthLabel, prevMonth } = useFides();
   const lbl = monthLabel(selectedMonth);
   const prevLbl = monthLabel(prevMonth(selectedMonth));
-  const rec = monthTransactions.filter(t => t.val > 0).length;
-  const des = monthTransactions.filter(t => t.val < 0).length;
-  const delta = monthTransactions.length - prevMonthTransactions.length;
-  const maior = monthTransactions
+  // Aggregations excluem movimentações (is_transfer): pagamento de fatura não conta como receita/despesa.
+  const flow     = monthTransactions.filter(t => !t.isTransfer);
+  const flowPrev = prevMonthTransactions.filter(t => !t.isTransfer);
+  const rec = flow.filter(t => t.val > 0).length;
+  const des = flow.filter(t => t.val < 0).length;
+  const delta = flow.length - flowPrev.length;
+  const maior = flow
     .filter(t => t.val < 0)
     .reduce((m, t) => Math.abs(t.val) > Math.abs(m.val) ? t : m, { val: 0, desc: '—' });
   const pend = monthTransactions.filter(t => t.status === 'pendente');
-  const pendSoma = pend.reduce((s, t) => s + Math.abs(t.val), 0);
+  const pendSoma = flow.filter(t => t.status === 'pendente').reduce((s, t) => s + Math.abs(t.val), 0);
   const empty = monthTransactions.length === 0;
   return (
     <div className="fds-page stu-page">
@@ -558,16 +561,18 @@ function DashboardStudio({ onAdd, onNav }) {
   const lbl = monthLabel(selectedMonth);
   const prevLbl = monthLabel(prevMonth(selectedMonth));
 
-  // Live totals derived from current monthTransactions
-  const receitas  = monthTransactions.filter(t => t.val > 0).reduce((s,t) => s + t.val, 0);
-  const despesas  = monthTransactions.filter(t => t.val < 0 && t.status === 'pago').reduce((s,t) => s + Math.abs(t.val), 0);
-  const pendentes = monthTransactions.filter(t => t.val < 0 && t.status === 'pendente').reduce((s,t) => s + Math.abs(t.val), 0);
+  // Live totals derived from current monthTransactions — aggregations excluem movimentações (is_transfer).
+  const flow     = monthTransactions.filter(t => !t.isTransfer);
+  const flowPrev = prevMonthTransactions.filter(t => !t.isTransfer);
+  const receitas  = flow.filter(t => t.val > 0).reduce((s,t) => s + t.val, 0);
+  const despesas  = flow.filter(t => t.val < 0 && t.status === 'pago').reduce((s,t) => s + Math.abs(t.val), 0);
+  const pendentes = flow.filter(t => t.val < 0 && t.status === 'pendente').reduce((s,t) => s + Math.abs(t.val), 0);
   const saldoFinal = receitas - despesas - pendentes;
   const pendCount = monthTransactions.filter(t => t.status === 'pendente').length;
 
   // Comparativo com mês anterior
-  const prevReceitas = prevMonthTransactions.filter(t => t.val > 0).reduce((s,t) => s + t.val, 0);
-  const prevDespesas = prevMonthTransactions.filter(t => t.val < 0).reduce((s,t) => s + Math.abs(t.val), 0);
+  const prevReceitas = flowPrev.filter(t => t.val > 0).reduce((s,t) => s + t.val, 0);
+  const prevDespesas = flowPrev.filter(t => t.val < 0).reduce((s,t) => s + Math.abs(t.val), 0);
   const prevSaldo = prevReceitas - prevDespesas;
   const deltaSaldo = saldoFinal - prevSaldo;
   const deltaReceitas = receitas - prevReceitas;
@@ -591,8 +596,8 @@ function DashboardStudio({ onAdd, onNav }) {
       while (mm <= 0) { mm += 12; yy -= 1; }
       const ym = `${yy}-${String(mm).padStart(2, '0')}`;
       const monthTxs = transactions.filter(t => t.mes === ym);
-      const rec = monthTxs.filter(t => t.val > 0).reduce((s, t) => s + t.val, 0);
-      const des = monthTxs.filter(t => t.val < 0).reduce((s, t) => s + Math.abs(t.val), 0);
+      const rec = monthTxs.filter(t => t.val > 0 && !t.isTransfer).reduce((s, t) => s + t.val, 0);
+      const des = monthTxs.filter(t => t.val < 0 && !t.isTransfer).reduce((s, t) => s + Math.abs(t.val), 0);
       return { m: MONTH_LABELS[mm - 1], rec, des };
     });
   })();
