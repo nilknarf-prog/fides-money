@@ -1,39 +1,45 @@
-// fides-claude.jsx — Assistente Fides com Gemini 2.5 Flash Lite
-// Chat puro (sem tools ainda — Lote A2 vai adicionar function calling).
-// Chama /api/assistant (serverless Vercel) que protege a API key e valida JWT.
-// Contexto financeiro do mês selecionado é injetado em toda mensagem.
+// fides-claude.jsx — Assistente Fides com Gemini 2.5 Flash Lite + tools read-only (A2.1)
+// Tools (consultar_saldo, consultar_extrato) executam no cliente usando useFides().
+// Loop de tool calls limitado a 3 iterações por turno (anti-loop).
+
+const MAX_TOOL_ITERATIONS = 3;
 
 function FidesAssistant() {
-  const { assistantOpen, closeAssistant, monthTransactions, spendByCategory, budgetGroups, selectedMonth, monthLabel, goals, accounts, cards, userName } = useFides();
+  const fs = useFides();
+  const {
+    assistantOpen, closeAssistant,
+    transactions, monthTransactions, accounts, cards, categories,
+    spendByCategory, budgetGroups, faturaAbertaPorCartao,
+    selectedMonth, monthLabel, goals, userName,
+  } = fs;
   const lbl = monthLabel(selectedMonth);
 
   const [messages, setMessages] = React.useState([]); // {role, content, ts}
   const [input, setInput] = React.useState('');
   const [thinking, setThinking] = React.useState(false);
+  const [thinkingLabel, setThinkingLabel] = React.useState('');
   const [error, setError] = React.useState(null);
   const listRef = React.useRef(null);
 
-  // Welcome message once when panel opens
   React.useEffect(() => {
     if (assistantOpen && messages.length === 0) {
       setMessages([{
         role: 'assistant',
-        content: `Olá${userName ? `, ${userName.split(' ')[0]}` : ''}! Sou o Assistente Fides. Posso analisar seus gastos, falar sobre planejamento, metas e investimentos básicos. Você está vendo o ${lbl.long} agora — me pergunte algo.`,
+        content: `Olá${userName ? `, ${userName.split(' ')[0]}` : ''}! Sou o Assistente Fides. Posso analisar seus gastos, consultar saldos e extrato, falar sobre planejamento, metas e investimentos básicos. Você está vendo o ${lbl.long} agora — me pergunte algo.`,
         ts: Date.now(),
       }]);
     }
   }, [assistantOpen]);
 
-  // Auto-scroll
   React.useEffect(() => {
     if (listRef.current) {
       listRef.current.scrollTop = listRef.current.scrollHeight;
     }
-  }, [messages, thinking]);
+  }, [messages, thinking, thinkingLabel]);
 
   if (!assistantOpen) return null;
 
-  // ─── Contexto financeiro injetado em toda pergunta ──────────
+  // ─── Contexto resumido (overview para o system prompt) ─────────
   const buildContext = () => {
     const receitas  = monthTransactions.filter(t => !t.isTransfer && t.val > 0).reduce((s,t) => s + t.val, 0);
     const despesas  = monthTransactions.filter(t => !t.isTransfer && t.val < 0).reduce((s,t) => s + Math.abs(t.val), 0);
@@ -57,6 +63,137 @@ function FidesAssistant() {
     ].filter(Boolean).join(' ');
   };
 
+  // ─── Executores das tools (rodam no cliente) ──────────────────
+  const toolExecutors = {
+    consultar_saldo: () => {
+      const receitas  = monthTransactions.filter(t => !t.isTransfer && t.val > 0).reduce((s,t) => s + t.val, 0);
+      const despesasPagas = monthTransactions.filter(t => !t.isTransfer && t.val < 0 && t.status === 'pago').reduce((s,t) => s + Math.abs(t.val), 0);
+      const despesasPendentes = monthTransactions.filter(t => !t.isTransfer && t.val < 0 && t.status === 'pendente').reduce((s,t) => s + Math.abs(t.val), 0);
+      return {
+        mes: lbl.long,
+        contas: (accounts || []).map(a => ({
+          nome: a.name,
+          saldo: Number(a.balance) || 0,
+        })),
+        cartoes: (cards || []).map(c => {
+          const used = Number(c.used) || 0;
+          const limit = Number(c.limit) || 0;
+          const faturaAberta = Number((faturaAbertaPorCartao || {})[c.id]) || 0;
+          return {
+            nome: c.name,
+            limite_total: limit,
+            usado: used,
+            disponivel: Math.max(0, limit - used),
+            fatura_em_aberto: faturaAberta,
+          };
+        }),
+        totais_do_mes: {
+          receitas: Number(receitas.toFixed(2)),
+          despesas_pagas: Number(despesasPagas.toFixed(2)),
+          despesas_pendentes: Number(despesasPendentes.toFixed(2)),
+        },
+      };
+    },
+
+    consultar_extrato: (args = {}) => {
+      const periodo = String(args.periodo || 'mes').toLowerCase();
+      const filtroContaQ = String(args.conta || '').toLowerCase().trim();
+      const filtroCartaoQ = String(args.cartao || '').toLowerCase().trim();
+      const limite = Math.max(1, Math.min(50, parseInt(args.limite, 10) || 20));
+
+      // Determinar pool de transações
+      let pool = [];
+      if (periodo === 'hoje') {
+        const today = new Date();
+        const todayKey = `${String(today.getDate()).padStart(2,'0')}/${String(today.getMonth()+1).padStart(2,'0')}`;
+        pool = transactions.filter(t => t.d === todayKey);
+      } else if (periodo === 'semana') {
+        const seven = new Date(); seven.setDate(seven.getDate() - 7);
+        pool = transactions.filter(t => {
+          if (!t.dateObj) {
+            // Reconstroi a partir de t.d (dd/mm) + t.mes (yyyy-mm)
+            try {
+              const [dd, mm] = (t.d || '').split('/');
+              const [yyyy] = (t.mes || '').split('-');
+              const dt = new Date(`${yyyy}-${mm}-${dd}`);
+              return dt >= seven;
+            } catch { return false; }
+          }
+          return t.dateObj >= seven;
+        });
+      } else if (periodo === 'prev_mes') {
+        const [yyyy, mm] = selectedMonth.split('-').map(Number);
+        const prev = mm === 1 ? `${yyyy-1}-12` : `${yyyy}-${String(mm-1).padStart(2,'0')}`;
+        pool = transactions.filter(t => t.mes === prev);
+      } else {
+        // 'mes' (padrão)
+        pool = monthTransactions;
+      }
+
+      // Filtro por conta
+      if (filtroContaQ) {
+        pool = pool.filter(t => {
+          const acc = accounts.find(a => a.id === t.acct || a.id === t.account_id);
+          if (!acc) return false;
+          return acc.name.toLowerCase().includes(filtroContaQ);
+        });
+      }
+
+      // Filtro por cartão
+      if (filtroCartaoQ) {
+        pool = pool.filter(t => {
+          const card = cards.find(c => c.id === t.card_id);
+          if (!card) return false;
+          return card.name.toLowerCase().includes(filtroCartaoQ);
+        });
+      }
+
+      const items = pool.slice(0, limite).map(t => {
+        const cat = categories[t.cat] || {};
+        const accObj = accounts.find(a => a.id === t.acct || a.id === t.account_id);
+        const cardObj = cards.find(c => c.id === t.card_id);
+        return {
+          descricao: t.desc || '',
+          valor: Number(t.val) || 0,
+          tipo: (Number(t.val) || 0) >= 0 ? 'receita' : 'despesa',
+          categoria: cat.label || t.cat || '—',
+          data: t.d || '',
+          conta: accObj ? accObj.name : null,
+          cartao: cardObj ? cardObj.name : null,
+          status: t.status || 'pago',
+          eh_movimentacao: !!t.isTransfer,
+        };
+      });
+
+      const totalDespesas = items.filter(i => i.tipo === 'despesa' && !i.eh_movimentacao).reduce((s,i) => s + Math.abs(i.valor), 0);
+      const totalReceitas = items.filter(i => i.tipo === 'receita' && !i.eh_movimentacao).reduce((s,i) => s + i.valor, 0);
+
+      return {
+        periodo,
+        filtros: { conta: filtroContaQ || null, cartao: filtroCartaoQ || null },
+        total_encontrado: pool.length,
+        retornado: items.length,
+        soma_despesas: Number(totalDespesas.toFixed(2)),
+        soma_receitas: Number(totalReceitas.toFixed(2)),
+        transacoes: items,
+      };
+    },
+  };
+
+  const executeTools = (toolCalls) => {
+    return toolCalls.map(tc => {
+      try {
+        const fn = toolExecutors[tc.name];
+        if (!fn) return { name: tc.name, result: { error: 'TOOL_NOT_FOUND' } };
+        const result = fn(tc.args || {});
+        return { name: tc.name, result };
+      } catch (err) {
+        console.error('[FidesAssistant] tool exec error', tc.name, err);
+        return { name: tc.name, result: { error: 'EXECUTION_ERROR', message: String(err?.message || err) } };
+      }
+    });
+  };
+
   // ─── Traduz erros do backend pra mensagem amigável ──────────
   const friendlyError = (errCode) => {
     const map = {
@@ -69,8 +206,26 @@ function FidesAssistant() {
       GEMINI_ERROR:       'O assistente está temporariamente fora do ar. Tente em instantes.',
       INTERNAL_ERROR:     'Algo deu errado do nosso lado. Tente novamente.',
       NETWORK:            'Sem conexão. Verifique a internet.',
+      TOOL_LIMIT:         'O assistente ficou em loop. Tente reformular a pergunta.',
     };
     return map[errCode] || 'Não consegui responder agora. Tente de novo em instantes.';
+  };
+
+  // ─── Envia mensagem ao backend, lida com tool calls em loop ──
+  const callAssistant = async (history, toolResults, jwt) => {
+    const ctx = buildContext();
+    const res = await fetch('/api/assistant', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        messages: history,
+        context: ctx,
+        jwt,
+        toolResults: toolResults || null,
+      }),
+    });
+    const data = await res.json().catch(() => ({}));
+    return { ok: res.ok, data };
   };
 
   const send = async (q) => {
@@ -81,9 +236,10 @@ function FidesAssistant() {
     const userMsg = { role: 'user', content: question, ts: Date.now() };
     setMessages(prev => [...prev, userMsg]);
     setThinking(true);
+    setThinkingLabel('');
 
     try {
-      // 1. Pegar JWT da sessão Supabase
+      // JWT
       let jwt = null;
       if (window.fidesAuth && typeof window.fidesAuth.getSession === 'function') {
         const { data: sessionData } = await window.fidesAuth.getSession();
@@ -92,57 +248,72 @@ function FidesAssistant() {
       if (!jwt) {
         setError(friendlyError('JWT_MISSING'));
         setThinking(false);
+        setThinkingLabel('');
         return;
       }
 
-      // 2. Montar histórico (excluir mensagem de boas-vindas inicial pra não confundir o modelo)
+      // Histórico para o backend
       const history = [...messages, userMsg]
         .filter(m => m.role === 'user' || m.role === 'assistant')
         .map(m => ({ role: m.role, content: m.content }));
 
-      // 3. Montar contexto financeiro
-      const ctx = buildContext();
+      // Loop tool-call: chama backend → se vier tool_calls, executa, chama de novo, até max 3 iterações
+      let toolResults = null;
+      let iteration = 0;
 
-      // 4. Chamar serverless
-      const res = await fetch('/api/assistant', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ messages: history, context: ctx, jwt }),
-      });
+      while (iteration < MAX_TOOL_ITERATIONS) {
+        const { ok, data } = await callAssistant(history, toolResults, jwt);
 
-      const data = await res.json().catch(() => ({}));
+        if (!ok) {
+          setError(friendlyError(data?.error));
+          setThinking(false);
+          setThinkingLabel('');
+          return;
+        }
 
-      if (!res.ok) {
-        setError(friendlyError(data?.error));
+        // Tool calls?
+        if (Array.isArray(data?.tool_calls) && data.tool_calls.length > 0) {
+          setThinkingLabel('consultando seus dados...');
+          toolResults = executeTools(data.tool_calls);
+          iteration++;
+          continue;
+        }
+
+        // Resposta final
+        const reply = data?.reply;
+        if (!reply) {
+          setError(friendlyError('EMPTY_REPLY'));
+          setThinking(false);
+          setThinkingLabel('');
+          return;
+        }
+        setMessages(prev => [...prev, {
+          role: 'assistant',
+          content: reply,
+          ts: Date.now(),
+        }]);
         setThinking(false);
+        setThinkingLabel('');
         return;
       }
 
-      const reply = data?.reply;
-      if (!reply) {
-        setError(friendlyError('EMPTY_REPLY'));
-        setThinking(false);
-        return;
-      }
-
-      setMessages(prev => [...prev, {
-        role: 'assistant',
-        content: reply,
-        ts: Date.now(),
-      }]);
+      // Saiu do loop sem resposta final
+      setError(friendlyError('TOOL_LIMIT'));
+      setThinking(false);
+      setThinkingLabel('');
     } catch (err) {
       console.error('[FidesAssistant] send error', err);
       setError(friendlyError('NETWORK'));
-    } finally {
       setThinking(false);
+      setThinkingLabel('');
     }
   };
 
   const quickPrompts = [
-    'Onde eu gastei mais este mês?',
-    'Como posso acelerar minhas metas?',
+    'Quanto eu tenho disponível?',
+    'O que gastei essa semana?',
+    'Como está meu orçamento?',
     'Vale a pena investir agora?',
-    'Como o Fides trata gastos no crédito?',
   ];
 
   return (
@@ -184,7 +355,11 @@ function FidesAssistant() {
             <div className="cla-msg cla-msg-assistant">
               <div className="cla-msg-avatar"><Icon.Sparkles size={12}/></div>
               <div className="cla-msg-bubble cla-thinking">
-                <span/><span/><span/>
+                {thinkingLabel ? (
+                  <span style={{ fontSize: 13, color: 'var(--ink-3)', fontStyle: 'italic' }}>{thinkingLabel}</span>
+                ) : (
+                  <><span/><span/><span/></>
+                )}
               </div>
             </div>
           )}
@@ -232,7 +407,6 @@ function FidesAssistant() {
   );
 }
 
-// Floating action button (visible em qualquer página, abre o assistente)
 function FidesAssistantFAB() {
   const { openAssistant, assistantOpen } = useFides();
   if (assistantOpen) return null;
