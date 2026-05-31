@@ -63,7 +63,7 @@ function FidesAssistant() {
       JWT_MISSING:        'Sua sessão não foi reconhecida. Faça login de novo.',
       JWT_INVALID:        'Sua sessão expirou. Faça login de novo.',
       RATE_LIMIT:         'Muitas conversas agora — espere um minuto e tente de novo.',
-      GEMINI_KEY_MISSING: 'Configuração do assistente pendente. Avise o suporte.',
+      GEMINI_KEY_MISSING: 'O assistente está indisponível agora. Tente em instantes.',
       GEMINI_BAD_REQUEST: 'Não consegui entender sua mensagem. Tente reformular.',
       EMPTY_REPLY:        'O assistente não conseguiu responder dessa vez. Tente reformular.',
       GEMINI_ERROR:       'O assistente está temporariamente fora do ar. Tente em instantes.',
@@ -225,7 +225,7 @@ function FidesAssistant() {
         </form>
 
         <div className="cla-foot">
-          <span>Powered by Gemini · respostas podem errar — confira valores. Conversas podem ser usadas pelo Google para melhorar o modelo.</span>
+          <span>Respostas geradas por IA — podem conter erros. Confira valores antes de decidir.</span>
         </div>
       </aside>
     </>
