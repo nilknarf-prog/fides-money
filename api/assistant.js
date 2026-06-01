@@ -1,14 +1,12 @@
 // api/assistant.js — Serverless Vercel (CommonJS)
-// Lote A2.1.1: migra Gemini → Groq + rate limit por usuário.
-// - Groq API (formato OpenAI-compatível) com Llama 3.1 8B Instant
-// - Rate limit: 100 mensagens/dia por usuário via Supabase assistant_usage
-// - Tools (consultar_saldo, consultar_extrato) executam no cliente
-// - Loop de tools limitado a 2 iterações
+// Lote A2.1.3: rollback Groq → Gemini 2.5 Flash-Lite (function calling do Llama era falho em PT-BR).
+// MANTÉM proteções do A2.1.1: throttle 4s no cliente, rate limit 100 msg/dia/usuário, max 2 iterações.
+// Tools (consultar_saldo, consultar_extrato) continuam executando no cliente.
 
 const { createClient } = require('@supabase/supabase-js');
 
-const GROQ_MODEL = 'llama-3.3-70b-versatile';
-const GROQ_ENDPOINT = 'https://api.groq.com/openai/v1/chat/completions';
+const GEMINI_MODEL = 'gemini-2.5-flash-lite';
+const GEMINI_ENDPOINT = `https://generativelanguage.googleapis.com/v1beta/models/${GEMINI_MODEL}:generateContent`;
 
 // Cota diária por usuário (24h rolling window)
 const USER_DAILY_LIMIT = 100;
@@ -49,11 +47,10 @@ Combine ferramentas se precisar. Máximo 2 chamadas por resposta.
 • Nunca exponha IDs internos, tokens, chaves de API ou estrutura técnica do app.
 • Investimentos: sempre lembre que rentabilidade passada não garante futura. Uma vez por conversa basta.`;
 
-// Tools no formato OpenAI (Groq é compatível)
-const TOOLS = [
-  {
-    type: 'function',
-    function: {
+// Tools no formato Gemini function calling
+const TOOLS_DECLARATION = [{
+  functionDeclarations: [
+    {
       name: 'consultar_saldo',
       description: 'Retorna um snapshot das finanças atuais do usuário: lista de contas com saldos, cartões com limite/usado/disponível, e totais do mês (receitas, despesas pagas, despesas pendentes). Use quando o usuário perguntar sobre saldo, situação das contas, quanto tem disponível, ou totais do mês.',
       parameters: {
@@ -61,10 +58,7 @@ const TOOLS = [
         properties: {},
       },
     },
-  },
-  {
-    type: 'function',
-    function: {
+    {
       name: 'consultar_extrato',
       description: 'Retorna lista de transações filtradas. Use para perguntas tipo "o que eu gastei essa semana", "extrato do Nubank", "minhas transações de ontem". Cada transação inclui descrição, valor, categoria, data, conta/cartão e status.',
       parameters: {
@@ -91,8 +85,8 @@ const TOOLS = [
         required: ['periodo'],
       },
     },
-  },
-];
+  ],
+}];
 
 module.exports = async (req, res) => {
   if (req.method !== 'POST') {
@@ -118,7 +112,6 @@ module.exports = async (req, res) => {
       res.status(500).json({ error: 'SUPABASE_CONFIG_MISSING', code: 500 });
       return;
     }
-    // Cliente Supabase com o JWT do usuário (respeita RLS)
     const supabase = createClient(supabaseUrl, supabaseAnonKey, {
       global: { headers: { Authorization: `Bearer ${jwt}` } },
     });
@@ -130,8 +123,6 @@ module.exports = async (req, res) => {
     const userId = userData.user.id;
 
     // ─── RATE LIMIT POR USUÁRIO ──────────────────────
-    // Só conta na PRIMEIRA chamada do turno (toolResults vazio).
-    // Chamadas subsequentes (com toolResults) são continuação do mesmo turno.
     const isFirstCallOfTurn = !Array.isArray(toolResults) || toolResults.length === 0;
 
     if (isFirstCallOfTurn) {
@@ -144,146 +135,115 @@ module.exports = async (req, res) => {
 
       if (countError) {
         console.error('[assistant] usage count error', countError);
-        // Em caso de erro de contagem, continuar (fail-open para não bloquear o usuário)
+        // fail-open
       } else if ((count || 0) >= USER_DAILY_LIMIT) {
         res.status(429).json({ error: 'USER_DAILY_LIMIT', code: 429, limit: USER_DAILY_LIMIT });
         return;
       }
 
-      // Registrar uso
       const { error: insertError } = await supabase
         .from('assistant_usage')
         .insert({ user_id: userId });
       if (insertError) {
         console.error('[assistant] usage insert error', insertError);
-        // Continuar mesmo com erro de insert (não bloquear o usuário)
       }
     }
 
-    // ─── CHAMADA GROQ ──────────────────────
-    const groqKey = process.env.GROQ_API_KEY;
-    if (!groqKey) {
-      res.status(500).json({ error: 'GROQ_KEY_MISSING', code: 500 });
+    // ─── CHAMADA GEMINI ──────────────────────
+    const geminiKey = process.env.GEMINI_API_KEY;
+    if (!geminiKey) {
+      res.status(500).json({ error: 'GEMINI_KEY_MISSING', code: 500 });
       return;
     }
 
     const fullSystem = SYSTEM_PROMPT + (context ? `\n\n═══ CONTEXTO ATUAL DO USUÁRIO ═══\n${context}` : '');
 
-    // Montar messages no formato OpenAI/Groq
-    // - System message primeiro
-    // - Histórico do usuário (role: user/assistant)
-    // - Se houver toolResults: precisamos enviar a mensagem do assistant com tool_calls e os tool responses
-    const groqMessages = [
-      { role: 'system', content: fullSystem },
-    ];
+    // Montar contents do Gemini
+    const contents = [];
 
     for (const m of messages) {
-      groqMessages.push({
-        role: m.role === 'assistant' ? 'assistant' : 'user',
-        content: String(m.content || ''),
+      contents.push({
+        role: m.role === 'assistant' ? 'model' : 'user',
+        parts: [{ text: String(m.content || '') }],
       });
     }
 
-    // Se vieram toolResults, anexar como sequência: assistant com tool_calls + tool responses
+    // Se vieram toolResults, anexar como functionResponse
     if (Array.isArray(toolResults) && toolResults.length > 0) {
-      // O cliente passa toolResults com {name, args, result, callId}
-      const toolCalls = toolResults.map(tr => ({
-        id: tr.callId || `call_${tr.name}_${Date.now()}`,
-        type: 'function',
-        function: {
-          name: tr.name,
-          arguments: JSON.stringify(tr.args || {}),
-        },
-      }));
-
-      groqMessages.push({
-        role: 'assistant',
-        content: null,
-        tool_calls: toolCalls,
+      contents.push({
+        role: 'user',
+        parts: toolResults.map(tr => ({
+          functionResponse: {
+            name: tr.name,
+            response: { result: tr.result },
+          },
+        })),
       });
-
-      for (const tr of toolResults) {
-        groqMessages.push({
-          role: 'tool',
-          tool_call_id: tr.callId || `call_${tr.name}_${Date.now()}`,
-          content: JSON.stringify(tr.result),
-        });
-      }
     }
 
-    const groqPayload = {
-      model: GROQ_MODEL,
-      messages: groqMessages,
-      tools: TOOLS,
-      tool_choice: 'auto',
-      temperature: 0.6,
-      top_p: 0.95,
-      max_tokens: 1024,
+    const geminiPayload = {
+      systemInstruction: { parts: [{ text: fullSystem }] },
+      contents,
+      tools: TOOLS_DECLARATION,
+      generationConfig: {
+        temperature: 0.6,
+        topP: 0.95,
+        maxOutputTokens: 1024,
+      },
+      safetySettings: [
+        { category: 'HARM_CATEGORY_HARASSMENT',        threshold: 'BLOCK_ONLY_HIGH' },
+        { category: 'HARM_CATEGORY_HATE_SPEECH',       threshold: 'BLOCK_ONLY_HIGH' },
+        { category: 'HARM_CATEGORY_SEXUALLY_EXPLICIT', threshold: 'BLOCK_ONLY_HIGH' },
+        { category: 'HARM_CATEGORY_DANGEROUS_CONTENT', threshold: 'BLOCK_ONLY_HIGH' },
+      ],
     };
 
-    const groqRes = await fetch(GROQ_ENDPOINT, {
+    const geminiRes = await fetch(`${GEMINI_ENDPOINT}?key=${geminiKey}`, {
       method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${groqKey}`,
-      },
-      body: JSON.stringify(groqPayload),
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(geminiPayload),
     });
 
-    if (!groqRes.ok) {
-      const errBody = await groqRes.text().catch(() => '');
-      console.error('[assistant] Groq error', groqRes.status, errBody);
-      if (groqRes.status === 429) {
+    if (!geminiRes.ok) {
+      const errBody = await geminiRes.text().catch(() => '');
+      console.error('[assistant] Gemini error', geminiRes.status, errBody);
+      if (geminiRes.status === 429) {
         res.status(429).json({ error: 'RATE_LIMIT', code: 429 });
         return;
       }
-      if (groqRes.status === 400) {
-        res.status(400).json({ error: 'GROQ_BAD_REQUEST', code: 400 });
+      if (geminiRes.status === 400) {
+        res.status(400).json({ error: 'GEMINI_BAD_REQUEST', code: 400 });
         return;
       }
-      if (groqRes.status === 401) {
-        res.status(500).json({ error: 'GROQ_KEY_INVALID', code: 500 });
-        return;
-      }
-      res.status(502).json({ error: 'GROQ_ERROR', code: 502 });
+      res.status(502).json({ error: 'GEMINI_ERROR', code: 502 });
       return;
     }
 
-    const groqData = await groqRes.json();
-    const choice = groqData?.choices?.[0];
-    const message = choice?.message;
+    const geminiData = await geminiRes.json();
+    const candidate = geminiData?.candidates?.[0];
+    const parts = candidate?.content?.parts || [];
 
-    if (!message) {
-      console.error('[assistant] No message in response', JSON.stringify(groqData).slice(0, 500));
-      res.status(502).json({ error: 'EMPTY_REPLY', code: 502 });
-      return;
+    const toolCalls = [];
+    let textReply = '';
+    for (const p of parts) {
+      if (p.functionCall) {
+        toolCalls.push({
+          name: p.functionCall.name,
+          args: p.functionCall.args || {},
+        });
+      } else if (p.text) {
+        textReply += p.text;
+      }
     }
 
-    // Tool calls?
-    const rawToolCalls = message.tool_calls;
-    if (Array.isArray(rawToolCalls) && rawToolCalls.length > 0) {
-      const toolCalls = rawToolCalls.map(tc => {
-        let parsedArgs = {};
-        try {
-          parsedArgs = JSON.parse(tc.function?.arguments || '{}');
-        } catch (e) {
-          console.error('[assistant] failed to parse tool args', tc.function?.arguments);
-        }
-        return {
-          name: tc.function?.name,
-          args: parsedArgs,
-          callId: tc.id,
-        };
-      });
+    if (toolCalls.length > 0) {
       res.status(200).json({ tool_calls: toolCalls });
       return;
     }
 
-    // Resposta de texto
-    const textReply = message.content;
     if (!textReply) {
-      const finishReason = choice?.finish_reason;
-      console.error('[assistant] No text reply', finishReason);
+      const finishReason = candidate?.finishReason;
+      console.error('[assistant] No reply', finishReason, JSON.stringify(geminiData).slice(0, 500));
       res.status(502).json({ error: 'EMPTY_REPLY', code: 502, finishReason });
       return;
     }
