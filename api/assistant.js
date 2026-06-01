@@ -7,7 +7,7 @@
 
 const { createClient } = require('@supabase/supabase-js');
 
-const GROQ_MODEL = 'llama-3.1-8b-instant';
+const GROQ_MODEL = 'llama-3.3-70b-versatile';
 const GROQ_ENDPOINT = 'https://api.groq.com/openai/v1/chat/completions';
 
 // Cota diária por usuário (24h rolling window)
