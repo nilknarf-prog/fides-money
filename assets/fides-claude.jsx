@@ -1,8 +1,12 @@
-// fides-claude.jsx — Assistente Fides com Gemini 2.5 Flash Lite + tools read-only (A2.1)
+// fides-claude.jsx — Assistente Fides com Groq (Llama 3.1 8B Instant) + tools read-only
+// Lote A2.1.1: throttle de 4s entre mensagens + countdown de 60s em caso de rate limit.
 // Tools (consultar_saldo, consultar_extrato) executam no cliente usando useFides().
-// Loop de tool calls limitado a 3 iterações por turno (anti-loop).
+// Loop de tool calls limitado a 2 iterações por turno (anti-loop + economia de quota).
+// Sem retry automático: usuário decide quando tentar de novo após countdown.
 
-const MAX_TOOL_ITERATIONS = 3;
+const MAX_TOOL_ITERATIONS = 2;
+const COOLDOWN_NORMAL_SEC = 4;
+const COOLDOWN_RATELIMIT_SEC = 60;
 
 function FidesAssistant() {
   const fs = useFides();
@@ -19,8 +23,11 @@ function FidesAssistant() {
   const [thinking, setThinking] = React.useState(false);
   const [thinkingLabel, setThinkingLabel] = React.useState('');
   const [error, setError] = React.useState(null);
+  const [cooldown, setCooldown] = React.useState(0); // segundos restantes
+  const [rateLimitMode, setRateLimitMode] = React.useState(null); // 'global' | 'user' | null
   const listRef = React.useRef(null);
 
+  // Welcome message
   React.useEffect(() => {
     if (assistantOpen && messages.length === 0) {
       setMessages([{
@@ -31,11 +38,22 @@ function FidesAssistant() {
     }
   }, [assistantOpen]);
 
+  // Auto-scroll
   React.useEffect(() => {
     if (listRef.current) {
       listRef.current.scrollTop = listRef.current.scrollHeight;
     }
-  }, [messages, thinking, thinkingLabel]);
+  }, [messages, thinking, thinkingLabel, cooldown]);
+
+  // Countdown decrementing
+  React.useEffect(() => {
+    if (cooldown <= 0) {
+      if (rateLimitMode) setRateLimitMode(null);
+      return;
+    }
+    const t = setTimeout(() => setCooldown(c => Math.max(0, c - 1)), 1000);
+    return () => clearTimeout(t);
+  }, [cooldown, rateLimitMode]);
 
   if (!assistantOpen) return null;
 
@@ -63,7 +81,7 @@ function FidesAssistant() {
     ].filter(Boolean).join(' ');
   };
 
-  // ─── Executores das tools (rodam no cliente) ──────────────────
+  // ─── Executores das tools ──────────────────
   const toolExecutors = {
     consultar_saldo: () => {
       const receitas  = monthTransactions.filter(t => !t.isTransfer && t.val > 0).reduce((s,t) => s + t.val, 0);
@@ -101,7 +119,6 @@ function FidesAssistant() {
       const filtroCartaoQ = String(args.cartao || '').toLowerCase().trim();
       const limite = Math.max(1, Math.min(50, parseInt(args.limite, 10) || 20));
 
-      // Determinar pool de transações
       let pool = [];
       if (periodo === 'hoje') {
         const today = new Date();
@@ -111,7 +128,6 @@ function FidesAssistant() {
         const seven = new Date(); seven.setDate(seven.getDate() - 7);
         pool = transactions.filter(t => {
           if (!t.dateObj) {
-            // Reconstroi a partir de t.d (dd/mm) + t.mes (yyyy-mm)
             try {
               const [dd, mm] = (t.d || '').split('/');
               const [yyyy] = (t.mes || '').split('-');
@@ -126,11 +142,9 @@ function FidesAssistant() {
         const prev = mm === 1 ? `${yyyy-1}-12` : `${yyyy}-${String(mm-1).padStart(2,'0')}`;
         pool = transactions.filter(t => t.mes === prev);
       } else {
-        // 'mes' (padrão)
         pool = monthTransactions;
       }
 
-      // Filtro por conta
       if (filtroContaQ) {
         pool = pool.filter(t => {
           const acc = accounts.find(a => a.id === t.acct || a.id === t.account_id);
@@ -139,7 +153,6 @@ function FidesAssistant() {
         });
       }
 
-      // Filtro por cartão
       if (filtroCartaoQ) {
         pool = pool.filter(t => {
           const card = cards.find(c => c.id === t.card_id);
@@ -184,34 +197,34 @@ function FidesAssistant() {
     return toolCalls.map(tc => {
       try {
         const fn = toolExecutors[tc.name];
-        if (!fn) return { name: tc.name, result: { error: 'TOOL_NOT_FOUND' } };
+        if (!fn) return { name: tc.name, args: tc.args, callId: tc.callId, result: { error: 'TOOL_NOT_FOUND' } };
         const result = fn(tc.args || {});
-        return { name: tc.name, result };
+        return { name: tc.name, args: tc.args, callId: tc.callId, result };
       } catch (err) {
         console.error('[FidesAssistant] tool exec error', tc.name, err);
-        return { name: tc.name, result: { error: 'EXECUTION_ERROR', message: String(err?.message || err) } };
+        return { name: tc.name, args: tc.args, callId: tc.callId, result: { error: 'EXECUTION_ERROR', message: String(err?.message || err) } };
       }
     });
   };
 
-  // ─── Traduz erros do backend pra mensagem amigável ──────────
   const friendlyError = (errCode) => {
     const map = {
-      JWT_MISSING:        'Sua sessão não foi reconhecida. Faça login de novo.',
-      JWT_INVALID:        'Sua sessão expirou. Faça login de novo.',
-      RATE_LIMIT:         'Muitas conversas agora — espere um minuto e tente de novo.',
-      GEMINI_KEY_MISSING: 'O assistente está indisponível agora. Tente em instantes.',
-      GEMINI_BAD_REQUEST: 'Não consegui entender sua mensagem. Tente reformular.',
-      EMPTY_REPLY:        'O assistente não conseguiu responder dessa vez. Tente reformular.',
-      GEMINI_ERROR:       'O assistente está temporariamente fora do ar. Tente em instantes.',
-      INTERNAL_ERROR:     'Algo deu errado do nosso lado. Tente novamente.',
-      NETWORK:            'Sem conexão. Verifique a internet.',
-      TOOL_LIMIT:         'O assistente ficou em loop. Tente reformular a pergunta.',
+      JWT_MISSING:         'Sua sessão não foi reconhecida. Faça login de novo.',
+      JWT_INVALID:         'Sua sessão expirou. Faça login de novo.',
+      RATE_LIMIT:          'O assistente está com muitas conversas no momento. Aguarde para tentar de novo.',
+      USER_DAILY_LIMIT:    'Você atingiu o limite diário de mensagens com o assistente. Tente novamente em algumas horas.',
+      GROQ_KEY_MISSING:    'O assistente está indisponível agora. Tente em instantes.',
+      GROQ_KEY_INVALID:    'O assistente está indisponível agora. Tente em instantes.',
+      GROQ_BAD_REQUEST:    'Não consegui entender sua mensagem. Tente reformular.',
+      EMPTY_REPLY:         'O assistente não conseguiu responder dessa vez. Tente reformular.',
+      GROQ_ERROR:          'O assistente está temporariamente fora do ar. Tente em instantes.',
+      INTERNAL_ERROR:      'Algo deu errado do nosso lado. Tente novamente.',
+      NETWORK:             'Sem conexão. Verifique a internet.',
+      TOOL_LIMIT:          'O assistente ficou em loop. Tente reformular a pergunta.',
     };
     return map[errCode] || 'Não consegui responder agora. Tente de novo em instantes.';
   };
 
-  // ─── Envia mensagem ao backend, lida com tool calls em loop ──
   const callAssistant = async (history, toolResults, jwt) => {
     const ctx = buildContext();
     const res = await fetch('/api/assistant', {
@@ -225,12 +238,12 @@ function FidesAssistant() {
       }),
     });
     const data = await res.json().catch(() => ({}));
-    return { ok: res.ok, data };
+    return { ok: res.ok, status: res.status, data };
   };
 
   const send = async (q) => {
     const question = (q ?? input).trim();
-    if (!question || thinking) return;
+    if (!question || thinking || cooldown > 0) return;
     setInput('');
     setError(null);
     const userMsg = { role: 'user', content: question, ts: Date.now() };
@@ -239,7 +252,6 @@ function FidesAssistant() {
     setThinkingLabel('');
 
     try {
-      // JWT
       let jwt = null;
       if (window.fidesAuth && typeof window.fidesAuth.getSession === 'function') {
         const { data: sessionData } = await window.fidesAuth.getSession();
@@ -252,26 +264,39 @@ function FidesAssistant() {
         return;
       }
 
-      // Histórico para o backend
       const history = [...messages, userMsg]
         .filter(m => m.role === 'user' || m.role === 'assistant')
         .map(m => ({ role: m.role, content: m.content }));
 
-      // Loop tool-call: chama backend → se vier tool_calls, executa, chama de novo, até max 3 iterações
       let toolResults = null;
       let iteration = 0;
 
       while (iteration < MAX_TOOL_ITERATIONS) {
-        const { ok, data } = await callAssistant(history, toolResults, jwt);
+        const { ok, status, data } = await callAssistant(history, toolResults, jwt);
 
         if (!ok) {
-          setError(friendlyError(data?.error));
+          const errCode = data?.error;
+          // Tratamento especial para rate limits
+          if (status === 429) {
+            if (errCode === 'USER_DAILY_LIMIT') {
+              setError(friendlyError('USER_DAILY_LIMIT'));
+              setRateLimitMode('user');
+              setCooldown(COOLDOWN_RATELIMIT_SEC);
+            } else {
+              setError(friendlyError('RATE_LIMIT'));
+              setRateLimitMode('global');
+              setCooldown(COOLDOWN_RATELIMIT_SEC);
+            }
+          } else {
+            setError(friendlyError(errCode));
+            // Cooldown normal de 4s mesmo em erro
+            setCooldown(COOLDOWN_NORMAL_SEC);
+          }
           setThinking(false);
           setThinkingLabel('');
           return;
         }
 
-        // Tool calls?
         if (Array.isArray(data?.tool_calls) && data.tool_calls.length > 0) {
           setThinkingLabel('consultando seus dados...');
           toolResults = executeTools(data.tool_calls);
@@ -279,10 +304,10 @@ function FidesAssistant() {
           continue;
         }
 
-        // Resposta final
         const reply = data?.reply;
         if (!reply) {
           setError(friendlyError('EMPTY_REPLY'));
+          setCooldown(COOLDOWN_NORMAL_SEC);
           setThinking(false);
           setThinkingLabel('');
           return;
@@ -292,18 +317,20 @@ function FidesAssistant() {
           content: reply,
           ts: Date.now(),
         }]);
+        setCooldown(COOLDOWN_NORMAL_SEC);
         setThinking(false);
         setThinkingLabel('');
         return;
       }
 
-      // Saiu do loop sem resposta final
       setError(friendlyError('TOOL_LIMIT'));
+      setCooldown(COOLDOWN_NORMAL_SEC);
       setThinking(false);
       setThinkingLabel('');
     } catch (err) {
       console.error('[FidesAssistant] send error', err);
       setError(friendlyError('NETWORK'));
+      setCooldown(COOLDOWN_NORMAL_SEC);
       setThinking(false);
       setThinkingLabel('');
     }
@@ -315,6 +342,13 @@ function FidesAssistant() {
     'Como está meu orçamento?',
     'Vale a pena investir agora?',
   ];
+
+  // Mensagem de cooldown visível no erro
+  const errorWithCountdown = error && cooldown > 0 && rateLimitMode
+    ? `${error} Aguarde ${cooldown}s.`
+    : error;
+
+  const sendDisabled = !input.trim() || thinking || cooldown > 0;
 
   return (
     <>
@@ -365,7 +399,7 @@ function FidesAssistant() {
           )}
           {error && (
             <div className="cla-msg cla-msg-error">
-              <Icon.X size={12}/> {error}
+              <Icon.X size={12}/> {errorWithCountdown}
             </div>
           )}
         </div>
@@ -377,7 +411,8 @@ function FidesAssistant() {
                 key={p}
                 className="cla-suggestion"
                 onClick={() => send(p)}
-                style={{ touchAction: 'manipulation', WebkitTapHighlightColor: 'transparent' }}
+                disabled={cooldown > 0}
+                style={{ touchAction: 'manipulation', WebkitTapHighlightColor: 'transparent', opacity: cooldown > 0 ? 0.5 : 1 }}
               >
                 {p}
               </button>
@@ -390,11 +425,11 @@ function FidesAssistant() {
           <input
             value={input}
             onChange={(e) => setInput(e.target.value)}
-            placeholder="Pergunte sobre suas finanças, o app, investimentos…"
-            disabled={thinking}
+            placeholder={cooldown > 0 && !rateLimitMode ? `Aguarde ${cooldown}s para enviar...` : 'Pergunte sobre suas finanças, o app, investimentos…'}
+            disabled={thinking || cooldown > 0}
             style={{ fontSize: 16 }}
             autoFocus/>
-          <button type="submit" disabled={!input.trim() || thinking} style={{ touchAction: 'manipulation', WebkitTapHighlightColor: 'transparent' }}>
+          <button type="submit" disabled={sendDisabled} style={{ touchAction: 'manipulation', WebkitTapHighlightColor: 'transparent' }}>
             {thinking ? <Icon.Clock size={14}/> : <Icon.Right size={14}/>}
           </button>
         </form>
