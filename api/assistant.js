@@ -26,6 +26,14 @@ Quando o usuário pedir dados específicos (saldo atual, extrato, gastos detalha
 • consultar_saldo() — use quando pedirem saldo atual, situação das contas, quanto têm em cada conta/cartão, total do mês.
 • consultar_extrato({periodo, conta?, cartao?}) — use para listar transações de um período (hoje, semana, mes, prev_mes) opcionalmente filtrado por conta ou cartão.
 
+• lancar_transacao({tipo, valor, descricao, categoria, conta_ou_cartao, data?, status?}) — use para registrar uma nova transação quando o usuário pedir. ATENÇÃO: o usuário vai precisar confirmar visualmente antes da execução. Você não vê o resultado da confirmação imediatamente; o sistema avisa quando o usuário decide.
+
+• criar_categoria({label, emoji?, group?}) — use quando o usuário quiser criar nova categoria de gasto/receita. Executa direto sem confirmação. Group pode ser "essenciais", "estilo" ou "futuro" (50·30·20).
+
+• recategorizar_transacao({transacao_id, nova_categoria}) — use quando o usuário quiser mudar categoria de uma transação existente. ATENÇÃO: requer confirmação visual.
+
+• editar_transacao({transacao_id, patch}) — use para alterar valor, descrição, data, ou status de uma transação. ATENÇÃO: requer confirmação visual. patch é um objeto com os campos a atualizar.
+
 Combine ferramentas se precisar. Máximo 2 chamadas por resposta.
 
 ═══ DO QUE VOCÊ FALA ═══
@@ -83,6 +91,111 @@ const TOOLS_DECLARATION = [{
           },
         },
         required: ['periodo'],
+      },
+    },
+    {
+      name: 'lancar_transacao',
+      description: 'Registra uma nova transação. Requer confirmação visual do usuário antes de executar. O frontend exibe um card de confirmação no chat.',
+      parameters: {
+        type: 'object',
+        properties: {
+          tipo: {
+            type: 'string',
+            description: 'Tipo da transação.',
+            enum: ['despesa', 'receita'],
+          },
+          valor: {
+            type: 'number',
+            description: 'Valor absoluto da transação em reais. Sempre positivo. O sinal é determinado pelo tipo (despesa vira negativo internamente).',
+          },
+          descricao: {
+            type: 'string',
+            description: 'Descrição curta da transação. Ex: "Mercado Extra", "Salário".',
+          },
+          categoria: {
+            type: 'string',
+            description: 'Categoria da transação. Use o nome da categoria (não o ID). Ex: "mercado", "salario", "lazer".',
+          },
+          conta_ou_cartao: {
+            type: 'string',
+            description: 'Nome da conta ou cartão onde a transação será registrada. Ex: "Bradesco", "Nubank". O frontend resolve para UUID.',
+          },
+          data: {
+            type: 'string',
+            description: 'Data no formato dd/mm. Se omitido, usa hoje.',
+          },
+          status: {
+            type: 'string',
+            description: 'Status da transação. Padrão: pago.',
+            enum: ['pago', 'pendente'],
+          },
+        },
+        required: ['tipo', 'valor', 'descricao', 'categoria', 'conta_ou_cartao'],
+      },
+    },
+    {
+      name: 'criar_categoria',
+      description: 'Cria uma nova categoria. Executa direto sem confirmação (operação leve, reversível).',
+      parameters: {
+        type: 'object',
+        properties: {
+          label: {
+            type: 'string',
+            description: 'Nome legível da categoria. Ex: "Pet Shop", "Gasolina".',
+          },
+          emoji: {
+            type: 'string',
+            description: 'Emoji opcional para a categoria. Ex: "🐶", "⛽".',
+          },
+          group: {
+            type: 'string',
+            description: 'Grupo do 50·30·20. Padrão: estilo.',
+            enum: ['essenciais', 'estilo', 'futuro'],
+          },
+        },
+        required: ['label'],
+      },
+    },
+    {
+      name: 'recategorizar_transacao',
+      description: 'Muda a categoria de uma transação existente. Requer confirmação visual.',
+      parameters: {
+        type: 'object',
+        properties: {
+          transacao_id: {
+            type: 'string',
+            description: 'ID da transação a recategorizar. Use o ID retornado por consultar_extrato.',
+          },
+          nova_categoria: {
+            type: 'string',
+            description: 'Nome da nova categoria (não o ID).',
+          },
+        },
+        required: ['transacao_id', 'nova_categoria'],
+      },
+    },
+    {
+      name: 'editar_transacao',
+      description: 'Altera campos de uma transação existente (valor, descrição, data, status). Requer confirmação visual.',
+      parameters: {
+        type: 'object',
+        properties: {
+          transacao_id: {
+            type: 'string',
+            description: 'ID da transação a editar. Use o ID retornado por consultar_extrato.',
+          },
+          patch: {
+            type: 'object',
+            description: 'Objeto com os campos a atualizar. Pode incluir: valor (number), descricao (string), data (string dd/mm), status ("pago" ou "pendente").',
+            properties: {
+              valor: { type: 'number' },
+              descricao: { type: 'string' },
+              data: { type: 'string' },
+              status: { type: 'string', enum: ['pago', 'pendente'] },
+            },
+          },
+        },
+        required: ['transacao_id', 'patch'],
       },
     },
   ],
