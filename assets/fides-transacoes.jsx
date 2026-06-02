@@ -13,7 +13,9 @@ function Transacoes({ variant, onAdd }) {
   const [rowMenu, setRowMenu] = React.useState(null);         // index of open row menu
   const [rowCatPicker, setRowCatPicker] = React.useState(null); // tx _id being re-categorised
   const [bulkCatPicker, setBulkCatPicker] = React.useState(false);
-  const [confirmDelete, setConfirmDelete] = React.useState(false);
+  const refConfirm = window.FidesUI.useConfirm();
+  const confirmAction = refConfirm.confirm;
+  const ConfirmHost = refConfirm.ConfirmHost;
   const [editingTx, setEditingTx] = React.useState(null);
   const [acctFilter, setAcctFilter] = React.useState(null);
   const [acctDropdownOpen, setAcctDropdownOpen] = React.useState(false);
@@ -216,22 +218,60 @@ function Transacoes({ variant, onAdd }) {
 
   // ── Bulk action helpers ───────────────────────────────────────
   const selTxs = () => [...selected].map(i => filtered[i]).filter(Boolean);
+  const selSaldo = selTxs().reduce((s, t) => s + (t.val || 0), 0);
+  const clearSel = () => { setSelected(new Set()); setBulkCatPicker(false); };
 
   const bulkMarkPaid = () => {
+    const n = selected.size;
     selTxs().forEach(t => updateTransaction(t._id, { status: 'pago' }));
-    setSelected(new Set());
-    setConfirmDelete(false);
+    clearSel();
+    window.FidesUI.toast.success(n > 1 ? (n + ' transações marcadas como pagas') : '1 transação marcada como paga');
   };
-  const bulkDelete = () => {
+  const bulkDelete = async () => {
+    const n = selected.size;
+    const ok = await confirmAction({
+      title: n > 1 ? ('Excluir ' + n + ' transações?') : 'Excluir transação?',
+      message: 'Esta ação não pode ser desfeita.',
+      destructive: true,
+      confirmLabel: 'Excluir'
+    });
+    if (!ok) return;
     selTxs().forEach(t => deleteTransaction(t._id));
-    setSelected(new Set());
-    setConfirmDelete(false);
+    clearSel();
+    window.FidesUI.toast.success(n > 1 ? (n + ' transações excluídas') : '1 transação excluída');
   };
   const bulkCategorize = (catKey) => {
+    const n = selected.size;
     selTxs().forEach(t => updateTransaction(t._id, { cat: catKey }));
-    setSelected(new Set());
-    setBulkCatPicker(false);
+    clearSel();
+    const lbl = categories[catKey] ? categories[catKey].label : catKey;
+    window.FidesUI.toast.success((n > 1 ? (n + ' transações movidas') : '1 transação movida') + ' para ' + lbl);
   };
+  const bulkEdit = () => {
+    if (selected.size === 1) {
+      const idx = [...selected][0];
+      const tx = filtered[idx];
+      if (tx) setEditingTx({ ...tx });
+    } else {
+      window.FidesUI.toast.warn('Edição em lote não suportada. Selecione 1 transação.');
+    }
+  };
+
+  // Todas as categorias disponiveis (para o seletor de categorizar em lote),
+  // ordenadas alfabeticamente. Diferente de catsInList (abaixo), que so contem
+  // as categorias ja presentes no mes e e usado no chip de filtro.
+  const allCats = Object.entries(categories).sort((a, b) =>
+    (a[1].label || a[0]).localeCompare(b[1].label || b[0], 'pt-BR')
+  );
+
+  // Valores preservados durante a animacao de saida do bottom sheet, para nao
+  // "piscar" 0 selecionada enquanto a folha desliza para baixo.
+  const shownCountRef = React.useRef(0);
+  const shownSaldoRef = React.useRef(0);
+  if (selected.size > 0) {
+    shownCountRef.current = selected.size;
+    shownSaldoRef.current = selSaldo;
+  }
 
   // Unique categories present in the current month list (for the dropdown)
   const catsInList = [...new Set(baseList.map(t => t.cat))].sort((a, b) => {
@@ -492,42 +532,8 @@ function Transacoes({ variant, onAdd }) {
                      else setSelected(new Set(filtered.map((_,i) => i)));
                    }}/>
             {selected.size > 0 ? (
-              <span className="fds-tx-bulk-info" style={{ position: 'relative' }}>
-                {selected.size} selecionada{selected.size>1?'s':''}
-                {selected.size === 1 && (
-                  <button className="fds-tx-bulk-act" onClick={() => {
-                    const idx = [...selected][0];
-                    const tx = filtered[idx];
-                    if (tx) setEditingTx({ ...tx });
-                  }}>✏️ Editar</button>
-                )}
-                <button className="fds-tx-bulk-act" onClick={bulkMarkPaid}>Marcar pago</button>
-                <button className="fds-tx-bulk-act" onClick={(e) => { e.stopPropagation(); setBulkCatPicker(v => !v); setConfirmDelete(false); }}>
-                  Categorizar
-                </button>
-                {bulkCatPicker && (
-                  <div className="fds-cat-picker-dd" onClick={(e) => e.stopPropagation()}>
-                    <div className="fds-cat-picker-head">Selecionar categoria</div>
-                    {catsInList.map(k => {
-                      const c = categories[k] || { label: k, tint: '#888' };
-                      return (
-                        <button key={k} className="fds-cat-picker-item" onClick={() => bulkCategorize(k)}>
-                          <CategoryAvatar cat={k} size={18}/>
-                          <span>{c.label}</span>
-                        </button>
-                      );
-                    })}
-                  </div>
-                )}
-                {!confirmDelete ? (
-                  <button className="fds-tx-bulk-act danger" onClick={() => { setConfirmDelete(true); setBulkCatPicker(false); }}>Excluir</button>
-                ) : (
-                  <>
-                    <span style={{ color: 'var(--bad)', fontSize: 12 }}>Excluir {selected.size}?</span>
-                    <button className="fds-tx-bulk-act danger" onClick={bulkDelete}>Confirmar</button>
-                    <button className="fds-tx-bulk-act" onClick={() => setConfirmDelete(false)}>Cancelar</button>
-                  </>
-                )}
+              <span className="fds-tx-bulk-info">
+                {selected.size} selecionada{selected.size > 1 ? 's' : ''}
               </span>
             ) : (
               <span className="fds-tx-count">
@@ -652,6 +658,52 @@ function Transacoes({ variant, onAdd }) {
           </div>
         </div>
       </section>
+
+      {/* Bulk action bottom sheet (sticky, padrao iOS) */}
+      <div className={'fdt-bulk-sheet' + (selected.size > 0 ? ' is-open' : '')}
+           role="region" aria-label="Ações em lote">
+        {bulkCatPicker && selected.size > 0 && (
+          <div className="fdt-bulk-catmenu" onPointerUp={(e) => e.stopPropagation()}>
+            <div className="fdt-bulk-catmenu-head">Selecionar categoria</div>
+            <div className="fdt-bulk-catmenu-list">
+              {allCats.map(([k, c]) => (
+                <button key={k} type="button" className="fdt-bulk-catitem"
+                        onPointerUp={() => bulkCategorize(k)}>
+                  <CategoryAvatar cat={k} size={20}/>
+                  <span>{c.label}</span>
+                </button>
+              ))}
+            </div>
+          </div>
+        )}
+        <div className="fdt-bulk-head">
+          <span className="fdt-bulk-count">
+            {shownCountRef.current} selecionada{shownCountRef.current > 1 ? 's' : ''}
+            <span className="fdt-bulk-dot"> · </span>
+            Saldo: <span className="fdt-bulk-saldo"
+                         style={{ color: shownSaldoRef.current >= 0 ? 'var(--ok)' : 'var(--bad)' }}>{fmtBRL(shownSaldoRef.current)}</span>
+          </span>
+          <button type="button" className="fdt-bulk-clear" aria-label="Limpar seleção"
+                  onPointerUp={clearSel}>×</button>
+        </div>
+        <div className="fdt-bulk-actions">
+          <button type="button" className="fdt-bulk-act" onPointerUp={bulkEdit}>
+            <span aria-hidden="true">✏️</span><span>Editar</span>
+          </button>
+          <button type="button" className="fdt-bulk-act" onPointerUp={bulkMarkPaid}>
+            <Icon.Check size={16}/><span>Marcar pago</span>
+          </button>
+          <button type="button" className="fdt-bulk-act"
+                  onPointerUp={(e) => { e.stopPropagation(); setBulkCatPicker(v => !v); }}>
+            <Icon.Tag size={16}/><span>Categorizar</span>
+          </button>
+          <button type="button" className="fdt-bulk-act fdt-bulk-act-danger" onPointerUp={bulkDelete}>
+            <Icon.X size={16}/><span>Excluir</span>
+          </button>
+        </div>
+      </div>
+
+      <ConfirmHost />
 
       {editingTx && <EditTxModal tx={editingTx} onClose={() => setEditingTx(null)}/>}
     </div>
