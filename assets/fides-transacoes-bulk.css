@@ -1,0 +1,148 @@
+/* ===== Bulk action bottom sheet (Transacoes) ===== */
+/* Sticky bottom sheet padrao iOS — substitui a barra horizontal que
+   transbordava em 400px. Sempre montado para permitir slide-up/slide-down. */
+.fdt-bulk-sheet {
+  position: fixed;
+  left: 50%;
+  bottom: 56px;
+  width: calc(100vw - 24px);
+  max-width: 480px;
+  z-index: 9000;
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  box-shadow: 0 12px 40px rgba(0, 0, 0, 0.18);
+  padding: 12px 14px;
+  font-family: var(--font-display);
+  transform: translateX(-50%) translateY(140%);
+  opacity: 0;
+  pointer-events: none;
+  transition: transform 200ms cubic-bezier(0.2, 0.8, 0.2, 1), opacity 200ms ease;
+}
+
+.fdt-bulk-sheet.is-open {
+  transform: translateX(-50%) translateY(0);
+  opacity: 1;
+  pointer-events: auto;
+}
+
+/* Linha 1: header */
+.fdt-bulk-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  padding-bottom: 10px;
+  border-bottom: 1px solid var(--border);
+}
+
+.fdt-bulk-count {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--ink);
+  min-width: 0;
+}
+
+.fdt-bulk-dot { color: var(--ink-3); }
+.fdt-bulk-saldo { font-weight: 700; }
+
+.fdt-bulk-clear {
+  flex: 0 0 auto;
+  width: 44px;
+  height: 44px;
+  min-height: 44px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: transparent;
+  border: 0;
+  border-radius: 10px;
+  font-size: 22px;
+  line-height: 1;
+  color: var(--ink-2);
+  cursor: pointer;
+  touch-action: manipulation;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.fdt-bulk-clear:active { background: rgba(0, 0, 0, 0.06); }
+
+/* Linha 3: grid 2x2 de acoes */
+.fdt-bulk-actions {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+  padding-top: 10px;
+}
+
+.fdt-bulk-act {
+  min-height: 48px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  background: var(--card-soft);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  font-family: var(--font-display);
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--ink);
+  cursor: pointer;
+  touch-action: manipulation;
+  -webkit-tap-highlight-color: transparent;
+  transition: background 120ms ease, transform 80ms ease;
+}
+
+.fdt-bulk-act:active { transform: scale(0.98); background: var(--accent-soft); }
+.fdt-bulk-act-danger { color: var(--bad); }
+.fdt-bulk-act-danger:active { background: var(--bad-soft); }
+
+/* Menu flutuante de categorias (acima da folha) */
+.fdt-bulk-catmenu {
+  position: absolute;
+  left: 14px;
+  right: 14px;
+  bottom: calc(100% + 8px);
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  box-shadow: 0 12px 40px rgba(0, 0, 0, 0.18);
+  padding: 8px;
+}
+
+.fdt-bulk-catmenu-head {
+  font-size: 12px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--ink-3);
+  padding: 6px 8px 8px;
+}
+
+.fdt-bulk-catmenu-list {
+  max-height: 260px;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+}
+
+.fdt-bulk-catitem {
+  width: 100%;
+  min-height: 44px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 10px;
+  background: transparent;
+  border: 0;
+  border-radius: 10px;
+  font-family: var(--font-display);
+  font-size: 14px;
+  color: var(--ink);
+  text-align: left;
+  cursor: pointer;
+  touch-action: manipulation;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.fdt-bulk-catitem:active { background: var(--card-soft); }
