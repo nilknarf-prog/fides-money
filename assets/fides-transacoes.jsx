@@ -1,5 +1,29 @@
 // fides-transacoes.jsx — Transações list + filters + Nova Transação modal
 
+// Distingue tap de scroll em listas tocaveis (iOS): so dispara onTap se o
+// ponteiro nao se moveu mais que 8px entre pointerdown e pointerup. Sem isso,
+// rolar a lista de categorias acaba selecionando um item por engano.
+function makeTapHandler(onTap) {
+  var startX = 0;
+  var startY = 0;
+  var moved = false;
+  return {
+    onPointerDown: function (e) {
+      startX = e.clientX;
+      startY = e.clientY;
+      moved = false;
+    },
+    onPointerMove: function (e) {
+      var dx = Math.abs(e.clientX - startX);
+      var dy = Math.abs(e.clientY - startY);
+      if (dx > 8 || dy > 8) moved = true;
+    },
+    onPointerUp: function (e) {
+      if (!moved) onTap(e);
+    }
+  };
+}
+
 function Transacoes({ variant, onAdd }) {
   const { monthTransactions, transactions, categories, selectedMonth, setSelectedMonth, monthLabel, addTransaction, updateTransaction, deleteTransaction, accounts } = useFides();
   const [selectedMonthChip, setSelectedMonthChip] = React.useState(null);
@@ -663,18 +687,27 @@ function Transacoes({ variant, onAdd }) {
       <div className={'fdt-bulk-sheet' + (selected.size > 0 ? ' is-open' : '')}
            role="region" aria-label="Ações em lote">
         {bulkCatPicker && selected.size > 0 && (
-          <div className="fdt-bulk-catmenu" onPointerUp={(e) => e.stopPropagation()}>
-            <div className="fdt-bulk-catmenu-head">Selecionar categoria</div>
-            <div className="fdt-bulk-catmenu-list">
-              {allCats.map(([k, c]) => (
-                <button key={k} type="button" className="fdt-bulk-catitem"
-                        onPointerUp={() => bulkCategorize(k)}>
-                  <CategoryAvatar cat={k} size={20}/>
-                  <span>{c.label}</span>
-                </button>
-              ))}
+          <React.Fragment>
+            <div
+              {...makeTapHandler((e) => { if (e.target === e.currentTarget) setBulkCatPicker(false); })}
+              style={{ position: 'fixed', inset: 0, zIndex: 8999 }}
+            />
+            <div className="fdt-bulk-catmenu" onPointerUp={(e) => e.stopPropagation()}>
+              <div className="fdt-bulk-catmenu-head">Selecionar categoria</div>
+              <div className="fdt-bulk-catmenu-list"
+                   style={{ overflowY: 'auto', maxHeight: '60vh', WebkitOverflowScrolling: 'touch', touchAction: 'pan-y' }}>
+                {allCats.map(([k, c]) => {
+                  var tap = makeTapHandler(() => bulkCategorize(k));
+                  return (
+                    <button key={k} type="button" className="fdt-bulk-catitem" {...tap}>
+                      <CategoryAvatar cat={k} size={20}/>
+                      <span>{c.label}</span>
+                    </button>
+                  );
+                })}
+              </div>
             </div>
-          </div>
+          </React.Fragment>
         )}
         <div className="fdt-bulk-head">
           <span className="fdt-bulk-count">
