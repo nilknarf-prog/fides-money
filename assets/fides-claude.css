@@ -292,3 +292,110 @@
   }
   .fds-studio .cla-suggestion { flex-shrink: 0; }
 }
+
+/* ─── A2.2: Card de confirmação de tool WRITE ─── */
+.cla-confirm-card {
+  margin: 8px 12px 12px 12px;
+  padding: 16px;
+  background: var(--accent-soft, #e8f5e9);
+  border: 2px solid var(--accent, #2e7d32);
+  border-radius: 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.cla-confirm-title {
+  font-family: var(--font-display, 'Manrope'), sans-serif;
+  font-weight: 700;
+  font-size: 15px;
+  color: var(--ink, #1a1a1a);
+}
+
+.cla-confirm-details {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.cla-confirm-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 12px;
+  font-size: 13px;
+}
+
+.cla-confirm-label {
+  color: var(--ink-2, #555);
+  flex-shrink: 0;
+}
+
+.cla-confirm-value {
+  color: var(--ink, #1a1a1a);
+  text-align: right;
+  font-weight: 600;
+  word-break: break-word;
+}
+
+.cla-confirm-actions {
+  display: flex;
+  gap: 8px;
+  margin-top: 4px;
+}
+
+.cla-confirm-cancel,
+.cla-confirm-ok {
+  flex: 1;
+  min-height: 48px;
+  border-radius: 8px;
+  font-family: var(--font-display, 'Manrope'), sans-serif;
+  font-weight: 600;
+  font-size: 14px;
+  cursor: pointer;
+  transition: opacity 0.15s;
+}
+
+.cla-confirm-cancel {
+  background: transparent;
+  color: var(--ink-2, #555);
+  border: 1px solid var(--border, #ddd);
+}
+
+.cla-confirm-cancel:active {
+  opacity: 0.7;
+}
+
+.cla-confirm-ok {
+  background: var(--accent, #2e7d32);
+  color: white;
+  border: none;
+}
+
+.cla-confirm-ok:active {
+  opacity: 0.8;
+}
+
+/* ─── A2.2: Toast (criar_categoria) ─── */
+.cla-toast {
+  position: absolute;
+  bottom: 100px;
+  left: 50%;
+  transform: translateX(-50%);
+  background: var(--ink, #1a1a1a);
+  color: white;
+  padding: 10px 16px;
+  border-radius: 8px;
+  font-size: 13px;
+  font-weight: 600;
+  z-index: 100;
+  animation: cla-toast-in 0.2s ease-out;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+  max-width: calc(100% - 32px);
+  text-align: center;
+}
+
+@keyframes cla-toast-in {
+  from { opacity: 0; transform: translate(-50%, 10px); }
+  to   { opacity: 1; transform: translate(-50%, 0); }
+}

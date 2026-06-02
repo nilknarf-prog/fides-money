@@ -54,8 +54,11 @@ function Transacoes({ variant, onAdd }) {
 
   // Mostra as do mês corrente (a chip de mês na barra é redundante mas mantida visualmente)
   const baseList = monthTransactions;
+  // Aggregations (totais/contagens) excluem movimentações; a lista renderizada usa baseList completo.
+  const flow = baseList.filter(t => !t.isTransfer);
 
   const filtered = baseList.filter(t => {
+    if ((filter === 'receitas' || filter === 'despesas') && t.isTransfer) return false;
     if (filter === 'receitas' && t.val < 0) return false;
     if (filter === 'despesas' && t.val > 0) return false;
     if (filter === 'pendentes' && t.status !== 'pendente') return false;
@@ -140,7 +143,7 @@ function Transacoes({ variant, onAdd }) {
         const text = ev.target.result;
         if (fmt === 'ofx') {
           const blocks = text.match(/<STMTTRN>[\s\S]*?<\/STMTTRN>/gi) || [];
-          if (blocks.length === 0) { alert('Nenhuma transação encontrada no arquivo OFX.'); return; }
+          if (blocks.length === 0) { window.FidesUI.toast.error('Nenhuma transação encontrada no arquivo OFX.'); return; }
           const getTag = (block, tag) => {
             const m = block.match(new RegExp(`<${tag}>([^<\n\r]+)`, 'i'));
             return m ? m[1].trim() : '';
@@ -165,10 +168,10 @@ function Transacoes({ variant, onAdd }) {
             });
             imported++;
           });
-          alert(`${imported} transação(ões) importada(s)${errors > 0 ? `, ${errors} bloco(s) ignorado(s)` : ''}.`);
+          window.FidesUI.toast.success(`${imported} transação(ões) importada(s)${errors > 0 ? `, ${errors} bloco(s) ignorado(s)` : ''}.`);
         } else {
           const lines = text.split(/\r?\n/).filter(Boolean);
-          if (lines.length < 2) { alert('CSV vazio ou sem dados.'); return; }
+          if (lines.length < 2) { window.FidesUI.toast.error('CSV vazio ou sem dados.'); return; }
           const sep = lines[0].includes(';') ? ';' : ',';
           let imported = 0, errors = 0;
           lines.slice(1).forEach(line => {
@@ -190,7 +193,7 @@ function Transacoes({ variant, onAdd }) {
             });
             imported++;
           });
-          alert(`${imported} transação(ões) importada(s)${errors > 0 ? `, ${errors} linha(s) ignorada(s)` : ''}.`);
+          window.FidesUI.toast.success(`${imported} transação(ões) importada(s)${errors > 0 ? `, ${errors} linha(s) ignorada(s)` : ''}.`);
         }
       };
       reader.readAsText(file, 'UTF-8');
@@ -199,9 +202,9 @@ function Transacoes({ variant, onAdd }) {
   }, [categories, addTransaction, selectedMonth]);
 
   const tot = {
-    receitas: baseList.filter(t => t.val > 0).reduce((s,t) => s + t.val, 0),
-    despesas: -baseList.filter(t => t.val < 0 && t.status === 'pago').reduce((s,t) => s + t.val, 0),
-    pendentes: -baseList.filter(t => t.val < 0 && t.status === 'pendente').reduce((s,t) => s + t.val, 0),
+    receitas: flow.filter(t => t.val > 0).reduce((s,t) => s + t.val, 0),
+    despesas: -flow.filter(t => t.val < 0 && t.status === 'pago').reduce((s,t) => s + t.val, 0),
+    pendentes: -flow.filter(t => t.val < 0 && t.status === 'pendente').reduce((s,t) => s + t.val, 0),
   };
   const saldo = tot.receitas - tot.despesas;
 
@@ -244,7 +247,8 @@ function Transacoes({ variant, onAdd }) {
         <TxKpi label="Saldo do mês"    value={saldo}        accent="var(--ink)"  variant={variant}/>
         <TxKpi label="Receitas"        value={tot.receitas} accent="var(--ok)"   delta={+8.2} variant={variant} spark={[6,8,7,9,10,11,12]}/>
         <TxKpi label="Despesas pagas"  value={-tot.despesas} accent="var(--bad)" delta={-6.3} variant={variant} spark={[10,9,11,8,9,7,6]}/>
-        <TxKpi label="Pendentes"       value={-tot.pendentes} accent="var(--warn)" kind="pending" pendingCount={transactions.filter(t=>t.status==='pendente').length} variant={variant}/>
+        <TxKpi label="Pendentes"       value={-tot.pendentes} accent="var(--warn)" kind="pending" pendingCount={transactions.filter(t=>t.status==='pendente').length} variant={variant}
+               onSeePending={() => { setFilter('pendentes'); document.querySelector('.fds-tx-table-card')?.scrollIntoView({ behavior:'smooth', block:'start' }); }}/>
       </section>
 
       {/* Filter Bar */}
@@ -270,8 +274,8 @@ function Transacoes({ variant, onAdd }) {
           <div className="fds-tx-chips">
             {[
               ['todas','Todas',baseList.length],
-              ['receitas','Receitas',baseList.filter(t=>t.val>0).length],
-              ['despesas','Despesas',baseList.filter(t=>t.val<0).length],
+              ['receitas','Receitas',flow.filter(t=>t.val>0).length],
+              ['despesas','Despesas',flow.filter(t=>t.val<0).length],
               ['pendentes','Pendentes',baseList.filter(t=>t.status==='pendente').length],
             ].map(([k,l,c]) => (
               <button key={k} className={`fds-chip${filter === k ? ' on' : ''}`} onClick={() => setFilter(k)}>
@@ -655,7 +659,7 @@ function Transacoes({ variant, onAdd }) {
 }
 
 // ─── TX KPI tile (compact) ────────────────────────────────────
-function TxKpi({ label, value, accent, delta, spark, kind, variant, pendingCount }) {
+function TxKpi({ label, value, accent, delta, spark, kind, variant, pendingCount, onSeePending }) {
   return (
     <div className="fds-card fds-tx-kpi">
       <div className="fds-tx-kpi-head">
@@ -675,7 +679,7 @@ function TxKpi({ label, value, accent, delta, spark, kind, variant, pendingCount
       {kind === 'pending' && (
         <div className="fds-tx-kpi-pending">
           <span><Icon.Clock size={11}/> {pendingCount ?? 0} {(pendingCount ?? 0) === 1 ? 'item em aberto' : 'itens em aberto'}</span>
-          <span className="fds-link-sm">Ver →</span>
+          <button type="button" className="fds-link-sm" onClick={onSeePending} style={{ background:'none', border:'none', padding:'8px 4px', minHeight:44, touchAction:'manipulation', WebkitTapHighlightColor:'transparent', color:'var(--accent)', cursor:'pointer' }}>Ver →</button>
         </div>
       )}
     </div>
@@ -685,6 +689,7 @@ function TxKpi({ label, value, accent, delta, spark, kind, variant, pendingCount
 // ─── Modal: Editar Transação ──────────────────────────────────
 function EditTxModal({ tx, onClose }) {
   const { categories, updateTransaction, deleteTransaction, accounts } = useFides();
+  const { confirm: confirmDelete, ConfirmHost } = window.FidesUI.useConfirm();
 
   const parseVal = (s) => {
     const clean = String(s).replace(/\./g, '').replace(',', '.');
@@ -715,8 +720,9 @@ function EditTxModal({ tx, onClose }) {
     onClose();
   };
 
-  const handleDelete = () => {
-    if (window.confirm(`Excluir "${tx.desc}"?`)) {
+  const handleDelete = async () => {
+    const ok = await confirmDelete({ title: `Excluir "${tx.desc}"?`, destructive: true });
+    if (ok) {
       deleteTransaction(tx._id);
       onClose();
     }
@@ -808,19 +814,21 @@ function EditTxModal({ tx, onClose }) {
           </div>
         </footer>
       </div>
+      <ConfirmHost />
     </div>
   );
 }
 
 // ─── Modal: Nova Transação ────────────────────────────────────
 function NovaTransacaoModal({ open, onClose, onSave, variant }) {
-  const { categories, openCategoryModal, accounts, cards } = useFides();
+  const { categories, openCategoryModal, accounts, cards, transferFunds } = useFides();
   const today = new Date();
   const todayStr = `${String(today.getDate()).padStart(2,'0')}/${String(today.getMonth()+1).padStart(2,'0')}/${today.getFullYear()}`;
 
   const [kind, setKind] = React.useState('despesa');
   const [pay, setPay] = React.useState('debito');
   const [acct, setAcct] = React.useState('');
+  const [toAcct, setToAcct] = React.useState('');
   const [card, setCard] = React.useState('');
   React.useEffect(() => {
     if (!acct || !accounts.find(a => a.id === acct)) setAcct(accounts[0]?.id || '');
@@ -866,7 +874,9 @@ function NovaTransacaoModal({ open, onClose, onSave, variant }) {
     return parts[0] && parts[1] ? `${parts[0].padStart(2,'0')}/${parts[1].padStart(2,'0')}` : todayStr.slice(0,5);
   };
 
-  const canSave = desc.trim() && parseVal(val) > 0 && (pay !== 'debito' || accounts.length > 0);
+  const canSave = kind === 'transferencia'
+    ? (acct && toAcct && acct !== toAcct && parseVal(val) > 0)
+    : (desc.trim() && parseVal(val) > 0 && (pay !== 'debito' || accounts.length > 0));
 
   // Build a list of transactions — one per parcela (crédito) ou por mês de recorrência (débito), ou apenas 1
   const buildTxs = () => {
@@ -910,8 +920,17 @@ function NovaTransacaoModal({ open, onClose, onSave, variant }) {
     });
   };
 
-  const handleSave = (keepOpen = false) => {
+  const handleSave = async (keepOpen = false) => {
     if (!canSave) return;
+    if (kind === 'transferencia') {
+      const p = String(date).split('/');
+      const iso = (p[0] && p[1])
+        ? `${p[2] || new Date().getFullYear()}-${p[1].padStart(2,'0')}-${p[0].padStart(2,'0')}`
+        : null;
+      const ok = await transferFunds({ from: acct, to: toAcct, val: parseVal(val), date: iso, desc: desc.trim() });
+      if (ok) { setVal(''); setDesc(''); setToAcct(''); if (!keepOpen) onClose?.(); }
+      return;
+    }
     const txs = buildTxs();
     onSave?.(txs.length === 1 ? txs[0] : txs);
     if (keepOpen) {
@@ -940,7 +959,7 @@ function NovaTransacaoModal({ open, onClose, onSave, variant }) {
             ['receita','Receita', Icon.TrendUp],
             ['transferencia','Transferência', Icon.Arrow],
           ].map(([k,l,Ic]) => (
-            <button key={k} className={`${kind===k?'on':''}`} onClick={() => setKind(k)}>
+            <button key={k} className={`${kind===k?'on':''}`} onClick={() => { setKind(k); if (k !== 'despesa') setPay('debito'); }}>
               <Ic size={14}/> {l}
             </button>
           ))}
@@ -949,7 +968,7 @@ function NovaTransacaoModal({ open, onClose, onSave, variant }) {
         <div className="fds-modal-body">
           <div className="fds-modal-row two">
             <label className="fds-field">
-              <span>Descrição</span>
+              <span>{kind === 'transferencia' ? 'Descrição (opcional)' : 'Descrição'}</span>
               <input className="fds-input" placeholder="ex: Mercado Atacadão"
                      value={desc} onChange={(e) => setDesc(e.target.value)}/>
             </label>
@@ -964,7 +983,7 @@ function NovaTransacaoModal({ open, onClose, onSave, variant }) {
             </label>
           </div>
 
-          <div className="fds-modal-row two">
+          <div className={`fds-modal-row${kind === 'transferencia' ? '' : ' two'}`}>
             <label className="fds-field">
               <span>Data</span>
               <div className="fds-input-icon">
@@ -972,6 +991,7 @@ function NovaTransacaoModal({ open, onClose, onSave, variant }) {
                 <input className="fds-input" value={date} onChange={(e) => setDate(e.target.value)}/>
               </div>
             </label>
+            {kind !== 'transferencia' && (
             <label className="fds-field">
               <span style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
                 Categoria
@@ -1031,9 +1051,35 @@ function NovaTransacaoModal({ open, onClose, onSave, variant }) {
                 <Icon.Down size={13} style={{ opacity: 0.5 }}/>
               </div>
             </label>
+            )}
           </div>
 
+          {/* Transferência: contas de origem e destino */}
+          {kind === 'transferencia' && (
+            <>
+              <label className="fds-field">
+                <span>Conta de origem</span>
+                <div className="fds-input-select">
+                  <select className="fds-select" value={acct} onChange={(e) => setAcct(e.target.value)} style={{ minHeight: 44, touchAction: 'manipulation' }}>
+                    <option value="">Selecione</option>
+                    {accounts.map(a => <option key={a.id} value={a.id}>{a.name} ·· {a.tag}</option>)}
+                  </select>
+                </div>
+              </label>
+              <label className="fds-field">
+                <span>Conta de destino</span>
+                <div className="fds-input-select">
+                  <select className="fds-select" value={toAcct} onChange={(e) => setToAcct(e.target.value)} style={{ minHeight: 44, touchAction: 'manipulation' }}>
+                    <option value="">Selecione</option>
+                    {accounts.filter(a => a.id !== acct).map(a => <option key={a.id} value={a.id}>{a.name} ·· {a.tag}</option>)}
+                  </select>
+                </div>
+              </label>
+            </>
+          )}
+
           {/* Pagamento segmented */}
+          {kind === 'despesa' && (
           <div className="fds-field">
             <span>Forma de pagamento</span>
             <div className="fds-seg fds-seg-2">
@@ -1045,7 +1091,9 @@ function NovaTransacaoModal({ open, onClose, onSave, variant }) {
               </button>
             </div>
           </div>
+          )}
 
+          {kind !== 'transferencia' && (
           <div className="fds-modal-row two">
             <label className="fds-field">
               <span>{pay === 'debito' ? 'Conta' : 'Cartão'}</span>
@@ -1082,6 +1130,7 @@ function NovaTransacaoModal({ open, onClose, onSave, variant }) {
               </div>
             </label>
           </div>
+          )}
 
           {/* Parcelamento — apenas para despesa no crédito */}
           {canParcelar && (
@@ -1134,6 +1183,7 @@ function NovaTransacaoModal({ open, onClose, onSave, variant }) {
             </div>
           )}
 
+          {kind !== 'transferencia' && (
           <div className="fds-toggles">
             <label className="fds-toggle">
               <input type="checkbox" checked={paid} onChange={(e) => setPaid(e.target.checked)}/>
@@ -1153,9 +1203,10 @@ function NovaTransacaoModal({ open, onClose, onSave, variant }) {
               )}
             </label>
           </div>
+          )}
 
           {/* Sub-controle de recorrência — só quando ligada e em débito */}
-          {recur && pay === 'debito' && (
+          {kind !== 'transferencia' && recur && pay === 'debito' && (
             <div className="fds-field parc-field">
               <span>
                 Duração da recorrência

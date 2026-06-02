@@ -1,24 +1,73 @@
-// fides-claude.jsx — Assistente conversacional com Claude
-// Usa window.claude.complete (haiku 4.5, 1024 tokens). Injeta resumo
-// do mês selecionado como contexto pro modelo dar conselhos relevantes.
-// parseTxJson: detecta JSON de transação sugerida e oferece confirmação.
+// fides-claude.jsx — Assistente Fides com Gemini 2.5 Flash-Lite
+// Lote A2.2: tools WRITE com card de confirmação + limpeza de histórico após 2h.
+// - 6 tools: 2 READ (consultar_saldo, consultar_extrato) + 4 WRITE
+// - WRITE: lancar_transacao, recategorizar_transacao, editar_transacao (com card)
+// - WRITE leve: criar_categoria (executa direto, mostra toast)
+// - Limpeza automática do chat após 2h de inatividade
+
+const MAX_TOOL_ITERATIONS = 2;
+const COOLDOWN_NORMAL_SEC = 4;
+const COOLDOWN_RATELIMIT_SEC = 60;
+const HISTORY_TIMEOUT_MS = 2 * 60 * 60 * 1000; // 2 horas
+const STORAGE_KEY_MESSAGES = 'fides_assistant_messages';
+const STORAGE_KEY_LAST_ACTIVITY = 'fides_assistant_last_activity';
+const TOAST_DURATION_MS = 3000;
+
+// Tools que requerem confirmação visual antes de executar
+const TOOLS_REQUIRING_CONFIRMATION = ['lancar_transacao', 'recategorizar_transacao', 'editar_transacao'];
 
 function FidesAssistant() {
-  const { assistantOpen, closeAssistant, monthTransactions, spendByCategory, budgetGroups, selectedMonth, monthLabel, addTransaction, goals, accounts, cards, userName } = useFides();
+  const fs = useFides();
+  const {
+    assistantOpen, closeAssistant,
+    transactions, monthTransactions, accounts, cards, categories,
+    spendByCategory, budgetGroups, faturaAbertaPorCartao,
+    selectedMonth, monthLabel, goals, userName,
+    addTransaction, updateTransaction, addCategory,
+  } = fs;
   const lbl = monthLabel(selectedMonth);
 
-  const [messages, setMessages] = React.useState([]); // {role, content, ts, pendingTx?}
+  // Estado: tenta carregar do sessionStorage com verificação de timeout
+  const initState = () => {
+    try {
+      const lastActivity = parseInt(sessionStorage.getItem(STORAGE_KEY_LAST_ACTIVITY), 10);
+      if (lastActivity && (Date.now() - lastActivity) < HISTORY_TIMEOUT_MS) {
+        const stored = sessionStorage.getItem(STORAGE_KEY_MESSAGES);
+        if (stored) return JSON.parse(stored);
+      }
+    } catch (e) {
+      console.warn('[FidesAssistant] sessionStorage init failed', e);
+    }
+    return [];
+  };
+
+  const [messages, setMessages] = React.useState(initState);
   const [input, setInput] = React.useState('');
   const [thinking, setThinking] = React.useState(false);
+  const [thinkingLabel, setThinkingLabel] = React.useState('');
   const [error, setError] = React.useState(null);
+  const [cooldown, setCooldown] = React.useState(0);
+  const [rateLimitMode, setRateLimitMode] = React.useState(null);
+  const [pendingConfirmation, setPendingConfirmation] = React.useState(null); // { toolCall, resolved }
+  const [toast, setToast] = React.useState(null); // { text, ts }
   const listRef = React.useRef(null);
 
-  // Welcome message once when panel opens
+  // Persistir mensagens + timestamp
+  React.useEffect(() => {
+    try {
+      sessionStorage.setItem(STORAGE_KEY_MESSAGES, JSON.stringify(messages));
+      sessionStorage.setItem(STORAGE_KEY_LAST_ACTIVITY, String(Date.now()));
+    } catch (e) {
+      console.warn('[FidesAssistant] sessionStorage save failed', e);
+    }
+  }, [messages]);
+
+  // Welcome message ao abrir vazio
   React.useEffect(() => {
     if (assistantOpen && messages.length === 0) {
       setMessages([{
         role: 'assistant',
-        content: `Olá${userName ? `, ${userName.split(' ')[0]}` : ''}! Sou o assistente do Fides. Posso responder sobre suas finanças, explicar funções do app, ou dar conselhos. Você está vendo o ${lbl.long} agora — pergunte algo!`,
+        content: `Olá${userName ? `, ${userName.split(' ')[0]}` : ''}! Sou o Assistente Fides. Posso consultar seus saldos, analisar seu extrato e responder duvidas sobre suas financas. Estou aqui para ajudar. Você está vendo o ${lbl.long} agora — me pergunte algo.`,
         ts: Date.now(),
       }]);
     }
@@ -29,104 +78,561 @@ function FidesAssistant() {
     if (listRef.current) {
       listRef.current.scrollTop = listRef.current.scrollHeight;
     }
-  }, [messages, thinking]);
+  }, [messages, thinking, thinkingLabel, cooldown, pendingConfirmation]);
+
+  // Countdown
+  React.useEffect(() => {
+    if (cooldown <= 0) {
+      if (rateLimitMode) setRateLimitMode(null);
+      return;
+    }
+    const t = setTimeout(() => setCooldown(c => Math.max(0, c - 1)), 1000);
+    return () => clearTimeout(t);
+  }, [cooldown, rateLimitMode]);
+
+  // Toast auto-dismiss
+  React.useEffect(() => {
+    if (!toast) return;
+    const t = setTimeout(() => setToast(null), TOAST_DURATION_MS);
+    return () => clearTimeout(t);
+  }, [toast]);
 
   if (!assistantOpen) return null;
 
-  // ─── Contexto financeiro injetado em toda pergunta ──────────
+  // ─── Contexto resumido ────────────────────
   const buildContext = () => {
-    const receitas  = monthTransactions.filter(t => t.val > 0).reduce((s,t) => s + t.val, 0);
-    const despesas  = monthTransactions.filter(t => t.val < 0).reduce((s,t) => s + Math.abs(t.val), 0);
-    const pendentes = monthTransactions.filter(t => t.val < 0 && t.status === 'pendente').reduce((s,t) => s + Math.abs(t.val), 0);
-    const top3 = spendByCategory.slice(0, 3).map(c => `${c.label} ${fmtBRL(c.val)}`).join(', ');
-    const orcStatus = budgetGroups.map(g =>
-      `${g.label}: ${fmtBRL(g.spent)} de ${fmtBRL(g.limit)} (${Math.round((g.spent/g.limit||0)*100)}%)`
+    const receitas  = monthTransactions.filter(t => !t.isTransfer && t.val > 0).reduce((s,t) => s + t.val, 0);
+    const despesas  = monthTransactions.filter(t => !t.isTransfer && t.val < 0).reduce((s,t) => s + Math.abs(t.val), 0);
+    const pendentes = monthTransactions.filter(t => !t.isTransfer && t.val < 0 && t.status === 'pendente').reduce((s,t) => s + Math.abs(t.val), 0);
+    const top3 = (spendByCategory || []).slice(0, 3).map(c => `${c.label} ${fmtBRL(c.val)}`).join(', ');
+    const orcStatus = (budgetGroups || []).map(g =>
+      `${g.label}: ${fmtBRL(g.spent)} de ${fmtBRL(g.limit)} (${g.limit > 0 ? Math.round((g.spent/g.limit)*100) : 0}%)`
     ).join('; ');
-    const metasInfo = goals.length > 0
+    const metasInfo = (goals && goals.length > 0)
       ? goals.map(m => `${m.nome}: ${fmtBRL(m.atual)} de ${fmtBRL(m.alvo)} (${Math.round(m.alvo > 0 ? m.atual / m.alvo * 100 : 0)}%, aportando ${fmtBRL(m.contribuicao)}/mês)`).join('; ')
       : 'nenhuma';
+    const categoriasDisponiveis = Object.entries(categories || {})
+      .filter(([k, v]) => v && v.label)
+      .map(([k, v]) => `${v.label} (id: ${k})`)
+      .slice(0, 30)
+      .join(', ');
     return [
       userName ? `Usuário: ${userName}.` : '',
       `Mês em foco: ${lbl.long}.`,
-      `Receitas do mês: ${fmtBRL(receitas)}. Despesas: ${fmtBRL(despesas)}. Em aberto: ${fmtBRL(pendentes)}.`,
-      `Top gastos por categoria: ${top3 || 'nenhum'}.`,
-      `Status do Planejamento (50·30·20): ${orcStatus}.`,
+      `Receitas do mês: ${fmtBRL(receitas)}. Despesas: ${fmtBRL(despesas)}. Em aberto (pendentes): ${fmtBRL(pendentes)}.`,
+      `Top gastos por categoria: ${top3 || 'nenhum gasto categorizado ainda'}.`,
+      `Status do Planejamento (50·30·20): ${orcStatus || 'sem limites definidos'}.`,
       `Metas em curso: ${metasInfo}.`,
-      accounts.length > 0 ? `Contas: ${accounts.map(a => `${a.name} ${fmtBRL(a.balance)}`).join(', ')}.` : '',
-      cards.length > 0 ? `Cartões: ${cards.map(c => `${c.name} usa ${fmtBRL(c.used)}/${fmtBRL(c.limit)}`).join(', ')}.` : '',
+      (accounts && accounts.length > 0) ? `Contas: ${accounts.map(a => `${a.name} (id: ${a.id}, saldo ${fmtBRL(a.balance)})`).join(', ')}.` : 'Nenhuma conta cadastrada.',
+      (cards && cards.length > 0) ? `Cartões: ${cards.map(c => `${c.name} (id: ${c.id}, usando ${fmtBRL(c.used)} de ${fmtBRL(c.limit)})`).join(', ')}.` : 'Nenhum cartão cadastrado.',
+      `Categorias disponíveis: ${categoriasDisponiveis || 'apenas as padrão'}.`,
     ].filter(Boolean).join(' ');
   };
 
-  const SYSTEM = `Você é o assistente do Fides Money, um app brasileiro de finanças pessoais.
-Responda em português do Brasil, de forma concisa (máx. 4 parágrafos curtos), tom calmo e prático.
-Use os dados financeiros do contexto pra dar respostas específicas. Cite valores em R$.
-Pode falar sobre: funções do app, controle financeiro, orçamento, metas, dívidas, investimentos básicos.
-Não dê garantias de retorno; sempre lembre que investimentos têm risco.
-Se não souber, diga honestamente. Não invente dados.
-Formato: prosa curta, sem markdown pesado. Pode usar negrito ocasional pra valores ou termos-chave.
+  // ─── Helpers: resolver nomes em UUIDs ──────
+  const findAccountByName = (query) => {
+    if (!query) return null;
+    const q = String(query).toLowerCase().trim();
+    return (accounts || []).find(a => a.name && a.name.toLowerCase().includes(q)) || null;
+  };
 
-Quando o usuário descrever uma transação (ex: "gastei X em Y", "paguei X de Y", "recebi X de Y"), retorne um JSON no seguinte formato ANTES da resposta em texto, numa linha própria:
-{"acao":"lancar_transacao","dados":{"desc":"","valor":0,"tipo":"despesa","cat":"outros","pay":"debito","data":""}}
-Preencha os campos com os dados interpretados da mensagem. O campo "tipo" deve ser "despesa" ou "receita". O campo "pay" deve ser "debito", "credito" ou "pix". O campo "data" deve ser no formato dd/mm/yyyy ou vazio. Se não for uma transação, retorne apenas texto normal, sem JSON.
+  const findCardByName = (query) => {
+    if (!query) return null;
+    const q = String(query).toLowerCase().trim();
+    return (cards || []).find(c => c.name && c.name.toLowerCase().includes(q)) || null;
+  };
 
-Quando o usuário perguntar se deve comprar algo no crédito ou débito, analise o saldo disponível em conta, o limite disponível no cartão e a proximidade do vencimento da fatura. Recomende a opção mais vantajosa com justificativa objetiva, comparando os valores reais das contas e cartões do contexto.`;
+  const findCategoryByName = (query) => {
+    if (!query) return null;
+    const q = String(query).toLowerCase().trim();
+    // Tenta match exato por id
+    if (categories[q]) return { id: q, ...categories[q] };
+    // Tenta match por label
+    const entry = Object.entries(categories || {}).find(([k, v]) =>
+      v && v.label && v.label.toLowerCase().includes(q)
+    );
+    return entry ? { id: entry[0], ...entry[1] } : null;
+  };
 
-  // ─── Detecta e extrai JSON de transação da resposta do modelo ─
-  const parseTxJson = (text) => {
+  // ─── Executores das tools ──────────────────
+  // READ-ONLY (executam direto)
+  const toolExecutors = {
+    consultar_saldo: () => {
+      const receitas  = monthTransactions.filter(t => !t.isTransfer && t.val > 0).reduce((s,t) => s + t.val, 0);
+      const despesasPagas = monthTransactions.filter(t => !t.isTransfer && t.val < 0 && t.status === 'pago').reduce((s,t) => s + Math.abs(t.val), 0);
+      const despesasPendentes = monthTransactions.filter(t => !t.isTransfer && t.val < 0 && t.status === 'pendente').reduce((s,t) => s + Math.abs(t.val), 0);
+      return {
+        mes: lbl.long,
+        contas: (accounts || []).map(a => ({ nome: a.name, saldo: Number(a.balance) || 0 })),
+        cartoes: (cards || []).map(c => {
+          const used = Number(c.used) || 0;
+          const limit = Number(c.limit) || 0;
+          const faturaAberta = Number((faturaAbertaPorCartao || {})[c.id]) || 0;
+          return {
+            nome: c.name,
+            limite_total: limit,
+            usado: used,
+            disponivel: Math.max(0, limit - used),
+            fatura_em_aberto: faturaAberta,
+          };
+        }),
+        totais_do_mes: {
+          receitas: Number(receitas.toFixed(2)),
+          despesas_pagas: Number(despesasPagas.toFixed(2)),
+          despesas_pendentes: Number(despesasPendentes.toFixed(2)),
+        },
+      };
+    },
+
+    consultar_extrato: (args = {}) => {
+      const periodo = String(args.periodo || 'mes').toLowerCase();
+      const filtroContaQ = String(args.conta || '').toLowerCase().trim();
+      const filtroCartaoQ = String(args.cartao || '').toLowerCase().trim();
+      const limite = Math.max(1, Math.min(50, parseInt(args.limite, 10) || 20));
+
+      let pool = [];
+      if (periodo === 'hoje') {
+        const today = new Date();
+        const todayKey = `${String(today.getDate()).padStart(2,'0')}/${String(today.getMonth()+1).padStart(2,'0')}`;
+        pool = transactions.filter(t => t.d === todayKey);
+      } else if (periodo === 'semana') {
+        const seven = new Date(); seven.setDate(seven.getDate() - 7);
+        pool = transactions.filter(t => {
+          if (!t.dateObj) {
+            try {
+              const [dd, mm] = (t.d || '').split('/');
+              const [yyyy] = (t.mes || '').split('-');
+              const dt = new Date(`${yyyy}-${mm}-${dd}`);
+              return dt >= seven;
+            } catch { return false; }
+          }
+          return t.dateObj >= seven;
+        });
+      } else if (periodo === 'prev_mes') {
+        const [yyyy, mm] = selectedMonth.split('-').map(Number);
+        const prev = mm === 1 ? `${yyyy-1}-12` : `${yyyy}-${String(mm-1).padStart(2,'0')}`;
+        pool = transactions.filter(t => t.mes === prev);
+      } else {
+        pool = monthTransactions;
+      }
+
+      if (filtroContaQ) {
+        pool = pool.filter(t => {
+          const acc = accounts.find(a => a.id === t.acct || a.id === t.account_id);
+          if (!acc) return false;
+          return acc.name.toLowerCase().includes(filtroContaQ);
+        });
+      }
+
+      if (filtroCartaoQ) {
+        pool = pool.filter(t => {
+          const card = cards.find(c => c.id === t.card_id);
+          if (!card) return false;
+          return card.name.toLowerCase().includes(filtroCartaoQ);
+        });
+      }
+
+      const items = pool.slice(0, limite).map(t => {
+        const cat = categories[t.cat] || {};
+        const accObj = accounts.find(a => a.id === t.acct || a.id === t.account_id);
+        const cardObj = cards.find(c => c.id === t.card_id);
+        return {
+          id: t._id || t.id,
+          descricao: t.desc || '',
+          valor: Number(t.val) || 0,
+          tipo: (Number(t.val) || 0) >= 0 ? 'receita' : 'despesa',
+          categoria: cat.label || t.cat || '—',
+          categoria_id: t.cat,
+          data: t.d || '',
+          conta: accObj ? accObj.name : null,
+          cartao: cardObj ? cardObj.name : null,
+          status: t.status || 'pago',
+          eh_movimentacao: !!t.isTransfer,
+        };
+      });
+
+      const totalDespesas = items.filter(i => i.tipo === 'despesa' && !i.eh_movimentacao).reduce((s,i) => s + Math.abs(i.valor), 0);
+      const totalReceitas = items.filter(i => i.tipo === 'receita' && !i.eh_movimentacao).reduce((s,i) => s + i.valor, 0);
+
+      return {
+        periodo,
+        filtros: { conta: filtroContaQ || null, cartao: filtroCartaoQ || null },
+        total_encontrado: pool.length,
+        retornado: items.length,
+        soma_despesas: Number(totalDespesas.toFixed(2)),
+        soma_receitas: Number(totalReceitas.toFixed(2)),
+        transacoes: items,
+      };
+    },
+
+    // WRITE leve (executa direto, mostra toast)
+    criar_categoria: (args = {}) => {
+      const label = String(args.label || '').trim();
+      if (!label) return { error: 'LABEL_REQUIRED', message: 'Label da categoria é obrigatório.' };
+      const emoji = String(args.emoji || '🏷️');
+      const group = ['essenciais', 'estilo', 'futuro'].includes(args.group) ? args.group : 'estilo';
+      const catKey = label.toLowerCase().replace(/[^a-z0-9]/g, '_').replace(/_+/g, '_').replace(/^_|_$/g, '');
+      if (!catKey) return { error: 'INVALID_LABEL', message: 'Não consegui gerar id para essa categoria.' };
+      try {
+        addCategory(catKey, { label, emoji, group, custom: true });
+        setToast({ text: `✓ Categoria "${label}" criada`, ts: Date.now() });
+        return { success: true, categoria_id: catKey, label, emoji, group };
+      } catch (err) {
+        return { error: 'EXECUTION_ERROR', message: String(err?.message || err) };
+      }
+    },
+  };
+
+  // Resolver tool WRITE preparando os argumentos finais (UUIDs)
+  const resolveWriteToolArgs = (toolCall) => {
+    const { name, args } = toolCall;
+    if (name === 'lancar_transacao') {
+      const ref = args.conta_ou_cartao || '';
+      const acc = findAccountByName(ref);
+      const card = !acc ? findCardByName(ref) : null;
+      if (!acc && !card) {
+        return { error: `Não encontrei conta ou cartão chamado "${ref}". Contas/cartões disponíveis: ${[...(accounts||[]).map(a=>a.name), ...(cards||[]).map(c=>c.name)].join(', ')}` };
+      }
+      const cat = findCategoryByName(args.categoria);
+      if (!cat) {
+        return { error: `Categoria "${args.categoria}" não encontrada. Você quer criar essa categoria primeiro?` };
+      }
+      const today = new Date();
+      const dateStr = args.data || `${String(today.getDate()).padStart(2,'0')}/${String(today.getMonth()+1).padStart(2,'0')}`;
+      const val = args.tipo === 'despesa' ? -Math.abs(Number(args.valor)) : Math.abs(Number(args.valor));
+      return {
+        resolved: {
+          tipo: args.tipo,
+          val,
+          desc: args.descricao,
+          cat: cat.id,
+          catLabel: cat.label,
+          dateStr,
+          status: args.status || 'pago',
+          target: acc ? { type: 'account', id: acc.id, name: acc.name } : { type: 'card', id: card.id, name: card.name },
+        },
+      };
+    }
+    if (name === 'recategorizar_transacao') {
+      const tx = transactions.find(t => (t._id || t.id) === args.transacao_id);
+      if (!tx) return { error: `Transação ${args.transacao_id} não encontrada.` };
+      const cat = findCategoryByName(args.nova_categoria);
+      if (!cat) return { error: `Categoria "${args.nova_categoria}" não encontrada.` };
+      return {
+        resolved: {
+          tx,
+          newCatId: cat.id,
+          newCatLabel: cat.label,
+        },
+      };
+    }
+    if (name === 'editar_transacao') {
+      const tx = transactions.find(t => (t._id || t.id) === args.transacao_id);
+      if (!tx) return { error: `Transação ${args.transacao_id} não encontrada.` };
+      return {
+        resolved: {
+          tx,
+          patch: args.patch || {},
+        },
+      };
+    }
+    return { error: `Tool ${name} não suportada.` };
+  };
+
+  // Executar tool WRITE após confirmação do usuário
+  const executeWriteTool = async (toolCall, resolved) => {
+    const { name } = toolCall;
     try {
-      const match = text.match(/\{"acao"\s*:\s*"lancar_transacao"[^}]*\}/);
-      if (!match) return null;
-      return JSON.parse(match[0]);
-    } catch { return null; }
+      if (name === 'lancar_transacao') {
+        const r = resolved;
+        const tx = {
+          desc: r.desc,
+          val: r.val,
+          cat: r.cat,
+          d: r.dateStr,
+          status: r.status,
+          mes: selectedMonth,
+        };
+        if (r.target.type === 'account') {
+          tx.acct = r.target.id;
+          tx.account_id = r.target.id;
+        } else {
+          tx.card_id = r.target.id;
+        }
+        await addTransaction(tx);
+        return { success: true, message: `Lancei ${fmtBRL(Math.abs(r.val))} (${r.desc}) em ${r.target.name}.` };
+      }
+      if (name === 'recategorizar_transacao') {
+        await updateTransaction(resolved.tx._id || resolved.tx.id, { cat: resolved.newCatId });
+        return { success: true, message: `Categoria atualizada para "${resolved.newCatLabel}".` };
+      }
+      if (name === 'editar_transacao') {
+        const patch = {};
+        if (resolved.patch.valor !== undefined) {
+          // Manter sinal do valor original
+          const sign = (Number(resolved.tx.val) || 0) >= 0 ? 1 : -1;
+          patch.val = sign * Math.abs(Number(resolved.patch.valor));
+        }
+        if (resolved.patch.descricao !== undefined) patch.desc = String(resolved.patch.descricao);
+        if (resolved.patch.data !== undefined) patch.d = String(resolved.patch.data);
+        if (resolved.patch.status !== undefined) patch.status = String(resolved.patch.status);
+        await updateTransaction(resolved.tx._id || resolved.tx.id, patch);
+        return { success: true, message: `Transação atualizada.` };
+      }
+      return { error: 'UNKNOWN_TOOL' };
+    } catch (err) {
+      console.error('[FidesAssistant] executeWriteTool error', err);
+      return { error: 'EXECUTION_ERROR', message: String(err?.message || err) };
+    }
+  };
+
+  // Executar tools (loop principal)
+  const executeTools = async (toolCalls) => {
+    const results = [];
+    for (const tc of toolCalls) {
+      try {
+        if (TOOLS_REQUIRING_CONFIRMATION.includes(tc.name)) {
+          // Resolver args (resolver UUIDs)
+          const resolution = resolveWriteToolArgs(tc);
+          if (resolution.error) {
+            results.push({ name: tc.name, args: tc.args, callId: tc.callId, result: { error: 'RESOLUTION_ERROR', message: resolution.error } });
+            continue;
+          }
+          // Aguardar confirmação do usuário (Promise resolvida pelos botões)
+          const confirmed = await new Promise(resolve => {
+            setPendingConfirmation({
+              toolCall: tc,
+              resolved: resolution.resolved,
+              onDecide: (decision) => resolve(decision),
+            });
+          });
+          setPendingConfirmation(null);
+          if (confirmed === 'cancel') {
+            results.push({ name: tc.name, args: tc.args, callId: tc.callId, result: { cancelled: true, message: 'Usuário cancelou a operação.' } });
+            continue;
+          }
+          // Executar
+          const execResult = await executeWriteTool(tc, resolution.resolved);
+          results.push({ name: tc.name, args: tc.args, callId: tc.callId, result: execResult });
+        } else {
+          // Tool sem confirmação (READ ou WRITE leve)
+          const fn = toolExecutors[tc.name];
+          if (!fn) {
+            results.push({ name: tc.name, args: tc.args, callId: tc.callId, result: { error: 'TOOL_NOT_FOUND' } });
+            continue;
+          }
+          const result = fn(tc.args || {});
+          results.push({ name: tc.name, args: tc.args, callId: tc.callId, result });
+        }
+      } catch (err) {
+        console.error('[FidesAssistant] tool exec error', tc.name, err);
+        results.push({ name: tc.name, args: tc.args, callId: tc.callId, result: { error: 'EXECUTION_ERROR', message: String(err?.message || err) } });
+      }
+    }
+    return results;
+  };
+
+  const friendlyError = (errCode) => {
+    const map = {
+      JWT_MISSING:         'Sua sessão não foi reconhecida. Faça login de novo.',
+      JWT_INVALID:         'Sua sessão expirou. Faça login de novo.',
+      RATE_LIMIT:          'O assistente está com muitas conversas no momento. Aguarde para tentar de novo.',
+      USER_DAILY_LIMIT:    'Você atingiu o limite diário de mensagens com o assistente. Tente novamente em algumas horas.',
+      GEMINI_KEY_MISSING:  'O assistente está indisponível agora. Tente em instantes.',
+      GEMINI_BAD_REQUEST:  'Não consegui entender sua mensagem. Tente reformular.',
+      EMPTY_REPLY:         'O assistente não conseguiu responder dessa vez. Tente reformular.',
+      GEMINI_ERROR:        'O assistente está temporariamente fora do ar. Tente em instantes.',
+      INTERNAL_ERROR:      'Algo deu errado do nosso lado. Tente novamente.',
+      NETWORK:             'Sem conexão. Verifique a internet.',
+      TOOL_LIMIT:          'O assistente ficou em loop. Tente reformular a pergunta.',
+    };
+    return map[errCode] || 'Não consegui responder agora. Tente de novo em instantes.';
+  };
+
+  const callAssistant = async (history, toolResults, jwt) => {
+    const ctx = buildContext();
+    const res = await fetch('/api/assistant', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        messages: history,
+        context: ctx,
+        jwt,
+        toolResults: toolResults || null,
+      }),
+    });
+    const data = await res.json().catch(() => ({}));
+    return { ok: res.ok, status: res.status, data };
   };
 
   const send = async (q) => {
     const question = (q ?? input).trim();
-    if (!question || thinking) return;
+    if (!question || thinking || cooldown > 0 || pendingConfirmation) return;
     setInput('');
     setError(null);
     const userMsg = { role: 'user', content: question, ts: Date.now() };
     setMessages(prev => [...prev, userMsg]);
     setThinking(true);
+    setThinkingLabel('');
 
     try {
-      const history = [...messages, userMsg].filter(m => m.role !== 'system').map(m => ({
-        role: m.role, content: m.content,
-      }));
-      const ctx = buildContext();
-      const reply = await window.claude.complete({
-        messages: [
-          { role: 'user', content: `[contexto] ${ctx}\n\n[instruções do sistema] ${SYSTEM}\n\nA partir daqui é a conversa.` },
-          { role: 'assistant', content: 'Entendi. Vou responder com base nesses dados.' },
-          ...history,
-        ],
-      });
+      let jwt = null;
+      if (window.fidesAuth && typeof window.fidesAuth.getSession === 'function') {
+        const { data: sessionData } = await window.fidesAuth.getSession();
+        jwt = sessionData?.session?.access_token || null;
+      }
+      if (!jwt) {
+        setError(friendlyError('JWT_MISSING'));
+        setThinking(false);
+        setThinkingLabel('');
+        return;
+      }
 
-      // Tenta parsear JSON de transação sugerida pelo modelo
-      const txJson = parseTxJson(reply);
-      // Remove a linha JSON da exibição, deixando só o texto em prosa
-      const displayText = reply.replace(/\{"acao"\s*:\s*"lancar_transacao"[^}]*\}\n?/, '').trim();
+      const history = [...messages, userMsg]
+        .filter(m => m.role === 'user' || m.role === 'assistant')
+        .map(m => ({ role: m.role, content: m.content }));
 
-      setMessages(prev => [...prev, {
-        role: 'assistant',
-        content: displayText,
-        ts: Date.now(),
-        pendingTx: txJson?.dados ?? null,
-      }]);
-    } catch (err) {
-      setError(err?.message || 'Não consegui falar com o Claude agora.');
-    } finally {
+      let toolResults = null;
+      let iteration = 0;
+
+      while (iteration < MAX_TOOL_ITERATIONS) {
+        const { ok, status, data } = await callAssistant(history, toolResults, jwt);
+
+        if (!ok) {
+          const errCode = data?.error;
+          if (status === 429) {
+            if (errCode === 'USER_DAILY_LIMIT') {
+              setError(friendlyError('USER_DAILY_LIMIT'));
+              setRateLimitMode('user');
+              setCooldown(COOLDOWN_RATELIMIT_SEC);
+            } else {
+              setError(friendlyError('RATE_LIMIT'));
+              setRateLimitMode('global');
+              setCooldown(COOLDOWN_RATELIMIT_SEC);
+            }
+          } else {
+            setError(friendlyError(errCode));
+            setCooldown(COOLDOWN_NORMAL_SEC);
+          }
+          setThinking(false);
+          setThinkingLabel('');
+          return;
+        }
+
+        if (Array.isArray(data?.tool_calls) && data.tool_calls.length > 0) {
+          setThinkingLabel('consultando seus dados...');
+          // executeTools agora é async (pode esperar confirmação)
+          toolResults = await executeTools(data.tool_calls);
+          iteration++;
+          continue;
+        }
+
+        const reply = data?.reply;
+        if (!reply) {
+          setError(friendlyError('EMPTY_REPLY'));
+          setCooldown(COOLDOWN_NORMAL_SEC);
+          setThinking(false);
+          setThinkingLabel('');
+          return;
+        }
+        setMessages(prev => [...prev, { role: 'assistant', content: reply, ts: Date.now() }]);
+        setCooldown(COOLDOWN_NORMAL_SEC);
+        setThinking(false);
+        setThinkingLabel('');
+        return;
+      }
+
+      setError(friendlyError('TOOL_LIMIT'));
+      setCooldown(COOLDOWN_NORMAL_SEC);
       setThinking(false);
+      setThinkingLabel('');
+    } catch (err) {
+      console.error('[FidesAssistant] send error', err);
+      setError(friendlyError('NETWORK'));
+      setCooldown(COOLDOWN_NORMAL_SEC);
+      setThinking(false);
+      setThinkingLabel('');
     }
   };
 
   const quickPrompts = [
-    'Onde eu gastei mais este mês?',
-    'Como acelero minha meta de Maceió?',
-    'Que dívida quito primeiro?',
-    'Vale a pena investir agora?',
-    'Como o Fides trata gastos no crédito?',
+    'Quanto eu tenho disponível?',
+    'O que gastei essa semana?',
+    'Como está meu orçamento?',
+    'Lança R$ 50 no mercado',
   ];
+
+  const errorWithCountdown = error && cooldown > 0 && rateLimitMode
+    ? `${error} Aguarde ${cooldown}s.`
+    : error;
+
+  const sendDisabled = !input.trim() || thinking || cooldown > 0 || !!pendingConfirmation;
+
+  // Render card de confirmação inline
+  const renderConfirmationCard = () => {
+    if (!pendingConfirmation) return null;
+    const { toolCall, resolved, onDecide } = pendingConfirmation;
+    let title = '';
+    let details = [];
+
+    if (toolCall.name === 'lancar_transacao') {
+      title = resolved.tipo === 'despesa' ? '📌 Lançar despesa' : '💰 Lançar receita';
+      details = [
+        { label: 'Descrição', value: resolved.desc },
+        { label: 'Valor', value: fmtBRL(Math.abs(resolved.val)) },
+        { label: resolved.target.type === 'account' ? 'Conta' : 'Cartão', value: resolved.target.name },
+        { label: 'Categoria', value: resolved.catLabel },
+        { label: 'Data', value: resolved.dateStr },
+        { label: 'Status', value: resolved.status === 'pago' ? 'Pago' : 'Pendente' },
+      ];
+    } else if (toolCall.name === 'recategorizar_transacao') {
+      title = '🏷️ Mudar categoria';
+      details = [
+        { label: 'Transação', value: resolved.tx.desc || '—' },
+        { label: 'Valor', value: fmtBRL(Math.abs(Number(resolved.tx.val) || 0)) },
+        { label: 'Nova categoria', value: resolved.newCatLabel },
+      ];
+    } else if (toolCall.name === 'editar_transacao') {
+      title = '✏️ Editar transação';
+      const changes = [];
+      if (resolved.patch.valor !== undefined) changes.push({ label: 'Novo valor', value: fmtBRL(Math.abs(Number(resolved.patch.valor))) });
+      if (resolved.patch.descricao !== undefined) changes.push({ label: 'Nova descrição', value: resolved.patch.descricao });
+      if (resolved.patch.data !== undefined) changes.push({ label: 'Nova data', value: resolved.patch.data });
+      if (resolved.patch.status !== undefined) changes.push({ label: 'Novo status', value: resolved.patch.status === 'pago' ? 'Pago' : 'Pendente' });
+      details = [
+        { label: 'Transação', value: resolved.tx.desc || '—' },
+        ...changes,
+      ];
+    }
+
+    return (
+      <div className="cla-confirm-card">
+        <div className="cla-confirm-title">{title}</div>
+        <div className="cla-confirm-details">
+          {details.map((d, i) => (
+            <div key={i} className="cla-confirm-row">
+              <span className="cla-confirm-label">{d.label}</span>
+              <strong className="cla-confirm-value">{d.value}</strong>
+            </div>
+          ))}
+        </div>
+        <div className="cla-confirm-actions">
+          <button
+            className="cla-confirm-cancel"
+            onClick={() => onDecide('cancel')}
+            style={{ touchAction: 'manipulation', WebkitTapHighlightColor: 'transparent' }}>
+            Cancelar
+          </button>
+          <button
+            className="cla-confirm-ok"
+            onClick={() => onDecide('confirm')}
+            style={{ touchAction: 'manipulation', WebkitTapHighlightColor: 'transparent' }}>
+            Confirmar
+          </button>
+        </div>
+      </div>
+    );
+  };
 
   return (
     <>
@@ -140,7 +646,7 @@ Quando o usuário perguntar se deve comprar algo no crédito ou débito, analise
               <div className="cla-head-title">Assistente Fides</div>
             </div>
           </div>
-          <button className="fds-icon-btn" onClick={closeAssistant} title="Fechar">
+          <button className="fds-icon-btn" onClick={closeAssistant} title="Fechar" style={{ touchAction: 'manipulation', WebkitTapHighlightColor: 'transparent' }}>
             <Icon.X size={16}/>
           </button>
         </header>
@@ -160,40 +666,6 @@ Quando o usuário perguntar se deve comprar algo no crédito ou débito, analise
                 {m.content.split('\n').map((line, j) => (
                   <p key={j}>{line}</p>
                 ))}
-                {m.pendingTx && (
-                  <div className="cla-tx-confirm">
-                    <div className="cla-tx-confirm-preview">
-                      <span className="fds-mini-tag soft">
-                        {m.pendingTx.tipo === 'receita' ? '+' : '−'}R$ {parseFloat(m.pendingTx.valor || 0).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
-                      </span>
-                      <span>{m.pendingTx.desc}</span>
-                      <span className="fds-muted">{m.pendingTx.cat} · {m.pendingTx.pay}</span>
-                    </div>
-                    <button className="fds-btn-primary" style={{ fontSize: 12, padding: '5px 12px' }}
-                            onClick={() => {
-                              const d = m.pendingTx;
-                              const today = new Date();
-                              const dateStr = d.data || `${String(today.getDate()).padStart(2,'0')}/${String(today.getMonth()+1).padStart(2,'0')}/${today.getFullYear()}`;
-                              const parts = dateStr.split('/');
-                              const mesStr = parts[2] && parts[1]
-                                ? `${parts[2]}-${parts[1].padStart(2,'0')}`
-                                : `${today.getFullYear()}-${String(today.getMonth()+1).padStart(2,'0')}`;
-                              addTransaction({
-                                desc: d.desc || 'Transação via assistente',
-                                val: d.tipo === 'receita' ? Math.abs(parseFloat(d.valor) || 0) : -Math.abs(parseFloat(d.valor) || 0),
-                                cat: d.cat || 'outros',
-                                acct: d.pay === 'credito' ? (cards[0]?.id || accounts[0]?.id || '') : (accounts[0]?.id || ''),
-                                d: parts[0] && parts[1] ? `${parts[0].padStart(2,'0')}/${parts[1].padStart(2,'0')}` : `${String(today.getDate()).padStart(2,'0')}/${String(today.getMonth()+1).padStart(2,'0')}`,
-                                mes: mesStr,
-                                status: 'pago',
-                              });
-                              // Remove pendingTx da mensagem após confirmar
-                              setMessages(prev => prev.map((msg, idx) => idx === i ? { ...msg, pendingTx: null } : msg));
-                            }}>
-                      <Icon.Check size={12}/> Confirmar lançamento
-                    </button>
-                  </div>
-                )}
               </div>
             </div>
           ))}
@@ -201,54 +673,73 @@ Quando o usuário perguntar se deve comprar algo no crédito ou débito, analise
             <div className="cla-msg cla-msg-assistant">
               <div className="cla-msg-avatar"><Icon.Sparkles size={12}/></div>
               <div className="cla-msg-bubble cla-thinking">
-                <span/><span/><span/>
+                {thinkingLabel ? (
+                  <span style={{ fontSize: 13, color: 'var(--ink-3)', fontStyle: 'italic' }}>{thinkingLabel}</span>
+                ) : (
+                  <><span/><span/><span/></>
+                )}
               </div>
             </div>
           )}
+          {renderConfirmationCard()}
           {error && (
             <div className="cla-msg cla-msg-error">
-              <Icon.X size={12}/> {error}
+              <Icon.X size={12}/> {errorWithCountdown}
             </div>
           )}
         </div>
 
-        {messages.length <= 1 && !thinking && (
+        {messages.length <= 1 && !thinking && !pendingConfirmation && (
           <div className="cla-suggestions">
             {quickPrompts.map(p => (
-              <button key={p} className="cla-suggestion" onClick={() => send(p)}>
+              <button
+                key={p}
+                className="cla-suggestion"
+                onClick={() => send(p)}
+                disabled={cooldown > 0}
+                style={{ touchAction: 'manipulation', WebkitTapHighlightColor: 'transparent', opacity: cooldown > 0 ? 0.5 : 1 }}>
                 {p}
               </button>
             ))}
           </div>
         )}
 
-        <form className="cla-input"
-              onSubmit={(e) => { e.preventDefault(); send(); }}>
+        <form className="cla-input" onSubmit={(e) => { e.preventDefault(); send(); }}>
           <input
             value={input}
             onChange={(e) => setInput(e.target.value)}
-            placeholder="Pergunte sobre suas finanças, o app, investimentos…"
-            disabled={thinking}
+            placeholder={cooldown > 0 && !rateLimitMode ? `Aguarde ${cooldown}s para enviar...` : pendingConfirmation ? 'Confirme ou cancele a ação acima...' : 'Pergunte sobre suas finanças, o app, investimentos…'}
+            disabled={thinking || cooldown > 0 || !!pendingConfirmation}
+            style={{ fontSize: 16 }}
             autoFocus/>
-          <button type="submit" disabled={!input.trim() || thinking}>
+          <button type="submit" disabled={sendDisabled} style={{ touchAction: 'manipulation', WebkitTapHighlightColor: 'transparent' }}>
             {thinking ? <Icon.Clock size={14}/> : <Icon.Right size={14}/>}
           </button>
         </form>
 
         <div className="cla-foot">
-          <span>Powered by Claude · respostas podem errar — confira valores</span>
+          <span>Respostas geradas por IA — podem conter erros. Confira valores antes de decidir.</span>
         </div>
+
+        {toast && (
+          <div className="cla-toast" role="status">
+            {toast.text}
+          </div>
+        )}
       </aside>
     </>
   );
 }
 
-// Floating action button (visible em qualquer página, abre o assistente)
 function FidesAssistantFAB() {
   const { openAssistant, assistantOpen } = useFides();
   if (assistantOpen) return null;
   return (
-    <button className="cla-fab" onClick={openAssistant} title="Conversar com o Fides (Claude)">
+    <button
+      className="cla-fab"
+      onClick={openAssistant}
+      title="Conversar com o Assistente Fides"
+      style={{ touchAction: 'manipulation', WebkitTapHighlightColor: 'transparent' }}>
       <Icon.Sparkles size={20}/>
       <span className="cla-fab-pulse"/>
     </button>
