@@ -67,7 +67,7 @@ function FidesAssistant() {
     if (assistantOpen && messages.length === 0) {
       setMessages([{
         role: 'assistant',
-        content: `Olá${userName ? `, ${userName.split(' ')[0]}` : ''}! Sou o Assistente Fides. Posso analisar seus gastos, consultar saldos e extrato, lançar transações, criar categorias e mais. Você está vendo o ${lbl.long} agora — me pergunte algo.`,
+        content: `Olá${userName ? `, ${userName.split(' ')[0]}` : ''}! Sou o Assistente Fides. Posso consultar seus saldos, analisar seu extrato e responder duvidas sobre suas financas. Estou aqui para ajudar. Você está vendo o ${lbl.long} agora — me pergunte algo.`,
         ts: Date.now(),
       }]);
     }
