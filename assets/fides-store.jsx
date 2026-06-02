@@ -129,7 +129,10 @@ function FidesProvider({ children }) {
   const [categories, setCategories]           = React.useState(() => ({ ...CATEGORIES, ...SYSTEM_CATEGORIES }));
   const [plannedOverrides, setPlannedOverrides] = React.useState({});
   const [categoryModalOpen, setCategoryModalOpen] = React.useState(false);
-  const [selectedMonth, setSelectedMonth]         = React.useState('2026-05');
+  const [selectedMonth, setSelectedMonth]         = React.useState(function() {
+    var now = new Date();
+    return now.getFullYear() + '-' + String(now.getMonth() + 1).padStart(2, '0');
+  });
   const [assistantOpen, setAssistantOpen]         = React.useState(false);
 
   // ─── Helpers ─────────────────────────────────────────────────
@@ -351,19 +354,16 @@ function FidesProvider({ children }) {
     setTransactions(prev => prev.map(t => t._id === id ? { ...t, ...patch } : t));
   }, [mode, userId, refreshData]);
 
-  const deleteTransaction = React.useCallback(async (id) => {
-    if (mode === 'live' && userId) {
-      try {
-        const { error } = await window.fidesDb.from('transactions').delete().eq('id', id);
-        if (error) throw error;
-        await refreshData(userId);
-      } catch (err) {
-        console.error('[Fides] deleteTransaction:', err.message);
-      }
-      return;
+  async function deleteTransaction(id) {
+    if (mode !== 'live') return;
+    try {
+      var result = await window.fidesDb.rpc('delete_transaction', { p_tx_id: id });
+      if (result.error) throw result.error;
+      await refreshData();
+    } catch (err) {
+      console.error('[Fides] deleteTransaction RPC error:', err);
     }
-    setTransactions(prev => prev.filter(t => t._id !== id));
-  }, [mode, userId, refreshData]);
+  }
 
   // payCartaoFatura: new signature { cartaoId, accountId, txIds }
   // Live: atomic via RPC pay_card_invoice — server inserts payment tx, debits
