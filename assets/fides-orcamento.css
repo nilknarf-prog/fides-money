@@ -1,662 +1,707 @@
-/* fides-orcamento.css — Studio budget page styles
- * Loaded after fides-studio.css so it inherits tokens.
+/* fides-orcamento.css - Planejamento (Lote 4A)
+ * Mobile-first, base 400px. Usa apenas tokens de tokens.css.
  */
 
-/* ─── Capítulo I · A regra (3 columns) ─── */
-.fds-studio .orc-rule {
-  display: grid;
-  grid-template-columns: repeat(3, 1fr);
-  gap: 12px;
-}
-.fds-studio .orc-rule-col {
-  background: var(--card);
-  border: 1px solid var(--border);
-  border-radius: 16px;
-  padding: 22px 22px 18px;
-  display: flex; flex-direction: column; gap: 8px;
-  box-shadow: 0 1px 0 rgba(15,26,20,.04), 0 8px 24px -16px rgba(45,90,61,.14);
-  position: relative;
-  overflow: hidden;
-}
-.fds-studio .orc-rule-col::before {
-  content: ''; position: absolute; right: -40px; top: -40px;
-  width: 140px; height: 140px; border-radius: 50%;
-  background: radial-gradient(circle, currentColor 0%, transparent 70%);
-  opacity: 0.06;
-  pointer-events: none;
-}
-.fds-studio .orc-rule-pct {
-  font-family: var(--font-display);
-  font-weight: 700; font-size: 52px;
-  letter-spacing: -0.04em; line-height: 1;
-  font-variant-numeric: tabular-nums;
-}
-.fds-studio .orc-rule-pct span {
-  font-size: 0.45em; font-weight: 600;
-  margin-left: 2px; opacity: 0.85;
-}
-.fds-studio .orc-rule-name {
-  font-family: var(--font-display);
-  font-weight: 600; font-size: 18px;
-  letter-spacing: -0.02em; color: var(--ink);
-  margin-top: 4px;
-}
-.fds-studio .orc-rule-amt {
-  font-size: 12.5px; color: var(--muted);
-  font-variant-numeric: tabular-nums;
-}
-.fds-studio .orc-rule-amt span {
-  font-size: 10px; text-transform: uppercase;
-  letter-spacing: 0.08em; margin-left: 4px;
-  color: var(--muted-2);
-}
-.fds-studio .orc-rule-spent {
-  display: flex; align-items: baseline;
-  justify-content: space-between;
-  margin-top: 10px;
-}
-.fds-studio .orc-rule-spent-v {
-  font-family: var(--font-display);
-  font-weight: 700; font-size: 22px;
-  letter-spacing: -0.025em;
+/* ============================================================
+   Page + Header
+   ============================================================ */
+
+.fo-page {
+  width: 100%;
+  max-width: 100%;
+  padding: 12px 14px 32px;
+  box-sizing: border-box;
   color: var(--ink);
-  font-variant-numeric: tabular-nums;
-}
-.fds-studio .orc-rule-status {
-  font-size: 10.5px; font-weight: 600;
-  text-transform: uppercase; letter-spacing: 0.06em;
-  padding: 3px 8px; border-radius: 999px;
-}
-.fds-studio .orc-rule-status.ok   { background: var(--ok-soft);   color: var(--ok); }
-.fds-studio .orc-rule-status.warn { background: var(--warn-soft); color: var(--warn); }
-.fds-studio .orc-rule-status.bad  { background: var(--bad-soft);  color: var(--bad); }
-.fds-studio .orc-rule-foot {
-  display: flex; justify-content: space-between;
-  font-size: 11.5px; font-weight: 500;
-  color: var(--ink-2);
-  margin-top: 2px;
-}
-.fds-studio .orc-rule-foot .over { color: var(--bad); font-weight: 600; }
-.fds-studio .orc-rule-alert {
-  display: inline-flex; align-items: center; gap: 5px;
-  margin-top: 8px;
-  font-size: 11.5px; font-weight: 500;
-  color: var(--bad);
-  padding: 5px 10px;
-  background: var(--bad-soft);
-  border-radius: 8px;
-  align-self: flex-start;
+  font-family: var(--font-sans);
 }
 
-/* ─── Capítulo II · Por categoria ─── */
-.fds-studio .orc-cats { padding: 0; }
-.fds-studio .orc-cats-head {
-  display: grid;
-  grid-template-columns: 2fr 1.1fr 1.1fr 1.1fr 2fr 32px;
-  gap: 14px;
-  padding: 12px 22px;
-  font-size: 10.5px; font-weight: 600;
-  text-transform: uppercase; letter-spacing: 0.08em;
-  color: var(--muted);
+.fo-header {
+  position: sticky;
+  top: 0;
+  z-index: 5;
+  background: color-mix(in oklab, var(--bg) 92%, transparent);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  margin: -12px -14px 12px;
+  padding: 12px 14px 10px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
   border-bottom: 1px solid var(--border);
-  background: var(--card-soft);
 }
-.fds-studio .orc-cats-group {
-  display: flex; align-items: center; gap: 8px;
-  padding: 14px 22px 8px;
+
+.fo-title {
+  margin: 0;
   font-family: var(--font-display);
-  font-weight: 600; font-size: 13px;
-  letter-spacing: -0.005em;
+  font-weight: 700;
+  font-size: 22px;
+  letter-spacing: var(--tracking-display);
   color: var(--ink);
-  background: none;
-  border: none;
-  border-bottom: 1px solid var(--border);
-  width: 100%;
-  text-align: left;
+}
+
+/* Month selector */
+.fo-month-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.fo-month-nav {
+  width: 44px;
+  height: 44px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  color: var(--ink-2);
   cursor: pointer;
   touch-action: manipulation;
   -webkit-tap-highlight-color: transparent;
-  min-height: 44px;
+  padding: 0;
 }
-.fds-studio .orc-cats-group:hover { color: var(--ink-2); }
-.fds-studio .orc-cats-group-dot {
-  width: 8px; height: 8px; border-radius: 2px;
-}
-.fds-studio .orc-cats-group-meta {
-  margin-left: auto;
-  font-family: var(--font-sans);
-  font-weight: 500; font-size: 12px;
-  color: var(--muted);
-  font-variant-numeric: tabular-nums;
-}
-.fds-studio .orc-cat-row {
-  display: grid;
-  grid-template-columns: 2fr 1.1fr 1.1fr 1.1fr 2fr 32px;
-  gap: 14px;
-  align-items: center;
-  padding: 12px 22px;
-  border-bottom: 1px solid var(--border);
-  cursor: pointer;
-  transition: background 0.15s;
-}
-.fds-studio .orc-cat-row:hover { background: var(--card-soft); }
-.fds-studio .orc-cat-row.expanded { background: var(--card-soft); }
-.fds-studio .orc-cat-cell-name {
-  display: flex; align-items: center; gap: 10px;
-  font-size: 13.5px; font-weight: 550;
+.fo-month-nav:active { background: var(--card-soft); }
+
+.fo-month-current {
+  flex: 1;
+  text-align: center;
+  font-family: var(--font-display);
+  font-weight: 600;
+  font-size: 16px;
   color: var(--ink);
+  font-variant-numeric: tabular-nums;
+  letter-spacing: -0.01em;
 }
-.fds-studio .orc-cat-icon {
-  width: 28px; height: 28px; border-radius: 7px;
-  display: flex; align-items: center; justify-content: center;
-  font-size: 12px; font-weight: 600;
+
+/* Toggle "Incluir pendentes" */
+.fo-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  min-height: 44px;
+  padding: 6px 10px;
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-pill);
+  font-size: 13px;
+  color: var(--ink-2);
+  cursor: pointer;
+  touch-action: manipulation;
+  -webkit-tap-highlight-color: transparent;
+  align-self: flex-start;
+  user-select: none;
+}
+.fo-toggle input { position: absolute; opacity: 0; pointer-events: none; width: 0; height: 0; }
+.fo-toggle-track {
+  position: relative;
+  width: 34px;
+  height: 20px;
+  border-radius: 999px;
+  background: var(--border);
+  transition: background 0.18s ease;
   flex: none;
 }
-.fds-studio .orc-cat-count {
-  margin-left: auto;
+.fo-toggle-thumb {
+  position: absolute;
+  top: 2px; left: 2px;
+  width: 16px; height: 16px;
+  border-radius: 50%;
   background: var(--card);
-  border: 1px solid var(--border);
-  padding: 1px 6px;
-  border-radius: 999px;
-  font-size: 10.5px; font-weight: 600;
-  color: var(--muted);
-  font-variant-numeric: tabular-nums;
+  box-shadow: 0 1px 2px rgba(15,26,20,.18);
+  transition: transform 0.18s ease;
 }
-.fds-studio .orc-cat-cell-plan {
-  display: flex; align-items: center;
-  cursor: text;
-  border-radius: 6px;
-  padding: 4px 6px;
-  margin-left: -6px;
-  transition: background 0.15s;
+.fo-toggle.on .fo-toggle-track { background: var(--accent); }
+.fo-toggle.on .fo-toggle-thumb { transform: translateX(14px); }
+.fo-toggle-label {
+  font-family: var(--font-sans);
+  font-weight: 500;
+  white-space: nowrap;
 }
-.fds-studio .orc-cat-cell-plan:hover {
-  background: var(--accent-soft);
-  box-shadow: inset 0 0 0 1px var(--border-strong);
-}
-.fds-studio .orc-cat-plan-val {
-  font-family: var(--font-display);
-  font-weight: 600; font-size: 14.5px;
-  color: var(--ink-2);
-  font-variant-numeric: tabular-nums;
-  letter-spacing: -0.01em;
-}
-.fds-studio .orc-cat-plan-val .cur {
-  font-size: 0.78em; opacity: 0.55;
-  margin-right: 2px; font-weight: 600;
-}
-.fds-studio .orc-cat-edit {
-  display: inline-flex; align-items: center; gap: 2px;
-  font-family: var(--font-display);
-}
-.fds-studio .orc-cat-edit-prefix {
-  font-size: 11px; font-weight: 600;
-  opacity: 0.55;
-}
-.fds-studio .orc-cat-edit-input {
-  border: 0; outline: 0;
-  background: var(--card);
-  font-family: var(--font-display);
-  font-weight: 600; font-size: 14.5px;
-  color: var(--accent);
-  width: 70px;
-  padding: 3px 6px;
-  border-radius: 5px;
-  box-shadow: 0 0 0 1.5px var(--accent);
-  font-variant-numeric: tabular-nums;
-  letter-spacing: -0.01em;
-}
-.fds-studio .orc-cat-cell-spent .orc-cat-spent-val {
-  font-family: var(--font-display);
-  font-weight: 600; font-size: 14.5px;
-  color: var(--ink);
-  font-variant-numeric: tabular-nums;
-  letter-spacing: -0.01em;
-}
-.fds-studio .orc-cat-cell-rest {
-  font-family: var(--font-display);
-  font-weight: 600; font-size: 14.5px;
-  color: var(--ok);
-  font-variant-numeric: tabular-nums;
-  letter-spacing: -0.01em;
-}
-.fds-studio .orc-cat-cell-rest.over { color: var(--bad); }
-.fds-studio .orc-cat-cell-bar {
-  display: flex; align-items: center; gap: 10px;
-}
-.fds-studio .orc-cat-bar-track {
-  flex: 1;
-  height: 6px; border-radius: 999px;
-  background: var(--card-soft);
-  position: relative; overflow: visible;
-  border: 1px solid var(--border);
-}
-.fds-studio .orc-cat-bar-fill {
-  position: absolute; left: 0; top: 0; bottom: 0;
-  border-radius: 999px;
-  transition: width 600ms cubic-bezier(.2,.7,.2,1);
-  box-shadow: 0 0 8px color-mix(in oklab, currentColor 20%, transparent);
-}
-.fds-studio .orc-cat-bar-fill.over { background: var(--bad); }
-.fds-studio .orc-cat-bar-overflow {
-  position: absolute; right: -1px; top: -1px; bottom: -1px;
-  background: repeating-linear-gradient(135deg, var(--bad) 0 4px, color-mix(in oklab, var(--bad) 60%, white) 4px 8px);
-  border-radius: 0 999px 999px 0;
-  border: 1px solid var(--bad);
-  z-index: 1;
-}
-.fds-studio .orc-cat-bar-pct {
-  font-size: 11.5px; font-weight: 600;
-  color: var(--ink-2);
-  font-variant-numeric: tabular-nums;
-  min-width: 38px; text-align: right;
-}
-.fds-studio .orc-cat-bar-pct.near { color: var(--warn); }
-.fds-studio .orc-cat-bar-pct.over { color: var(--bad); font-weight: 700; }
-.fds-studio .orc-cat-cell-act { color: var(--muted); display: flex; justify-content: center; }
 
-.fds-studio .orc-cat-detail {
-  background: var(--bg);
-  padding: 12px 22px 18px;
+/* ============================================================
+   Group section
+   ============================================================ */
+
+.fo-group {
+  margin-top: 18px;
+}
+.fo-group:first-of-type { margin-top: 8px; }
+
+.fo-group-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 4px 2px 8px;
   border-bottom: 1px solid var(--border);
-  border-top: 1px dashed var(--border);
-  margin-top: -1px;
+  margin-bottom: 10px;
 }
-.fds-studio .orc-cat-detail-head {
-  font-size: 11px; font-weight: 600;
-  text-transform: uppercase; letter-spacing: 0.08em;
+.fo-group-name {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-family: var(--font-display);
+  font-weight: 600;
+  font-size: 14px;
+  color: var(--ink);
+  letter-spacing: -0.005em;
+  min-width: 0;
+}
+.fo-group-dot {
+  width: 8px; height: 8px;
+  border-radius: 50%;
+  display: inline-block;
+  flex: none;
+}
+.fo-group-target {
+  font-family: var(--font-sans);
+  font-weight: 500;
+  font-size: 12px;
   color: var(--muted);
-  margin-bottom: 8px;
 }
-.fds-studio .orc-cat-detail-list {
-  display: flex; flex-direction: column; gap: 1px;
+.fo-group-totals {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 4px;
+  font-family: var(--font-mono);
+  font-size: 11.5px;
+  color: var(--muted);
+  font-variant-numeric: tabular-nums;
+  text-align: right;
+  white-space: nowrap;
+}
+.fo-group-planned { color: var(--ink-2); font-weight: 500; }
+.fo-group-spent   { color: var(--ink); font-weight: 600; }
+.fo-group-sep     { color: var(--muted-2); }
+
+.fo-group-list {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+/* ============================================================
+   CategoryCard
+   ============================================================ */
+
+.fo-card {
   background: var(--card);
   border: 1px solid var(--border);
-  border-radius: 10px;
+  border-radius: var(--radius-lg);
+  padding: 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  box-shadow: var(--shadow-card);
+}
+
+.fo-card-head {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-width: 0;
+}
+.fo-card-emoji {
+  font-size: 22px;
+  line-height: 1;
+  flex: none;
+}
+.fo-card-label {
+  flex: 1;
+  font-family: var(--font-display);
+  font-weight: 600;
+  font-size: 15px;
+  color: var(--ink);
+  letter-spacing: -0.005em;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.fo-card-status {
+  flex: none;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+.fo-status-icon { display: block; }
+.fo-status-icon.fo-status-ok   { color: var(--ok); }
+.fo-status-icon.fo-status-warn { color: var(--warn); }
+.fo-status-icon.fo-status-over { color: var(--bad); }
+
+/* Bar */
+.fo-card-bar {
+  position: relative;
+  width: 100%;
+  height: 8px;
+  border-radius: 999px;
+  background: var(--card-soft);
   overflow: hidden;
 }
-.fds-studio .orc-cat-detail-tx {
-  display: grid;
-  grid-template-columns: 50px 1fr auto auto 110px;
-  gap: 12px;
-  align-items: center;
-  padding: 10px 14px;
-  font-size: 12.5px;
-  background: var(--card);
+.fo-card-bar-fill {
+  position: absolute;
+  left: 0; top: 0; bottom: 0;
+  border-radius: 999px;
+  transition: width 480ms cubic-bezier(.2,.7,.2,1);
+  background: var(--accent);
 }
-.fds-studio .orc-cat-detail-tx + .orc-cat-detail-tx { border-top: 1px solid var(--border); }
-.fds-studio .orc-cat-detail-d {
-  font-family: var(--font-display);
-  font-weight: 600; font-size: 12px;
-  color: var(--muted);
-  font-variant-numeric: tabular-nums;
-}
-.fds-studio .orc-cat-detail-desc { color: var(--ink); font-weight: 500; }
-.fds-studio .orc-cat-detail-val {
-  text-align: right;
-  font-family: var(--font-display);
-  font-weight: 600; font-size: 13px;
-  color: var(--ink);
-  font-variant-numeric: tabular-nums;
-  letter-spacing: -0.01em;
-}
-.fds-studio .orc-cat-empty {
-  padding: 16px; color: var(--muted);
-  font-size: 13px; font-style: italic;
-  background: var(--card);
-  border: 1px solid var(--border);
-  border-radius: 10px;
-  text-align: center;
+.fo-card-bar-fill-ok    { background: var(--ok); }
+.fo-card-bar-fill-warn  { background: var(--warn); }
+.fo-card-bar-fill-over  { background: var(--bad); }
+.fo-card-bar-fill-none  { background: transparent; width: 0 !important; }
+
+.fo-card-bar-over {
+  position: absolute;
+  right: 0; top: 0; bottom: 0;
+  background: repeating-linear-gradient(
+    135deg,
+    color-mix(in oklab, var(--bad) 78%, black) 0 4px,
+    var(--bad) 4px 8px
+  );
+  border-radius: 999px;
+  transition: width 480ms cubic-bezier(.2,.7,.2,1);
 }
 
-/* ─── Capítulo III · Plano vs. realizado ─── */
-.fds-studio .orc-history { padding: 28px 28px 22px; }
-.fds-studio .orc-history-grid {
-  display: grid;
-  grid-template-columns: repeat(6, 1fr);
+/* Values + actions row */
+.fo-card-values {
+  display: flex;
+  align-items: center;
   gap: 8px;
-  align-items: end;
-  height: 240px;
+  flex-wrap: wrap;
 }
-.fds-studio .orc-history-col {
-  display: flex; flex-direction: column;
-  height: 100%;
-  justify-content: flex-end;
+.fo-card-amounts {
+  flex: 1 1 auto;
+  display: inline-flex;
+  align-items: baseline;
+  gap: 6px;
+  font-family: var(--font-mono);
+  font-size: 12.5px;
+  color: var(--ink-2);
+  font-variant-numeric: tabular-nums;
+  min-width: 0;
+  flex-wrap: wrap;
 }
-.fds-studio .orc-history-bars {
-  display: flex; align-items: flex-end;
-  gap: 5px; height: 180px;
-  padding: 0 8px;
+.fo-card-spent { color: var(--ink); font-weight: 600; }
+.fo-card-sep   { color: var(--muted-2); }
+.fo-card-limit-amt { color: var(--ink-2); }
+.fo-card-pct {
+  margin-left: 4px;
+  font-weight: 600;
 }
-.fds-studio .orc-history-bar {
-  flex: 1;
-  border-radius: 5px 5px 0 0;
-  position: relative;
-  transition: filter 0.18s;
-  display: flex; justify-content: center; align-items: flex-end;
-  min-height: 8px;
+.fo-card-pct-ok   { color: var(--ok); }
+.fo-card-pct-warn { color: var(--warn); }
+.fo-card-pct-over { color: var(--bad); }
+.fo-card-pct-none { color: var(--muted); }
+
+.fo-card-nolimit {
+  font-family: var(--font-sans);
+  font-style: italic;
+  font-size: 12px;
+  color: var(--muted);
+  margin-left: 4px;
 }
-.fds-studio .orc-history-bar.plan {
-  background: var(--accent-soft);
-  border: 1px solid color-mix(in oklab, var(--accent) 22%, var(--border));
+
+.fo-card-actions {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  flex: none;
+  margin-left: auto;
 }
-.fds-studio .orc-history-bar.real {
-  background: linear-gradient(180deg, var(--accent-bright) 0%, var(--accent) 100%);
-  box-shadow: 0 0 12px color-mix(in oklab, var(--accent-bright) 35%, transparent);
+
+.fo-card-limit {
+  min-height: 44px;
+  min-width: 44px;
+  padding: 0 12px;
+  border: 1px solid var(--border);
+  background: var(--card);
+  border-radius: var(--radius-md);
+  font-family: var(--font-mono);
+  font-weight: 600;
+  font-size: 13px;
+  color: var(--accent);
+  cursor: pointer;
+  touch-action: manipulation;
+  -webkit-tap-highlight-color: transparent;
+  font-variant-numeric: tabular-nums;
 }
-.fds-studio .orc-history-bar.real.over {
-  background: linear-gradient(180deg, color-mix(in oklab, var(--bad) 80%, white) 0%, var(--bad) 100%);
-  box-shadow: 0 0 12px color-mix(in oklab, var(--bad) 35%, transparent);
+.fo-card-limit:active { background: var(--accent-soft); }
+
+.fo-card-edit {
+  width: 44px;
+  height: 44px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid var(--border);
+  background: var(--card);
+  border-radius: var(--radius-md);
+  color: var(--ink-3);
+  cursor: pointer;
+  padding: 0;
+  touch-action: manipulation;
+  -webkit-tap-highlight-color: transparent;
 }
-.fds-studio .orc-history-bar.real.partial {
-  background: repeating-linear-gradient(135deg, var(--accent-bright) 0 8px, var(--accent) 8px 16px);
-  opacity: 0.85;
-  box-shadow: none;
+.fo-card-edit:active { background: var(--card-soft); color: var(--accent); }
+
+.fo-card-edit-inline {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  min-height: 44px;
+  padding: 0 10px;
+  border: 1.5px solid var(--accent);
+  background: var(--card);
+  border-radius: var(--radius-md);
+  box-shadow: 0 0 0 3px var(--accent-soft);
 }
-.fds-studio .orc-history-bar:hover { filter: brightness(1.06); }
-.fds-studio .orc-history-bar-val {
-  position: absolute;
-  top: -16px;
-  font-family: var(--font-display);
-  font-size: 9.5px;
+.fo-card-edit-prefix {
+  font-family: var(--font-mono);
+  font-size: 13px;
   font-weight: 600;
   color: var(--muted);
+}
+.fo-card-edit-input {
+  width: 90px;
+  border: 0;
+  outline: 0;
+  background: transparent;
+  font-family: var(--font-mono);
+  font-weight: 600;
+  font-size: 16px; /* iOS no-zoom */
+  color: var(--ink);
   font-variant-numeric: tabular-nums;
-  white-space: nowrap;
-  opacity: 0;
-  transition: opacity 0.15s;
+  padding: 0;
 }
-.fds-studio .orc-history-col:hover .orc-history-bar-val { opacity: 1; }
-.fds-studio .orc-history-meta {
-  display: flex; flex-direction: column; gap: 2px;
-  padding-top: 12px;
+
+/* ============================================================
+   Empty state
+   ============================================================ */
+
+.fo-empty {
+  background: var(--card);
+  border: 1px dashed var(--border-strong);
+  border-radius: var(--radius-lg);
+  padding: 24px 18px;
+  margin: 8px 0 18px;
   text-align: center;
-  border-top: 1px solid var(--border);
-  margin-top: 8px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  align-items: center;
 }
-.fds-studio .orc-history-month {
+.fo-empty-icon {
+  font-size: 36px;
+  line-height: 1;
+  margin-bottom: 4px;
+}
+.fo-empty-title {
   font-family: var(--font-display);
-  font-weight: 700; font-size: 13px;
+  font-weight: 700;
+  font-size: 17px;
   color: var(--ink);
   letter-spacing: -0.01em;
 }
-.fds-studio .orc-history-pct {
-  font-size: 10.5px; font-weight: 600;
-  color: var(--muted);
-  letter-spacing: 0.02em;
-  font-variant-numeric: tabular-nums;
-}
-.fds-studio .orc-history-pct.over { color: var(--bad); }
-.fds-studio .orc-history-pct.partial { color: var(--accent); }
-.fds-studio .orc-history-foot {
-  display: grid;
-  grid-template-columns: repeat(4, 1fr);
-  gap: 20px;
-  padding-top: 20px;
-  margin-top: 18px;
-  border-top: 1px solid var(--border);
-}
-.fds-studio .orc-history-foot-stat { display: flex; flex-direction: column; gap: 3px; }
-.fds-studio .orc-history-foot-lbl {
-  font-size: 10.5px; font-weight: 600;
-  text-transform: uppercase; letter-spacing: 0.06em;
-  color: var(--muted);
-}
-.fds-studio .orc-history-foot-val {
-  font-family: var(--font-display);
-  font-weight: 700; font-size: 18px;
-  color: var(--ink);
-  letter-spacing: -0.02em;
-  font-variant-numeric: tabular-nums;
-}
-.fds-studio .orc-history-foot-val .fds-muted {
-  font-weight: 500; font-size: 14px;
+.fo-empty-text {
+  font-size: 13.5px;
+  color: var(--ink-3);
+  max-width: 32ch;
+  line-height: 1.45;
 }
 
-/* ─── Legend in chapter mark ─── */
-.fds-studio .orc-legend {
-  display: flex; flex-wrap: wrap; align-items: center;
-  gap: 8px 16px;
-  font-size: 11.5px; color: var(--muted);
-  padding: 0 0 4px;
-}
-.fds-studio .orc-legend-item {
-  display: inline-flex; align-items: center; gap: 6px;
-  white-space: nowrap;
-}
-.fds-studio .orc-legend-dot {
-  width: 10px; height: 10px; border-radius: 2px;
-  flex-shrink: 0;
-}
-.fds-studio .orc-legend-dot.plan {
-  background: color-mix(in oklab, var(--accent) 30%, white);
-  border: 1.5px solid color-mix(in oklab, var(--accent) 50%, white);
-}
-.fds-studio .orc-legend-dot.real {
-  background: var(--accent);
-}
-.fds-studio .orc-legend-dot.over {
-  background: var(--bad);
+/* ============================================================
+   LimitEditorModal
+   ============================================================ */
+
+.fo-modal-backdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(15, 26, 20, 0.42);
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  z-index: 100;
+  padding: 12px;
+  box-sizing: border-box;
+  backdrop-filter: blur(2px);
+  -webkit-backdrop-filter: blur(2px);
 }
 
-/* ─── Insight banner (for Transações in Studio) ─── */
-.fds-studio .stu-insight {
-  display: flex; align-items: flex-start; gap: 14px;
+.fo-modal {
+  width: 100%;
+  max-width: 460px;
   background: var(--card);
   border: 1px solid var(--border);
-  border-left: 3px solid var(--accent);
-  border-radius: 12px;
-  padding: 14px 18px;
-  box-shadow: 0 1px 0 rgba(15,26,20,.03);
+  border-radius: var(--radius-xl);
+  box-shadow: var(--shadow-hero);
+  display: flex;
+  flex-direction: column;
+  max-height: 92vh;
+  overflow: hidden;
+  animation: fo-modal-in 180ms cubic-bezier(.2,.7,.2,1);
 }
-.fds-studio .stu-insight-icon {
-  width: 32px; height: 32px;
-  border-radius: 9px;
-  background: var(--accent-soft);
-  color: var(--accent);
-  display: flex; align-items: center; justify-content: center;
-  flex: none;
-}
-.fds-studio .stu-insight-body {
-  flex: 1; font-size: 13.5px; line-height: 1.55;
-  color: var(--ink-2);
-}
-.fds-studio .stu-insight-body strong {
-  color: var(--ink); font-weight: 600;
-  font-family: var(--font-display);
-  font-variant-numeric: tabular-nums;
-  letter-spacing: -0.005em;
-}
-.fds-studio .stu-insight-body .stu-pos { color: var(--accent-bright); }
-.fds-studio .stu-insight-body em {
-  font-style: normal; color: var(--bad); font-weight: 500;
+@keyframes fo-modal-in {
+  from { transform: translateY(16px); opacity: 0; }
+  to   { transform: translateY(0); opacity: 1; }
 }
 
-/* ─── Info banner (logic do crédito no Planejamento) ─── */
-.fds-studio .pln-info-banner {
-  display: flex; gap: 12px;
-  background: var(--accent-soft);
-  border: 1px solid color-mix(in oklab, var(--accent) 18%, var(--border));
-  border-radius: 10px;
-  padding: 10px 14px;
-  margin-top: -2px;
+.fo-modal-head {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 14px 16px;
+  border-bottom: 1px solid var(--border);
 }
-.fds-studio .pln-info-icon {
-  width: 28px; height: 28px;
-  border-radius: 8px;
-  background: var(--accent);
-  color: white;
-  display: flex; align-items: center; justify-content: center;
-  flex: none;
+.fo-modal-title {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-family: var(--font-display);
+  font-weight: 700;
+  font-size: 16px;
+  color: var(--ink);
+  letter-spacing: -0.01em;
+  flex: 1;
+  min-width: 0;
 }
-.fds-studio .pln-info-body { flex: 1; }
-.fds-studio .pln-info-title {
-  display: flex; align-items: center; justify-content: space-between;
-  font-size: 13px; font-weight: 550;
-  color: var(--accent-2);
+.fo-modal-emoji { font-size: 22px; line-height: 1; }
+.fo-modal-close {
+  width: 40px;
+  height: 40px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: transparent;
+  border: 0;
+  color: var(--ink-3);
+  cursor: pointer;
+  border-radius: var(--radius-md);
+  padding: 0;
+  touch-action: manipulation;
+  -webkit-tap-highlight-color: transparent;
+}
+.fo-modal-close:active { background: var(--card-soft); }
+
+.fo-modal-body {
+  padding: 14px 16px 6px;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
   gap: 12px;
 }
-.fds-studio .pln-info-title strong { font-weight: 700; }
-.fds-studio .pln-info-toggle {
-  display: inline-flex; align-items: center; gap: 4px;
-  background: transparent; border: 0;
-  font-family: inherit;
-  font-size: 11.5px; font-weight: 600;
-  color: var(--accent);
-  cursor: pointer;
-  padding: 4px 8px;
-  border-radius: 6px;
-  transition: background 0.12s;
+
+.fo-modal-label {
+  font-size: 12px;
+  text-transform: uppercase;
+  letter-spacing: var(--tracking-eyebrow);
+  font-weight: 600;
+  color: var(--muted);
 }
-.fds-studio .pln-info-toggle:hover { background: color-mix(in oklab, var(--accent) 12%, var(--accent-soft)); }
-.fds-studio .pln-info-desc {
-  margin-top: 8px;
-  font-size: 12.5px; line-height: 1.55;
+
+.fo-input-wrap {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 10px 12px;
+  background: var(--card);
+  border: 1.5px solid var(--border-strong);
+  border-radius: var(--radius-md);
+  transition: border-color 0.15s;
+}
+.fo-input-wrap:focus-within { border-color: var(--accent); box-shadow: 0 0 0 3px var(--accent-soft); }
+.fo-input-prefix {
+  font-family: var(--font-mono);
+  font-size: 16px;
+  font-weight: 600;
+  color: var(--muted);
+}
+.fo-input {
+  flex: 1;
+  border: 0;
+  outline: 0;
+  background: transparent;
+  font-family: var(--font-mono);
+  font-weight: 600;
+  font-size: 18px; /* iOS no-zoom */
+  color: var(--ink);
+  font-variant-numeric: tabular-nums;
+  padding: 0;
+  min-width: 0;
+}
+
+.fo-modal-section-title {
+  font-size: 12px;
+  text-transform: uppercase;
+  letter-spacing: var(--tracking-eyebrow);
+  font-weight: 600;
+  color: var(--muted);
+  margin-top: 4px;
+}
+
+.fo-radios {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.fo-radio {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-height: 44px;
+  padding: 8px 12px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  background: var(--card);
+  cursor: pointer;
+  touch-action: manipulation;
+  -webkit-tap-highlight-color: transparent;
+  font-size: 14px;
   color: var(--ink-2);
 }
-.fds-studio .pln-info-desc strong { color: var(--ink); font-weight: 600; }
-.fds-studio .fds-tx-kpis { gap: 12px; }
-.fds-studio .fds-card { border-color: var(--border); }
-
-/* ─── fds-field-link (link inside a field label, e.g. "Gerenciar") ─── */
-.fds-studio .fds-field-link {
-  display: inline-flex; align-items: center; gap: 3px;
-  margin-left: auto;
-  background: transparent; border: 0;
-  font-family: inherit;
-  font-size: 11px; font-weight: 600;
-  color: var(--accent);
-  cursor: pointer;
-  padding: 2px 6px;
-  border-radius: 5px;
-  text-transform: none;
-  letter-spacing: 0;
+.fo-radio.on {
+  border-color: var(--accent);
+  background: var(--accent-soft);
+  color: var(--ink);
 }
-.fds-studio .fds-field-link:hover { background: var(--accent-soft); }
-.fds-studio .fds-field {
-  display: flex; flex-direction: column;
+.fo-radio input { position: absolute; opacity: 0; pointer-events: none; width: 0; height: 0; }
+.fo-radio-mark {
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  border: 2px solid var(--border-strong);
+  background: var(--card);
+  flex: none;
+  position: relative;
+  transition: border-color 0.15s;
 }
-.fds-studio .fds-field > span:first-child {
-  display: flex; align-items: center;
+.fo-radio.on .fo-radio-mark {
+  border-color: var(--accent);
 }
-
-/* CategoryAvatar shows nicely in transaction descriptions */
-.fds-studio .fds-tx-desc {
-  display: flex; align-items: center; gap: 9px;
-}
-.fds-studio .fds-tx-desc-main { font-weight: 550; }
-
-/* New transaction row highlight (when added via modal) */
-.fds-studio tr.fds-tx-new td {
-  animation: fds-row-pulse-tr 2200ms ease-out 1;
-}
-@keyframes fds-row-pulse-tr {
-  0%   { background: color-mix(in oklab, var(--accent-bright) 16%, transparent); }
-  100% { background: transparent; }
-}
-.fds-studio tr.fds-tx-new td:first-child::before {
-  content: ''; display: inline-block;
-  width: 4px; height: 16px;
+.fo-radio.on .fo-radio-mark::after {
+  content: '';
+  position: absolute;
+  inset: 3px;
+  border-radius: 50%;
   background: var(--accent);
-  border-radius: 2px;
-  margin-right: 6px;
-  vertical-align: middle;
+}
+.fo-radio-label { font-weight: 500; }
+
+.fo-months-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 8px;
+  margin-top: 2px;
+}
+.fo-month-chip {
+  min-height: 44px;
+  min-width: 44px;
+  padding: 0 6px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid var(--border);
+  background: var(--card);
+  border-radius: var(--radius-md);
+  font-family: var(--font-display);
+  font-weight: 600;
+  font-size: 13px;
+  color: var(--ink-2);
+  cursor: pointer;
+  touch-action: manipulation;
+  -webkit-tap-highlight-color: transparent;
+}
+.fo-month-chip.on {
+  background: var(--accent);
+  color: var(--bg-elev);
+  border-color: var(--accent);
 }
 
-/* ─── Mobile responsive (≤768px) ─── */
-@media (max-width: 768px) {
-  /* Problema 1: cards de categoria não vazam */
-  .fds-studio .orc-cat-row,
-  .fds-studio .orc-cat-card,
-  .fds-studio .orc-cat-list {
-    min-width: 0;
-    max-width: 100%;
-    overflow: hidden;
-  }
+.fo-modal-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 12px 16px 16px;
+  border-top: 1px solid var(--border);
+  background: var(--card);
+}
 
-  .fds-studio .orc-cat-bar-track {
-    min-width: 0;
-    flex: 1;
-    overflow: hidden;
-  }
+.fo-btn {
+  min-height: 44px;
+  padding: 0 16px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: var(--radius-md);
+  font-family: var(--font-sans);
+  font-weight: 600;
+  font-size: 14px;
+  cursor: pointer;
+  touch-action: manipulation;
+  -webkit-tap-highlight-color: transparent;
+  border: 1px solid transparent;
+  transition: background 0.12s, border-color 0.12s;
+}
+.fo-btn:disabled { opacity: 0.55; cursor: not-allowed; }
+.fo-btn-primary {
+  background: var(--accent);
+  color: var(--bg-elev);
+  border-color: var(--accent);
+}
+.fo-btn-primary:active { background: var(--accent-2); border-color: var(--accent-2); }
+.fo-btn-ghost {
+  background: var(--card);
+  color: var(--ink-2);
+  border-color: var(--border);
+}
+.fo-btn-ghost:active { background: var(--card-soft); }
+.fo-btn-danger {
+  background: var(--card);
+  color: var(--bad);
+  border-color: var(--bad);
+}
+.fo-btn-danger:active { background: var(--bad-soft); }
 
-  .fds-studio .orc-cat-bar-fill {
-    max-width: 100%;
-  }
+/* ============================================================
+   Responsive >= 768px
+   ============================================================ */
 
-  .fds-studio .orc-cat-values {
-    flex-wrap: wrap;
-    gap: 4px 12px;
+@media (min-width: 768px) {
+  .fo-page {
+    padding: 20px 28px 40px;
+    max-width: 760px;
+    margin: 0 auto;
   }
-
-  .fds-studio .orc-cat-val {
-    white-space: nowrap;
-    font-size: clamp(10px, 2.5vw, 13px);
+  .fo-header {
+    margin: -20px -28px 16px;
+    padding: 18px 28px 14px;
+    gap: 12px;
   }
+  .fo-title { font-size: 28px; }
+  .fo-month-current { font-size: 18px; }
 
-  /* Fix: gráfico cabe na largura do card sem scroll horizontal —
-     6 colunas em flex:1 dividem igualmente o espaço disponível (~52px cada) */
-  .fds-studio .orc-history-wrap {
-    overflow-x: hidden;   /* sem scrollbar */
-    padding-bottom: 0;
-  }
+  .fo-card { padding: 16px 18px; }
+  .fo-card-label { font-size: 16px; }
+  .fo-card-amounts { font-size: 13px; }
 
-  .fds-studio .orc-history-grid {
-    display: flex;
+  .fo-group-name { font-size: 15px; }
+  .fo-group-totals { font-size: 12.5px; }
+
+  .fo-modal-backdrop { align-items: center; }
+  .fo-modal { max-width: 480px; border-radius: var(--radius-xl); }
+  .fo-modal-actions {
     flex-direction: row;
-    align-items: flex-end;
-    gap: 6px;             /* gap menor que os 12px originais para caber 6 colunas */
-    min-width: 0;         /* permite encolher (era max-content) */
-    width: 100%;          /* ocupa toda a largura disponível */
-    padding: 0;
-    height: auto;
-  }
-
-  .fds-studio .orc-history-col {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    gap: 4px;
-    flex: 1;              /* distribui igualmente (era min-width:56px flex-shrink:0) */
-    min-width: 0;
-    height: auto;
     justify-content: flex-end;
   }
-
-  .fds-studio .orc-history-bars {
-    height: 120px;
-    gap: 3px;
-    padding: 0;
-    overflow: hidden;
-    width: 100%;          /* ocupa toda a largura da coluna */
-  }
-
-  .fds-studio .orc-history-bar {
-    flex: 1;              /* barra preenche a coluna (era width:20px flex:none) */
-    min-width: 0;
-    min-height: 4px;
-    max-height: 100%;
-  }
-
-  .fds-studio .orc-history-month {
-    font-size: 10px;      /* 11px → 10px para caber melhor nas colunas menores */
-    white-space: nowrap;
-  }
-
-  .fds-studio .orc-history-pct {
-    font-size: 9px;       /* 10px → 9px proporcional */
-  }
-
-  .fds-studio .orc-history-foot {
-    grid-template-columns: 1fr 1fr;
-    gap: 8px;
-    margin-top: 12px;
-    padding-top: 14px;
+  .fo-modal-actions .fo-btn-danger {
+    margin-right: auto;
   }
 }
 
-@media (max-width: 480px) {
-  .fds-studio .orc-history-foot {
-    grid-template-columns: 1fr;
-  }
+/* ============================================================
+   Responsive >= 1024px
+   ============================================================ */
+
+@media (min-width: 1024px) {
+  .fo-page { max-width: 880px; }
+  .fo-card { padding: 18px 20px; }
 }
