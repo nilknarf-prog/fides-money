@@ -69,6 +69,7 @@ function FidesStudioShell({ initialPage = 'dashboard' }) {
       <CategoriaModal open={categoryModalOpen} onClose={closeCategoryModal}/>
       <FidesAssistant/>
       <FidesAssistantFAB/>
+      <window.FidesUI.ToastViewport />
     </div>
   );
 }

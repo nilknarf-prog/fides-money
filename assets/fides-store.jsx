@@ -575,7 +575,7 @@ function FidesProvider({ children }) {
       } catch (err) {
         console.error('[Fides] addCategory:', err.message);
         setCategories(prev => { const nx = { ...prev }; delete nx[uniqueId]; return nx; });
-        window.alert('Não foi possível salvar a categoria. Tente novamente.');
+        window.FidesUI.toast.error('Não foi possível salvar a categoria. Tente novamente.');
       }
     }
     return uniqueId;
@@ -602,7 +602,7 @@ function FidesProvider({ children }) {
       } catch (err) {
         console.error('[Fides] updateCategory:', err.message);
         setCategories(prev => ({ ...prev, [id]: prevCat }));
-        window.alert('Não foi possível atualizar a categoria. Tente novamente.');
+        window.FidesUI.toast.error('Não foi possível atualizar a categoria. Tente novamente.');
       }
     }
   }, [mode, userId, categories]);
@@ -627,7 +627,7 @@ function FidesProvider({ children }) {
         console.error('[Fides] deleteCategory:', err.message);
         setTransactions(txSnapshot);
         setCategories(prev => ({ ...prev, [id]: prevCat }));
-        window.alert('Não foi possível excluir a categoria. Tente novamente.');
+        window.FidesUI.toast.error('Não foi possível excluir a categoria. Tente novamente.');
       }
     }
   }, [mode, userId, categories, transactions]);

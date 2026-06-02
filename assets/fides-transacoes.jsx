@@ -143,7 +143,7 @@ function Transacoes({ variant, onAdd }) {
         const text = ev.target.result;
         if (fmt === 'ofx') {
           const blocks = text.match(/<STMTTRN>[\s\S]*?<\/STMTTRN>/gi) || [];
-          if (blocks.length === 0) { alert('Nenhuma transação encontrada no arquivo OFX.'); return; }
+          if (blocks.length === 0) { window.FidesUI.toast.error('Nenhuma transação encontrada no arquivo OFX.'); return; }
           const getTag = (block, tag) => {
             const m = block.match(new RegExp(`<${tag}>([^<\n\r]+)`, 'i'));
             return m ? m[1].trim() : '';
@@ -168,10 +168,10 @@ function Transacoes({ variant, onAdd }) {
             });
             imported++;
           });
-          alert(`${imported} transação(ões) importada(s)${errors > 0 ? `, ${errors} bloco(s) ignorado(s)` : ''}.`);
+          window.FidesUI.toast.success(`${imported} transação(ões) importada(s)${errors > 0 ? `, ${errors} bloco(s) ignorado(s)` : ''}.`);
         } else {
           const lines = text.split(/\r?\n/).filter(Boolean);
-          if (lines.length < 2) { alert('CSV vazio ou sem dados.'); return; }
+          if (lines.length < 2) { window.FidesUI.toast.error('CSV vazio ou sem dados.'); return; }
           const sep = lines[0].includes(';') ? ';' : ',';
           let imported = 0, errors = 0;
           lines.slice(1).forEach(line => {
@@ -193,7 +193,7 @@ function Transacoes({ variant, onAdd }) {
             });
             imported++;
           });
-          alert(`${imported} transação(ões) importada(s)${errors > 0 ? `, ${errors} linha(s) ignorada(s)` : ''}.`);
+          window.FidesUI.toast.success(`${imported} transação(ões) importada(s)${errors > 0 ? `, ${errors} linha(s) ignorada(s)` : ''}.`);
         }
       };
       reader.readAsText(file, 'UTF-8');
@@ -689,6 +689,7 @@ function TxKpi({ label, value, accent, delta, spark, kind, variant, pendingCount
 // ─── Modal: Editar Transação ──────────────────────────────────
 function EditTxModal({ tx, onClose }) {
   const { categories, updateTransaction, deleteTransaction, accounts } = useFides();
+  const { confirm: confirmDelete, ConfirmHost } = window.FidesUI.useConfirm();
 
   const parseVal = (s) => {
     const clean = String(s).replace(/\./g, '').replace(',', '.');
@@ -719,8 +720,9 @@ function EditTxModal({ tx, onClose }) {
     onClose();
   };
 
-  const handleDelete = () => {
-    if (window.confirm(`Excluir "${tx.desc}"?`)) {
+  const handleDelete = async () => {
+    const ok = await confirmDelete({ title: `Excluir "${tx.desc}"?`, destructive: true });
+    if (ok) {
       deleteTransaction(tx._id);
       onClose();
     }
@@ -812,6 +814,7 @@ function EditTxModal({ tx, onClose }) {
           </div>
         </footer>
       </div>
+      <ConfirmHost />
     </div>
   );
 }
