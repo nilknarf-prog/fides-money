@@ -24,79 +24,278 @@ function makeTapHandler(onTap) {
   };
 }
 
+// ─── Helpers locais ─────────────────────────────────────────────
+var TX_MONTHS_LBL = ['Jan','Fev','Mar','Abr','Mai','Jun','Jul','Ago','Set','Out','Nov','Dez'];
+
+function txDateToNum(d) {
+  var parts = String(d || '').split('/');
+  var day = parseInt(parts[0], 10) || 0;
+  var month = parseInt(parts[1], 10) || 0;
+  return month * 100 + day;
+}
+
+function acctNameOf(id, accounts, cards) {
+  var a = accounts.find(function(x) { return x.id === id; });
+  if (a) return { name: a.name, color: a.color, kind: 'conta' };
+  var c = cards.find(function(x) { return x.id === id; });
+  if (c) return { name: c.name, color: c.color || 'var(--ink-3)', kind: 'cartao' };
+  return null;
+}
+
+// ─── Modal de filtros avancados (bottom sheet) ──────────────────
+function TxAdvFiltersModal({ open, onClose, filters, onApply, categories, accounts, cards }) {
+  var initial = filters || { categoriasSelected: [], contasSelected: [], recurring: 'all' };
+  var [draft, setDraft] = React.useState(initial);
+
+  React.useEffect(function() {
+    if (open) setDraft(filters || { categoriasSelected: [], contasSelected: [], recurring: 'all' });
+  }, [open]);
+
+  if (!open) return null;
+
+  function toggleCat(id) {
+    var list = draft.categoriasSelected.indexOf(id) >= 0
+      ? draft.categoriasSelected.filter(function(x) { return x !== id; })
+      : draft.categoriasSelected.concat([id]);
+    setDraft(Object.assign({}, draft, { categoriasSelected: list }));
+  }
+  function toggleAcct(id) {
+    var list = draft.contasSelected.indexOf(id) >= 0
+      ? draft.contasSelected.filter(function(x) { return x !== id; })
+      : draft.contasSelected.concat([id]);
+    setDraft(Object.assign({}, draft, { contasSelected: list }));
+  }
+  function clearAll() {
+    var cleared = { categoriasSelected: [], contasSelected: [], recurring: 'all' };
+    setDraft(cleared);
+    onApply(cleared);
+  }
+
+  var catEntries = Object.entries(categories);
+  var allAccts = (accounts || []).concat(cards || []);
+
+  return (
+    <div className="fds-tx-adv-backdrop" onClick={onClose}>
+      <div className="fds-tx-adv-sheet" onClick={function(e) { e.stopPropagation(); }}>
+        <header className="fds-tx-adv-head">
+          <h2 className="fds-tx-adv-title">Filtros avançados</h2>
+          <button className="fds-tx-adv-close" onClick={onClose} aria-label="Fechar">
+            <Icon.X size={16}/>
+          </button>
+        </header>
+
+        <div className="fds-tx-adv-body">
+          <section className="fds-tx-adv-section">
+            <h3 className="fds-tx-adv-label">Categorias</h3>
+            <div className="fds-tx-adv-chips">
+              {catEntries.map(function(entry) {
+                var k = entry[0], c = entry[1];
+                var on = draft.categoriasSelected.indexOf(k) >= 0;
+                return (
+                  <button key={k} type="button"
+                          className={'fds-chip' + (on ? ' on' : '')}
+                          onClick={function() { toggleCat(k); }}>
+                    <span className="fds-tx-adv-cat-emoji">{c.emoji || '·'}</span>
+                    {c.label}
+                  </button>
+                );
+              })}
+            </div>
+          </section>
+
+          <section className="fds-tx-adv-section">
+            <h3 className="fds-tx-adv-label">Contas e cartões</h3>
+            <div className="fds-tx-adv-chips">
+              {allAccts.map(function(a) {
+                var on = draft.contasSelected.indexOf(a.id) >= 0;
+                return (
+                  <button key={a.id} type="button"
+                          className={'fds-chip' + (on ? ' on' : '')}
+                          onClick={function() { toggleAcct(a.id); }}>
+                    <span className="fds-tx-adv-acct-dot" style={{ background: a.color || 'var(--ink-3)' }}/>
+                    {a.name}
+                  </button>
+                );
+              })}
+            </div>
+          </section>
+
+          <section className="fds-tx-adv-section">
+            <h3 className="fds-tx-adv-label">Recorrência</h3>
+            <div className="fds-tx-adv-radio-group">
+              {[
+                { value: 'all', label: 'Todas' },
+                { value: 'recurring', label: 'Apenas recorrentes' },
+                { value: 'oneTime', label: 'Apenas únicas' },
+              ].map(function(opt) {
+                return (
+                  <label key={opt.value} className="fds-tx-adv-radio">
+                    <input type="radio" name="tx-adv-recur" value={opt.value}
+                           checked={draft.recurring === opt.value}
+                           onChange={function() {
+                             setDraft(Object.assign({}, draft, { recurring: opt.value }));
+                           }}/>
+                    <span>{opt.label}</span>
+                  </label>
+                );
+              })}
+            </div>
+          </section>
+        </div>
+
+        <footer className="fds-tx-adv-foot">
+          <button type="button" className="fds-btn-ghost" onClick={clearAll}>
+            Limpar filtros
+          </button>
+          <button type="button" className="fds-btn-primary"
+                  onClick={function() { onApply(draft); onClose(); }}>
+            <Icon.Check size={14}/> Aplicar
+          </button>
+        </footer>
+      </div>
+    </div>
+  );
+}
+
+// ─── Componente principal ──────────────────────────────────────
 function Transacoes({ variant, onAdd }) {
-  const { monthTransactions, transactions, categories, selectedMonth, setSelectedMonth, monthLabel, addTransaction, updateTransaction, deleteTransaction, accounts } = useFides();
-  const [selectedMonthChip, setSelectedMonthChip] = React.useState(null);
-  const [filter, setFilter] = React.useState('todas');
-  const [catFilter, setCatFilter] = React.useState(null);    // category key or null
-  const [catDropdownOpen, setCatDropdownOpen] = React.useState(false);
+  const { monthTransactions, transactions, categories, selectedMonth, setSelectedMonth, monthLabel, addTransaction, updateTransaction, deleteTransaction, accounts, cards } = useFides();
+  const [sortBy, setSortBy] = React.useState('data');         // data | categoria | conta | valor
+  const [sortOrder, setSortOrder] = React.useState('desc');    // desc | asc
+  const [filterType, setFilterType] = React.useState('todas'); // todas | receitas | despesas | pendentes
   const [search, setSearch] = React.useState('');
-  const [selected, setSelected] = React.useState(new Set());
-  const [hoverRow, setHoverRow] = React.useState(null);
-  const [visibleCount, setVisibleCount] = React.useState(20);
-  const [rowMenu, setRowMenu] = React.useState(null);         // index of open row menu
-  const [rowCatPicker, setRowCatPicker] = React.useState(null); // tx _id being re-categorised
+  const [selectedIds, setSelectedIds] = React.useState(new Set()); // Set<tx._id>
+  const [advFilterOpen, setAdvFilterOpen] = React.useState(false);
+  const [advFilters, setAdvFilters] = React.useState({
+    categoriasSelected: [],
+    contasSelected: [],
+    recurring: 'all',
+  });
   const [bulkCatPicker, setBulkCatPicker] = React.useState(false);
+  const [editingTx, setEditingTx] = React.useState(null);
   const refConfirm = window.FidesUI.useConfirm();
   const confirmAction = refConfirm.confirm;
   const ConfirmHost = refConfirm.ConfirmHost;
-  const [editingTx, setEditingTx] = React.useState(null);
-  const [acctFilter, setAcctFilter] = React.useState(null);
-  const [acctDropdownOpen, setAcctDropdownOpen] = React.useState(false);
-  const [recurFilter, setRecurFilter] = React.useState(null);
-  const [recurDropdownOpen, setRecurDropdownOpen] = React.useState(false);
 
-  // Refs para fechar apenas o dropdown cujo toque foi fora
-  const catDdRef   = React.useRef(null);
-  const acctDdRef  = React.useRef(null);
-  const recurDdRef = React.useRef(null);
+  const safeAccounts = accounts || [];
+  const safeCards = cards || [];
 
-  const lbl = monthLabel(selectedMonth);
+  const lblRaw = monthLabel(selectedMonth);
+  const lbl = (lblRaw && typeof lblRaw === 'object')
+    ? lblRaw
+    : { short: String(lblRaw || selectedMonth), long: String(lblRaw || selectedMonth) };
 
-  // Fecha dropdown somente se o toque/click foi FORA dele
-  React.useEffect(() => {
-    // iOS: e.target pode ser <path> interno de SVG — usar closest() para subir ao elemento com ref
-    const inside = (ref, t) =>
-      ref.current && (ref.current.contains(t) ||
-        (t.closest && ref.current.contains(t.closest('button,[data-dd]') || t)));
-
-    const handler = (e) => {
-      const t = e.target;
-      setRowMenu(null);
-      if (catDdRef.current     && !inside(catDdRef,     t)) setCatDropdownOpen(false);
-      if (acctDdRef.current    && !inside(acctDdRef,    t)) setAcctDropdownOpen(false);
-      if (recurDdRef.current   && !inside(recurDdRef,   t)) setRecurDropdownOpen(false);
-    };
-    document.addEventListener('mousedown', handler);
-    document.addEventListener('touchstart', handler, { passive: true });
-    return () => {
-      document.removeEventListener('mousedown', handler);
-      document.removeEventListener('touchstart', handler);
-    };
-  }, []);
-
-  const months = ['Jan','Fev','Mar','Abr','Mai','Jun','Jul','Ago','Set','Out','Nov','Dez'];
   const currentMonthIdx = parseInt(selectedMonth.split('-')[1], 10) - 1;
 
-  // Mostra as do mês corrente (a chip de mês na barra é redundante mas mantida visualmente)
   const baseList = monthTransactions;
-  // Aggregations (totais/contagens) excluem movimentações; a lista renderizada usa baseList completo.
-  const flow = baseList.filter(t => !t.isTransfer);
+  const flow = baseList.filter(function(t) { return !t.isTransfer; });
 
-  const filtered = baseList.filter(t => {
-    if ((filter === 'receitas' || filter === 'despesas') && t.isTransfer) return false;
-    if (filter === 'receitas' && t.val < 0) return false;
-    if (filter === 'despesas' && t.val > 0) return false;
-    if (filter === 'pendentes' && t.status !== 'pendente') return false;
-    if (catFilter  && t.cat  !== catFilter)  return false;
-    if (acctFilter && t.acct !== acctFilter) return false;
-    if (recurFilter && t.recur !== recurFilter) return false;
-    if (search && !t.desc.toLowerCase().includes(search.toLowerCase())) return false;
-    return true;
-  });
+  // ─── Filtragem ─────────────────────────────────────────────
+  const filtered = React.useMemo(function() {
+    var result = baseList.slice();
 
-  const visible = filtered.slice(0, visibleCount);
-  const hasMore = visible.length < filtered.length && visibleCount < 100;
+    if (filterType === 'receitas') {
+      result = result.filter(function(t) { return !t.isTransfer && t.val > 0; });
+    } else if (filterType === 'despesas') {
+      result = result.filter(function(t) { return !t.isTransfer && t.val < 0; });
+    } else if (filterType === 'pendentes') {
+      result = result.filter(function(t) { return !t.isTransfer && t.status === 'pendente'; });
+    }
+
+    if (search) {
+      var q = search.toLowerCase();
+      result = result.filter(function(t) {
+        var inDesc = (t.desc || '').toLowerCase().indexOf(q) >= 0;
+        var inVal = String(t.val).indexOf(q) >= 0;
+        var catLbl = (categories[t.cat] && categories[t.cat].label) || t.cat || '';
+        var inCat = catLbl.toLowerCase().indexOf(q) >= 0;
+        return inDesc || inVal || inCat;
+      });
+    }
+
+    if (advFilters.categoriasSelected.length > 0) {
+      result = result.filter(function(t) {
+        return advFilters.categoriasSelected.indexOf(t.cat) >= 0;
+      });
+    }
+    if (advFilters.contasSelected.length > 0) {
+      result = result.filter(function(t) {
+        return advFilters.contasSelected.indexOf(t.acct) >= 0;
+      });
+    }
+    if (advFilters.recurring === 'recurring') {
+      result = result.filter(function(t) { return !!t.recur; });
+    } else if (advFilters.recurring === 'oneTime') {
+      result = result.filter(function(t) { return !t.recur; });
+    }
+
+    return result;
+  }, [baseList, filterType, search, advFilters, categories]);
+
+  // ─── Ordenacao ─────────────────────────────────────────────
+  const sorted = React.useMemo(function() {
+    var copy = filtered.slice();
+    var dir = sortOrder === 'desc' ? -1 : 1;
+
+    if (sortBy === 'data') {
+      copy.sort(function(a, b) {
+        var diff = txDateToNum(a.d) - txDateToNum(b.d);
+        return diff * dir;
+      });
+    } else if (sortBy === 'categoria') {
+      copy.sort(function(a, b) {
+        var la = (categories[a.cat] && categories[a.cat].label) || a.cat || '';
+        var lb = (categories[b.cat] && categories[b.cat].label) || b.cat || '';
+        return la.localeCompare(lb, 'pt-BR') * dir;
+      });
+    } else if (sortBy === 'conta') {
+      copy.sort(function(a, b) {
+        var na = acctNameOf(a.acct, safeAccounts, safeCards);
+        var nb = acctNameOf(b.acct, safeAccounts, safeCards);
+        var sa = na ? na.name : 'zzz';
+        var sb = nb ? nb.name : 'zzz';
+        return sa.localeCompare(sb, 'pt-BR') * dir;
+      });
+    } else if (sortBy === 'valor') {
+      copy.sort(function(a, b) {
+        return (Math.abs(a.val) - Math.abs(b.val)) * dir;
+      });
+    }
+
+    return copy;
+  }, [filtered, sortBy, sortOrder, categories, safeAccounts, safeCards]);
+
+  // ─── Agrupamento por categoria ou conta ────────────────────
+  const grouped = React.useMemo(function() {
+    if (sortBy === 'data' || sortBy === 'valor') {
+      return sorted.map(function(t) { return { type: 'tx', data: t }; });
+    }
+
+    var groups = {};
+    var order = [];
+    sorted.forEach(function(t) {
+      var key;
+      if (sortBy === 'categoria') {
+        key = (categories[t.cat] && categories[t.cat].label) || t.cat || 'Outros';
+      } else if (sortBy === 'conta') {
+        var info = acctNameOf(t.acct, safeAccounts, safeCards);
+        key = info ? info.name : 'Outros';
+      } else {
+        key = 'Outros';
+      }
+      if (!groups[key]) { groups[key] = []; order.push(key); }
+      groups[key].push(t);
+    });
+
+    var result = [];
+    order.forEach(function(key) {
+      result.push({ type: 'header', groupName: key, txs: groups[key] });
+      groups[key].forEach(function(t) {
+        result.push({ type: 'tx', data: t });
+      });
+    });
+    return result;
+  }, [sorted, sortBy, categories, safeAccounts, safeCards]);
 
   // ── Exportar extrato (CSV ou OFX) ────────────────────────────
   const handleExport = React.useCallback((fmt = 'csv') => {
@@ -187,7 +386,7 @@ function Transacoes({ variant, onAdd }) {
             const dd   = dtRaw.slice(6, 8) || '01';
             addTransaction({
               desc: memo, val: amt, cat: 'outros',
-              acct: ACCOUNTS[0]?.id,
+              acct: safeAccounts[0]?.id,
               d: `${dd}/${mm}`,
               status: 'pendente', recur: null,
               mes: `${yyyy}-${mm}`,
@@ -206,13 +405,13 @@ function Transacoes({ variant, onAdd }) {
             if (!desc || !valStr) { errors++; return; }
             const valRaw = parseFloat(valStr.replace(',', '.'));
             if (isNaN(valRaw)) { errors++; return; }
-            const acctObj = ACCOUNTS.find(a => a.name.toLowerCase() === (acctName || '').toLowerCase());
+            const acctObj = safeAccounts.find(a => a.name.toLowerCase() === (acctName || '').toLowerCase());
             const catKey  = Object.entries(categories).find(
               ([, v]) => v.label.toLowerCase() === (cat || '').toLowerCase()
             )?.[0] || 'outros';
             addTransaction({
               desc, val: valRaw, cat: catKey,
-              acct: acctObj?.id || ACCOUNTS[0]?.id,
+              acct: acctObj?.id || safeAccounts[0]?.id,
               d: d || new Date().toLocaleDateString('pt-BR'),
               status: status === 'pago' ? 'pago' : 'pendente',
               recur: recur || null, mes: selectedMonth,
@@ -227,521 +426,461 @@ function Transacoes({ variant, onAdd }) {
     input.click();
   }, [categories, addTransaction, selectedMonth]);
 
-  const tot = {
-    receitas: flow.filter(t => t.val > 0).reduce((s,t) => s + t.val, 0),
-    despesas: -flow.filter(t => t.val < 0 && t.status === 'pago').reduce((s,t) => s + t.val, 0),
-    pendentes: -flow.filter(t => t.val < 0 && t.status === 'pendente').reduce((s,t) => s + t.val, 0),
-  };
-  const saldo = tot.receitas - tot.despesas;
+  // ─── Totais (sobre 'filtered') ────────────────────────────
+  const totals = React.useMemo(function() {
+    var nonTransfer = filtered.filter(function(t) { return !t.isTransfer; });
+    return {
+      receitas: nonTransfer.filter(function(t) { return t.val > 0; })
+                           .reduce(function(s, t) { return s + t.val; }, 0),
+      despesas: -nonTransfer.filter(function(t) { return t.val < 0; })
+                            .reduce(function(s, t) { return s + t.val; }, 0),
+      saldo: nonTransfer.reduce(function(s, t) { return s + t.val; }, 0),
+    };
+  }, [filtered]);
 
-  const toggleSel = (i) => {
-    const s = new Set(selected);
-    s.has(i) ? s.delete(i) : s.add(i);
-    setSelected(s);
-  };
+  // ─── Contagens dos chips (sobre baseList, exclui transferencia) ─
+  const chipCounts = React.useMemo(function() {
+    var nt = baseList.filter(function(t) { return !t.isTransfer; });
+    return {
+      todas: baseList.length,
+      receitas: nt.filter(function(t) { return t.val > 0; }).length,
+      despesas: nt.filter(function(t) { return t.val < 0; }).length,
+      pendentes: nt.filter(function(t) { return t.status === 'pendente'; }).length,
+    };
+  }, [baseList]);
 
-  // ── Bulk action helpers ───────────────────────────────────────
-  const selTxs = () => [...selected].map(i => filtered[i]).filter(Boolean);
-  const selSaldo = selTxs().reduce((s, t) => s + (t.val || 0), 0);
-  const clearSel = () => { setSelected(new Set()); setBulkCatPicker(false); };
+  // ─── Selecao por tx._id (estavel a reordenacao) ───────────
+  const toggleSelect = React.useCallback(function(txId) {
+    setSelectedIds(function(prev) {
+      var s = new Set(prev);
+      if (s.has(txId)) s.delete(txId); else s.add(txId);
+      return s;
+    });
+  }, []);
 
-  const bulkMarkPaid = () => {
-    const n = selected.size;
-    selTxs().forEach(t => updateTransaction(t._id, { status: 'pago' }));
+  const toggleSelectAll = React.useCallback(function() {
+    setSelectedIds(function(prev) {
+      if (prev.size === sorted.length && sorted.length > 0) return new Set();
+      return new Set(sorted.map(function(t) { return t._id; }));
+    });
+  }, [sorted]);
+
+  const clearSel = React.useCallback(function() {
+    setSelectedIds(new Set());
+    setBulkCatPicker(false);
+  }, []);
+
+  function selTxs() {
+    var byId = {};
+    sorted.forEach(function(t) { byId[t._id] = t; });
+    var out = [];
+    selectedIds.forEach(function(id) { if (byId[id]) out.push(byId[id]); });
+    return out;
+  }
+
+  const bulkMarkPaid = function() {
+    var txs = selTxs();
+    var n = txs.length;
+    if (n === 0) return;
+    txs.forEach(function(t) { updateTransaction(t._id, { status: 'pago' }); });
     clearSel();
     window.FidesUI.toast.success(n > 1 ? (n + ' transações marcadas como pagas') : '1 transação marcada como paga');
   };
-  const bulkDelete = async () => {
-    const n = selected.size;
-    const ok = await confirmAction({
+
+  const bulkDelete = async function() {
+    var txs = selTxs();
+    var n = txs.length;
+    if (n === 0) return;
+    var ok = await confirmAction({
       title: n > 1 ? ('Excluir ' + n + ' transações?') : 'Excluir transação?',
       message: 'Esta ação não pode ser desfeita.',
       destructive: true,
       confirmLabel: 'Excluir'
     });
     if (!ok) return;
-    selTxs().forEach(t => deleteTransaction(t._id));
+    txs.forEach(function(t) { deleteTransaction(t._id); });
     clearSel();
     window.FidesUI.toast.success(n > 1 ? (n + ' transações excluídas') : '1 transação excluída');
   };
-  const bulkCategorize = (catKey) => {
-    const n = selected.size;
-    selTxs().forEach(t => updateTransaction(t._id, { cat: catKey }));
+
+  const bulkCategorize = function(catKey) {
+    var txs = selTxs();
+    var n = txs.length;
+    if (n === 0) return;
+    txs.forEach(function(t) { updateTransaction(t._id, { cat: catKey }); });
     clearSel();
-    const lbl = categories[catKey] ? categories[catKey].label : catKey;
-    window.FidesUI.toast.success((n > 1 ? (n + ' transações movidas') : '1 transação movida') + ' para ' + lbl);
-  };
-  const bulkEdit = () => {
-    if (selected.size === 1) {
-      const idx = [...selected][0];
-      const tx = filtered[idx];
-      if (tx) setEditingTx({ ...tx });
-    } else {
-      window.FidesUI.toast.warn('Edição em lote não suportada. Selecione 1 transação.');
-    }
+    var catLbl = (categories[catKey] && categories[catKey].label) || catKey;
+    window.FidesUI.toast.success((n > 1 ? (n + ' transações movidas') : '1 transação movida') + ' para ' + catLbl);
   };
 
-  // Todas as categorias disponiveis (para o seletor de categorizar em lote),
-  // ordenadas alfabeticamente. Diferente de catsInList (abaixo), que so contem
-  // as categorias ja presentes no mes e e usado no chip de filtro.
-  const allCats = Object.entries(categories).sort((a, b) =>
-    (a[1].label || a[0]).localeCompare(b[1].label || b[0], 'pt-BR')
-  );
-
-  // Valores preservados durante a animacao de saida do bottom sheet, para nao
-  // "piscar" 0 selecionada enquanto a folha desliza para baixo.
-  const shownCountRef = React.useRef(0);
-  const shownSaldoRef = React.useRef(0);
-  if (selected.size > 0) {
-    shownCountRef.current = selected.size;
-    shownSaldoRef.current = selSaldo;
-  }
-
-  // Unique categories present in the current month list (for the dropdown)
-  const catsInList = [...new Set(baseList.map(t => t.cat))].sort((a, b) => {
-    const la = categories[a]?.label || a;
-    const lb = categories[b]?.label || b;
-    return la.localeCompare(lb, 'pt-BR');
+  const allCats = Object.entries(categories).sort(function(a, b) {
+    return ((a[1].label || a[0])).localeCompare((b[1].label || b[0]), 'pt-BR');
   });
 
-  return (
-    <div className="fds-page" data-od-id="transacoes">
-      {/* KPI Strip */}
-      <section className="fds-tx-kpis" data-od-id="tx-kpis">
-        <TxKpi label="Saldo do mês"    value={saldo}        accent="var(--ink)"  variant={variant}/>
-        <TxKpi label="Receitas"        value={tot.receitas} accent="var(--ok)"   delta={+8.2} variant={variant} spark={[6,8,7,9,10,11,12]}/>
-        <TxKpi label="Despesas pagas"  value={-tot.despesas} accent="var(--bad)" delta={-6.3} variant={variant} spark={[10,9,11,8,9,7,6]}/>
-        <TxKpi label="Pendentes"       value={-tot.pendentes} accent="var(--warn)" kind="pending" pendingCount={transactions.filter(t=>t.status==='pendente').length} variant={variant}
-               onSeePending={() => { setFilter('pendentes'); document.querySelector('.fds-tx-table-card')?.scrollIntoView({ behavior:'smooth', block:'start' }); }}/>
-      </section>
+  function handleSortClick(by) {
+    if (sortBy === by) {
+      setSortOrder(function(o) { return o === 'desc' ? 'asc' : 'desc'; });
+    } else {
+      setSortBy(by);
+      setSortOrder('desc');
+    }
+  }
 
-      {/* Filter Bar */}
-      <section className="fds-card fds-tx-filters" data-od-id="tx-filtros">
-        <div className="fds-tx-filter-row">
-          <div className="fds-tx-year">
+  function clearAllFilters() {
+    setFilterType('todas');
+    setSearch('');
+    setAdvFilters({ categoriasSelected: [], contasSelected: [], recurring: 'all' });
+  }
+
+  const advCount = advFilters.categoriasSelected.length + advFilters.contasSelected.length
+                 + (advFilters.recurring !== 'all' ? 1 : 0);
+  const hasAnyFilter = filterType !== 'todas' || !!search || advCount > 0;
+
+  // Sort labels para a UI
+  const SORT_LABELS = { data: 'Data', categoria: 'Categoria', conta: 'Conta', valor: 'Valor' };
+
+  return (
+    <div className="fds-page fds-tx-v2" data-od-id="transacoes">
+      {/* ─── Header: ano + meses + acoes ─── */}
+      <section className="fds-card fds-tx-v2-header" data-od-id="tx-cabecalho">
+        <div className="fds-tx-v2-monthrow">
+          <div className="fds-tx-v2-year" aria-label="Ano selecionado">
             <span>{selectedMonth.split('-')[0]}</span>
             <Icon.Down size={13}/>
           </div>
-          <div className="fds-tx-months">
-            {months.map((m, i) => (
-              <button key={m} className={`fds-month${i === currentMonthIdx ? ' on' : ''}`}
-                      onClick={() => {
-                        const yr = selectedMonth.split('-')[0];
-                        setSelectedMonth(`${yr}-${String(i + 1).padStart(2,'0')}`);
-                      }}>
-                {m}
-              </button>
-            ))}
+          <div className="fds-tx-v2-months" role="tablist" aria-label="Meses">
+            {TX_MONTHS_LBL.map(function(m, i) {
+              var on = i === currentMonthIdx;
+              return (
+                <button key={m} type="button"
+                        role="tab" aria-selected={on}
+                        className={'fds-tx-v2-month' + (on ? ' on' : '')}
+                        onClick={function() {
+                          var yr = selectedMonth.split('-')[0];
+                          setSelectedMonth(yr + '-' + String(i + 1).padStart(2, '0'));
+                        }}>
+                  {m}
+                </button>
+              );
+            })}
           </div>
         </div>
-        <div className="fds-tx-filter-row">
-          <div className="fds-tx-chips">
-            {[
-              ['todas','Todas',baseList.length],
-              ['receitas','Receitas',flow.filter(t=>t.val>0).length],
-              ['despesas','Despesas',flow.filter(t=>t.val<0).length],
-              ['pendentes','Pendentes',baseList.filter(t=>t.status==='pendente').length],
-            ].map(([k,l,c]) => (
-              <button key={k} className={`fds-chip${filter === k ? ' on' : ''}`} onClick={() => setFilter(k)}>
-                {l} <span className="fds-chip-count">{c}</span>
-              </button>
-            ))}
-            <span className="fds-chip-sep"/>
-            <div ref={catDdRef} style={{ position: 'relative', display: 'inline-flex' }}>
-              <button className={`fds-chip${catFilter ? ' on' : ''}`}
-                      onClick={(e) => { e.stopPropagation(); setCatDropdownOpen(v => !v); }}>
-                <Icon.Filter size={13}/>
-                {catFilter ? (categories[catFilter]?.label || catFilter) : 'Categoria'}
-                {catFilter && (
-                  <span style={{ marginLeft: 4, opacity: 0.7, lineHeight: 1 }}
-                        onClick={(e) => { e.stopPropagation(); setCatFilter(null); setCatDropdownOpen(false); }}>
-                    ×
-                  </span>
-                )}
-              </button>
-              {catDropdownOpen && (
-                <div className="fds-cat-picker-dd"
-                     onClick={(e) => e.stopPropagation()}
-                     onTouchStart={(e) => e.stopPropagation()}>
-                  <div className="fds-cat-picker-head">Filtrar por categoria</div>
-                  <button className={`fds-cat-picker-item${!catFilter ? ' on' : ''}`}
-                          onClick={() => { setCatFilter(null); setCatDropdownOpen(false); }}
-                          onTouchEnd={(e) => { e.preventDefault(); e.currentTarget.click(); }}>
-                    <span style={{ width: 18, height: 18, display: 'inline-block' }}/>
-                    <span>Todas as categorias</span>
-                    <span className="fds-chip-count">{baseList.length}</span>
-                  </button>
-                  {catsInList.map(k => {
-                    const c = categories[k] || { label: k, tint: '#888' };
-                    const cnt = baseList.filter(t => t.cat === k).length;
-                    return (
-                      <button key={k} className={`fds-cat-picker-item${catFilter === k ? ' on' : ''}`}
-                              onClick={() => { setCatFilter(k); setCatDropdownOpen(false); }}
-                              onTouchEnd={(e) => { e.preventDefault(); e.currentTarget.click(); }}>
-                        <CategoryAvatar cat={k} size={18}/>
-                        <span>{c.label}</span>
-                        <span className="fds-chip-count">{cnt}</span>
-                      </button>
-                    );
-                  })}
-                </div>
-              )}
-            </div>
-            {/* ── Filtro de Conta ── */}
-            <div ref={acctDdRef} style={{ position: 'relative', display: 'inline-flex' }}>
-              <button
-                className={`fds-chip${acctFilter ? ' on' : ''}`}
-                style={{ touchAction: 'manipulation', WebkitTapHighlightColor: 'transparent' }}
-                onClick={(e) => { e.stopPropagation(); setAcctDropdownOpen(v => !v); setRecurDropdownOpen(false); }}>
-                <Icon.Wallet size={13}/>
-                {acctFilter
-                  ? (accounts.find(a => a.id === acctFilter)?.name || acctFilter)
-                  : 'Conta'}
-                {acctFilter && (
-                  <span
-                    style={{ marginLeft: 4, opacity: 0.7, lineHeight: 1 }}
-                    onClick={(e) => { e.stopPropagation(); setAcctFilter(null); setAcctDropdownOpen(false); }}>
-                    ×
-                  </span>
-                )}
-              </button>
-              {acctDropdownOpen && (
-                <div className="fds-cat-picker-dd"
-                     onClick={(e) => e.stopPropagation()}
-                     onTouchStart={(e) => e.stopPropagation()}>
-                  <div className="fds-cat-picker-head">Filtrar por conta</div>
-                  <button
-                    className={`fds-cat-picker-item${!acctFilter ? ' on' : ''}`}
-                    style={{ minHeight: 44, touchAction: 'manipulation', WebkitTapHighlightColor: 'transparent' }}
-                    onClick={() => { setAcctFilter(null); setAcctDropdownOpen(false); }}
-                    onTouchEnd={(e) => { e.preventDefault(); e.currentTarget.click(); }}>
-                    <span style={{ width: 18, height: 18, display: 'inline-block' }}/>
-                    <span>Todas as contas</span>
-                    <span className="fds-chip-count">{baseList.length}</span>
-                  </button>
-                  {accounts.map(a => {
-                    const cnt = baseList.filter(t => t.acct === a.id).length;
-                    if (cnt === 0) return null;
-                    return (
-                      <button
-                        key={a.id}
-                        className={`fds-cat-picker-item${acctFilter === a.id ? ' on' : ''}`}
-                        style={{ minHeight: 44, touchAction: 'manipulation', WebkitTapHighlightColor: 'transparent' }}
-                        onClick={() => { setAcctFilter(a.id); setAcctDropdownOpen(false); }}
-                        onTouchEnd={(e) => { e.preventDefault(); e.currentTarget.click(); }}>
-                        <span style={{
-                          width: 14, height: 14, borderRadius: '50%',
-                          background: a.color, display: 'inline-block', flexShrink: 0
-                        }}/>
-                        <span>{a.name}</span>
-                        <span className="fds-chip-count">{cnt}</span>
-                      </button>
-                    );
-                  })}
-                </div>
-              )}
-            </div>
 
-            {/* ── Filtro de Recorrência ── */}
-            <div ref={recurDdRef} style={{ position: 'relative', display: 'inline-flex' }}>
-              <button
-                className={`fds-chip${recurFilter ? ' on' : ''}`}
-                style={{ touchAction: 'manipulation', WebkitTapHighlightColor: 'transparent' }}
-                onClick={(e) => { e.stopPropagation(); setRecurDropdownOpen(v => !v); setAcctDropdownOpen(false); }}>
-                <Icon.Tag size={13}/>
-                {recurFilter || 'Recorrência'}
-                {recurFilter && (
-                  <span
-                    style={{ marginLeft: 4, opacity: 0.7, lineHeight: 1 }}
-                    onClick={(e) => { e.stopPropagation(); setRecurFilter(null); setRecurDropdownOpen(false); }}>
-                    ×
-                  </span>
-                )}
-              </button>
-              {recurDropdownOpen && (
-                <div className="fds-cat-picker-dd"
-                     onClick={(e) => e.stopPropagation()}
-                     onTouchStart={(e) => e.stopPropagation()}>
-                  <div className="fds-cat-picker-head">Filtrar por recorrência</div>
-                  <button
-                    className={`fds-cat-picker-item${!recurFilter ? ' on' : ''}`}
-                    style={{ minHeight: 44, touchAction: 'manipulation', WebkitTapHighlightColor: 'transparent' }}
-                    onClick={() => { setRecurFilter(null); setRecurDropdownOpen(false); }}
-                    onTouchEnd={(e) => { e.preventDefault(); e.currentTarget.click(); }}>
-                    <span style={{ width: 18, height: 18, display: 'inline-block' }}/>
-                    <span>Todas</span>
-                    <span className="fds-chip-count">{baseList.length}</span>
-                  </button>
-                  {['mensal','semanal','anual','quinzenal'].map(r => {
-                    const cnt = baseList.filter(t => t.recur === r).length;
-                    if (cnt === 0) return null;
-                    return (
-                      <button
-                        key={r}
-                        className={`fds-cat-picker-item${recurFilter === r ? ' on' : ''}`}
-                        style={{ minHeight: 44, touchAction: 'manipulation', WebkitTapHighlightColor: 'transparent' }}
-                        onClick={() => { setRecurFilter(r); setRecurDropdownOpen(false); }}
-                        onTouchEnd={(e) => { e.preventDefault(); e.currentTarget.click(); }}>
-                        <Icon.Refresh size={14}/>
-                        <span style={{ textTransform: 'capitalize' }}>{r}</span>
-                        <span className="fds-chip-count">{cnt}</span>
-                      </button>
-                    );
-                  })}
-                </div>
-              )}
-            </div>
-          </div>
-          <div className="fds-tx-search" style={{ order: 2 }}>
-            <Icon.Search size={14} style={{ opacity: 0.5 }}/>
-            <input placeholder="Buscar descrição, valor, categoria…"
-                   value={search} onChange={(e) => setSearch(e.target.value)}/>
-            {search && <button onClick={() => setSearch('')}><Icon.X size={13}/></button>}
-          </div>
-
-          {/* ── Importar / Exportar ── */}
-          <div style={{
-            display: 'flex', gap: 8,
-            width: '100%',
-            order: 3,
-            borderTop: '1px solid var(--border)',
-            paddingTop: 10, marginTop: 2
-          }}>
-            <button
-              onPointerUp={() => handleImport('csv')}
-              style={{
-                flex: 1,
-                touchAction: 'manipulation',
-                WebkitTapHighlightColor: 'transparent',
-                minHeight: 44,
-                display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 7,
-                borderRadius: 8,
-                border: '1px solid var(--border)',
-                background: 'var(--card)',
-                cursor: 'pointer',
-                color: 'var(--ink-2)',
-                fontSize: 13, fontFamily: 'inherit', fontWeight: 500
-              }}>
-              <Icon.Import size={15}/> Importar
-            </button>
-            <button
-              onPointerUp={() => handleExport('csv')}
-              style={{
-                flex: 1,
-                touchAction: 'manipulation',
-                WebkitTapHighlightColor: 'transparent',
-                minHeight: 44,
-                display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 7,
-                borderRadius: 8,
-                border: '1px solid var(--border)',
-                background: 'var(--card)',
-                cursor: 'pointer',
-                color: 'var(--ink-2)',
-                fontSize: 13, fontFamily: 'inherit', fontWeight: 500
-              }}>
-              <Icon.Export size={15}/> Exportar
-            </button>
-          </div>
+        <div className="fds-tx-v2-actions">
+          <button type="button" className="fds-btn-ghost fds-tx-v2-action"
+                  onPointerUp={function() { handleImport('csv'); }}>
+            <Icon.Import size={14}/> Importar
+          </button>
+          <button type="button" className="fds-btn-ghost fds-tx-v2-action"
+                  onPointerUp={function() { handleExport('csv'); }}>
+            <Icon.Export size={14}/> Exportar
+          </button>
         </div>
       </section>
 
-      {/* Table */}
-      <section className="fds-card fds-tx-table-card" data-od-id="tx-tabela">
-        <div className="fds-tx-table-head">
-          <div className="fds-tx-bulk">
-            <input type="checkbox" className="fds-cbx"
-                   checked={selected.size === filtered.length && filtered.length > 0}
-                   onChange={() => {
-                     if (selected.size === filtered.length) setSelected(new Set());
-                     else setSelected(new Set(filtered.map((_,i) => i)));
-                   }}/>
-            {selected.size > 0 ? (
-              <span className="fds-tx-bulk-info">
-                {selected.size} selecionada{selected.size > 1 ? 's' : ''}
-              </span>
-            ) : (
-              <span className="fds-tx-count">
-                <span className="fds-strong">{filtered.length}</span> de {baseList.length} em {lbl.long}
-              </span>
-            )}
-          </div>
-          <div className="fds-tx-sum">
-            Saldo: <span className="fds-strong" style={{ color: saldo >= 0 ? 'var(--ok)' : 'var(--bad)' }}>{fmtBRL(saldo)}</span>
-          </div>
+      {/* ─── Organizacao (sort pills) ─── */}
+      <section className="fds-card fds-tx-v2-sort" data-od-id="tx-organizar">
+        <span className="fds-tx-v2-sort-label">Organizar por</span>
+        <div className="fds-tx-v2-sort-pills" role="group" aria-label="Organizar por">
+          {['data', 'categoria', 'conta', 'valor'].map(function(by) {
+            var on = sortBy === by;
+            return (
+              <button key={by} type="button"
+                      className={'fds-tx-v2-sort-pill' + (on ? ' on' : '')}
+                      aria-pressed={on}
+                      onClick={function() { handleSortClick(by); }}>
+                {SORT_LABELS[by]}
+                {on && (
+                  <span className="fds-tx-v2-sort-arrow" aria-hidden="true">
+                    {sortOrder === 'desc' ? '↓' : '↑'}
+                  </span>
+                )}
+              </button>
+            );
+          })}
         </div>
-        <table className="fds-tx-table">
-          <thead>
-            <tr>
-              <th style={{ width: 36 }}></th>
-              <th style={{ width: 110 }}>Data</th>
-              <th>Descrição</th>
-              <th style={{ width: 160 }}>Categoria</th>
-              <th style={{ width: 130 }}>Conta</th>
-              <th style={{ width: 130 }}>Status</th>
-              <th style={{ width: 140, textAlign: 'right' }}>Valor</th>
-              <th style={{ width: 30 }}></th>
-            </tr>
-          </thead>
-          <tbody>
-            {visible.map((t, i) => {
-              const c = categories[t.cat] || { label: t.cat, tint: '#888', emoji: '🏷️' };
-              const a = accounts.find(x => x.id === t.acct);
-              const neg = t.val < 0;
-              const isSel = selected.has(i);
-              return (
-                <tr key={t._id || i} className={`${isSel ? 'sel' : ''} ${hoverRow === i ? 'hov' : ''} ${t._new ? 'fds-tx-new' : ''}`}
-                    onMouseEnter={() => setHoverRow(i)} onMouseLeave={() => setHoverRow(null)}>
-                  <td><input type="checkbox" className="fds-cbx" checked={isSel} onChange={() => toggleSel(i)}/></td>
-                  <td className="fds-tx-date">
-                    <div>{t.d}</div>
-                    <div className="fds-muted fds-tx-year-small">2026</div>
-                  </td>
-                  <td>
-                    <div className="fds-tx-desc">
-                      <CategoryAvatar cat={t.cat} size={26}/>
-                      <span className="fds-tx-desc-main">{t.desc}</span>
-                      {t.recur && <span className="fds-mini-tag soft"><Icon.Refresh size={10}/> {t.recur}</span>}
-                      {t.sub && <span className="fds-mini-tag soft">{t.sub}</span>}
-                    </div>
-                  </td>
-                  <td>
-                    <span className="fds-cat-pill">
-                      <span className="fds-cat-dot" style={{ background: c.tint }}/>
-                      {c.label}
-                    </span>
-                  </td>
-                  <td>
-                    <span className="fds-acct-pill">
-                      <span className="fds-acct-mark-sm" style={{ background: a?.color }}/>
-                      {a?.name || '—'}
-                    </span>
-                  </td>
-                  <td>
-                    {t.status === 'pago' ? (
-                      <span className="fds-status pago"><Icon.Check size={11}/>Pago</span>
-                    ) : (
-                      <span className="fds-status pendente"><Icon.Clock size={11}/>Pendente</span>
-                    )}
-                  </td>
-                  <td className={`fds-tx-amt ${neg ? 'neg' : 'pos'}`}>
-                    {neg ? '−' : '+'}R$&nbsp;{Math.abs(t.val).toLocaleString('pt-BR', {minimumFractionDigits:2})}
-                  </td>
-                  <td style={{ position: 'relative' }}>
-                    <button className="fds-tx-row-act"
-                            onClick={(e) => { e.stopPropagation(); setEditingTx({...t}); }}>
-                      <Icon.Dots size={15}/>
-                    </button>
-                  </td>
-                </tr>
-              );
-            })}
-          </tbody>
-        </table>
-        <div className="fds-tx-foot">
-          <div className="fds-muted">
-            Mostrando <span className="fds-strong">{visible.length}</span> de {filtered.length}
-            {filtered.length !== baseList.length && <> · {baseList.length} total em {lbl.long}</>}
-            {(acctFilter || recurFilter || catFilter || filter !== 'todas' || search) && (
-              <button
-                onClick={() => {
-                  setFilter('todas');
-                  setCatFilter(null);
-                  setAcctFilter(null);
-                  setRecurFilter(null);
-                  setSearch('');
-                }}
-                style={{
-                  marginLeft: 8, fontSize: 11, color: 'var(--muted)',
-                  background: 'none', border: 'none', cursor: 'pointer',
-                  textDecoration: 'underline', touchAction: 'manipulation',
-                  WebkitTapHighlightColor: 'transparent', padding: '2px 4px',
-                }}>
+      </section>
+
+      {/* ─── Filtros (chips + busca + adv) ─── */}
+      <section className="fds-card fds-tx-v2-filters" data-od-id="tx-filtros">
+        <div className="fds-tx-v2-chips">
+          {[
+            { k: 'todas',     l: 'Todas',     c: chipCounts.todas },
+            { k: 'receitas',  l: 'Receitas',  c: chipCounts.receitas },
+            { k: 'despesas',  l: 'Despesas',  c: chipCounts.despesas },
+            { k: 'pendentes', l: 'Pendentes', c: chipCounts.pendentes },
+          ].map(function(f) {
+            var on = filterType === f.k;
+            return (
+              <button key={f.k} type="button"
+                      className={'fds-chip' + (on ? ' on' : '')}
+                      onClick={function() { setFilterType(f.k); }}>
+                {f.l}
+                <span className="fds-chip-count">{f.c}</span>
+              </button>
+            );
+          })}
+          <span className="fds-chip-sep" aria-hidden="true"/>
+          <button type="button"
+                  className={'fds-chip fds-tx-v2-chip-adv' + (advCount > 0 ? ' on' : '')}
+                  onClick={function() { setAdvFilterOpen(true); }}>
+            <Icon.Filter size={13}/> Filtros avançados
+            {advCount > 0 && <span className="fds-chip-count">{advCount}</span>}
+          </button>
+        </div>
+
+        <div className="fds-tx-v2-search">
+          <Icon.Search size={14} style={{ opacity: 0.5 }}/>
+          <input className="fds-tx-v2-search-input"
+                 placeholder="Buscar descrição, valor, categoria…"
+                 value={search}
+                 onChange={function(e) { setSearch(e.target.value); }}/>
+          {search && (
+            <button type="button" className="fds-tx-v2-search-clear"
+                    aria-label="Limpar busca"
+                    onClick={function() { setSearch(''); }}>
+              <Icon.X size={13}/>
+            </button>
+          )}
+        </div>
+      </section>
+
+      {/* ─── Lista ─── */}
+      {sorted.length === 0 ? (
+        <section className="fds-card fds-tx-v2-empty" data-od-id="tx-vazio">
+          <div className="fds-tx-v2-empty-icon" aria-hidden="true">📭</div>
+          <h3 className="fds-tx-v2-empty-title">Nenhuma transação encontrada</h3>
+          <p className="fds-tx-v2-empty-desc">
+            {hasAnyFilter
+              ? 'Ajuste seus filtros ou crie sua primeira transação no mês.'
+              : 'Lance sua primeira transação para começar a acompanhar o mês.'}
+          </p>
+          <div className="fds-tx-v2-empty-actions">
+            {hasAnyFilter && (
+              <button type="button" className="fds-btn-ghost" onClick={clearAllFilters}>
                 Limpar filtros
               </button>
             )}
+            <button type="button" className="fds-btn-primary" onClick={onAdd}>
+              <Icon.Plus size={14}/> Nova transação
+            </button>
           </div>
-          <div className="fds-tx-pager">
-            {hasMore ? (
-              <button className="fds-btn-ghost fds-tx-more"
-                      onClick={() => setVisibleCount(c => Math.min(100, c + 20))}>
-                <Icon.Down size={13}/> Ver mais
-                <span className="fds-muted" style={{ marginLeft: 6, fontWeight: 500 }}>
-                  +{Math.min(20, Math.min(100, filtered.length) - visible.length)}
+        </section>
+      ) : (
+        <section className="fds-card fds-tx-v2-list" data-od-id="tx-lista">
+          <div className="fds-tx-v2-list-head">
+            <div className="fds-tx-v2-list-head-left">
+              <input type="checkbox" className="fds-cbx"
+                     aria-label="Selecionar todas"
+                     checked={selectedIds.size === sorted.length && sorted.length > 0}
+                     onChange={toggleSelectAll}/>
+              {selectedIds.size > 0 ? (
+                <span className="fds-tx-v2-bulk">
+                  <span className="fds-tx-v2-bulk-count">
+                    {selectedIds.size} selecionada{selectedIds.size > 1 ? 's' : ''}
+                  </span>
+                  <button type="button" className="fds-tx-v2-bulk-act"
+                          onPointerUp={bulkMarkPaid}>
+                    <Icon.Check size={12}/> Marcar pago
+                  </button>
+                  <button type="button" className="fds-tx-v2-bulk-act"
+                          onPointerUp={function(e) {
+                            e.stopPropagation();
+                            setBulkCatPicker(function(v) { return !v; });
+                          }}>
+                    <Icon.Tag size={12}/> Categorizar
+                  </button>
+                  <button type="button" className="fds-tx-v2-bulk-act fds-tx-v2-bulk-act-danger"
+                          onPointerUp={bulkDelete}>
+                    <Icon.X size={12}/> Excluir
+                  </button>
+                  <button type="button" className="fds-tx-v2-bulk-clear"
+                          aria-label="Limpar seleção"
+                          onPointerUp={clearSel}>×</button>
                 </span>
-              </button>
-            ) : visibleCount > 20 ? (
-              <button className="fds-btn-ghost" onClick={() => setVisibleCount(20)}>
-                <Icon.Up size={13}/> Recolher
-              </button>
-            ) : null}
-            {visibleCount < filtered.length && filtered.length > 100 && (
-              <span className="fds-muted" style={{ fontSize: 11 }}>
-                limite de 100 por página
-              </span>
-            )}
-          </div>
-        </div>
-      </section>
-
-      {/* Bulk action bottom sheet (sticky, padrao iOS) */}
-      <div className={'fdt-bulk-sheet' + (selected.size > 0 ? ' is-open' : '')}
-           role="region" aria-label="Ações em lote">
-        {bulkCatPicker && selected.size > 0 && (
-          <React.Fragment>
-            <div
-              {...makeTapHandler((e) => { if (e.target === e.currentTarget) setBulkCatPicker(false); })}
-              style={{ position: 'fixed', inset: 0, zIndex: 8999 }}
-            />
-            <div className="fdt-bulk-catmenu" onPointerUp={(e) => e.stopPropagation()}>
-              <div className="fdt-bulk-catmenu-head">Selecionar categoria</div>
-              <div className="fdt-bulk-catmenu-list"
-                   style={{ overflowY: 'auto', maxHeight: '60vh', WebkitOverflowScrolling: 'touch', touchAction: 'pan-y' }}>
-                {allCats.map(([k, c]) => {
-                  var tap = makeTapHandler(() => bulkCategorize(k));
-                  return (
-                    <button key={k} type="button" className="fdt-bulk-catitem" {...tap}>
-                      <CategoryAvatar cat={k} size={20}/>
-                      <span>{c.label}</span>
-                    </button>
-                  );
-                })}
-              </div>
+              ) : (
+                <span className="fds-tx-v2-list-count">
+                  <strong>{filtered.length}</strong> de {baseList.length} em {lbl.long}
+                </span>
+              )}
             </div>
-          </React.Fragment>
-        )}
-        <div className="fdt-bulk-head">
-          <span className="fdt-bulk-count">
-            {shownCountRef.current} selecionada{shownCountRef.current > 1 ? 's' : ''}
-            <span className="fdt-bulk-dot"> · </span>
-            Saldo: <span className="fdt-bulk-saldo"
-                         style={{ color: shownSaldoRef.current >= 0 ? 'var(--ok)' : 'var(--bad)' }}>{fmtBRL(shownSaldoRef.current)}</span>
-          </span>
-          <button type="button" className="fdt-bulk-clear" aria-label="Limpar seleção"
-                  onPointerUp={clearSel}>×</button>
-        </div>
-        <div className="fdt-bulk-actions">
-          <button type="button" className="fdt-bulk-act" onPointerUp={bulkEdit}>
-            <span aria-hidden="true">✏️</span><span>Editar</span>
-          </button>
-          <button type="button" className="fdt-bulk-act" onPointerUp={bulkMarkPaid}>
-            <Icon.Check size={16}/><span>Marcar pago</span>
-          </button>
-          <button type="button" className="fdt-bulk-act"
-                  onPointerUp={(e) => { e.stopPropagation(); setBulkCatPicker(v => !v); }}>
-            <Icon.Tag size={16}/><span>Categorizar</span>
-          </button>
-          <button type="button" className="fdt-bulk-act fdt-bulk-act-danger" onPointerUp={bulkDelete}>
-            <Icon.X size={16}/><span>Excluir</span>
-          </button>
-        </div>
-      </div>
+            <div className="fds-tx-v2-list-head-right">
+              Saldo:&nbsp;
+              <strong style={{ color: totals.saldo >= 0 ? 'var(--ok)' : 'var(--bad)' }}>
+                {fmtBRL(totals.saldo)}
+              </strong>
+            </div>
+          </div>
+
+          {/* Picker de categoria do bulk (inline) */}
+          {bulkCatPicker && selectedIds.size > 0 && (
+            <React.Fragment>
+              <div className="fds-tx-v2-bulk-cat-back"
+                   {...makeTapHandler(function(e) {
+                     if (e.target === e.currentTarget) setBulkCatPicker(false);
+                   })}/>
+              <div className="fds-tx-v2-bulk-cat" onPointerUp={function(e) { e.stopPropagation(); }}>
+                <div className="fds-tx-v2-bulk-cat-head">Mover para categoria</div>
+                <div className="fds-tx-v2-bulk-cat-list">
+                  {allCats.map(function(entry) {
+                    var k = entry[0], c = entry[1];
+                    var tap = makeTapHandler(function() { bulkCategorize(k); });
+                    return (
+                      <button key={k} type="button" className="fds-tx-v2-bulk-cat-item" {...tap}>
+                        <CategoryAvatar cat={k} size={20}/>
+                        <span>{c.label}</span>
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+            </React.Fragment>
+          )}
+
+          <div className="fds-tx-v2-cards">
+            {grouped.map(function(item, idx) {
+              if (item.type === 'header') {
+                var groupTotal = item.txs.reduce(function(s, t) { return s + t.val; }, 0);
+                return (
+                  <div key={'g-' + item.groupName + '-' + idx} className="fds-tx-v2-group">
+                    <div className="fds-tx-v2-group-left">
+                      <span className="fds-tx-v2-group-name">{item.groupName}</span>
+                      <span className="fds-tx-v2-group-count">
+                        {item.txs.length} transaç{item.txs.length === 1 ? 'ão' : 'ões'}
+                      </span>
+                    </div>
+                    <div className="fds-tx-v2-group-total"
+                         style={{ color: groupTotal >= 0 ? 'var(--ok)' : 'var(--bad)' }}>
+                      {fmtBRL(groupTotal)}
+                    </div>
+                  </div>
+                );
+              }
+
+              var t = item.data;
+              var c = categories[t.cat] || { label: t.cat, tint: 'var(--muted-2)', emoji: '🏷️' };
+              var acctInfo = acctNameOf(t.acct, safeAccounts, safeCards);
+              var isSelected = selectedIds.has(t._id);
+              var neg = t.val < 0;
+              var pos = t.val > 0;
+              var isTransfer = !!t.isTransfer;
+              var amtClass = 'fds-tx-v2-card-amt' + (neg ? ' neg' : pos ? ' pos' : '');
+
+              return (
+                <div key={'tx-' + (t._id || idx)}
+                     className={'fds-tx-v2-card'
+                                + (isSelected ? ' selected' : '')
+                                + (isTransfer ? ' transfer' : '')
+                                + (t._new ? ' is-new' : '')}
+                     onClick={function(e) {
+                       if (e.target.closest('.fds-tx-v2-card-check')) return;
+                       if (e.target.closest('.fds-tx-v2-card-menu')) return;
+                       setEditingTx(Object.assign({}, t));
+                     }}>
+                  <label className="fds-tx-v2-card-check"
+                         onClick={function(e) { e.stopPropagation(); }}>
+                    <input type="checkbox" className="fds-cbx"
+                           checked={isSelected}
+                           onChange={function() { toggleSelect(t._id); }}
+                           aria-label={'Selecionar ' + (t.desc || 'transação')}/>
+                  </label>
+
+                  <div className="fds-tx-v2-card-avatar"
+                       style={{ background: 'color-mix(in oklab, ' + (c.tint || 'var(--muted-2)') + ' 18%, transparent)' }}>
+                    <CategoryAvatar cat={t.cat} size={28}/>
+                  </div>
+
+                  <div className="fds-tx-v2-card-main">
+                    <div className="fds-tx-v2-card-row1">
+                      <span className="fds-tx-v2-card-desc">{t.desc}</span>
+                      <span className={amtClass}>
+                        {pos ? '+' : neg ? '−' : '↔'} R$&nbsp;
+                        {Math.abs(t.val).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
+                      </span>
+                    </div>
+
+                    <div className="fds-tx-v2-card-row2">
+                      <span className="fds-tx-v2-card-meta">
+                        <span className="fds-tx-v2-card-dot" style={{ background: c.tint || 'var(--muted-2)' }}/>
+                        {c.label}
+                      </span>
+
+                      {acctInfo && (
+                        <span className="fds-tx-v2-card-meta">
+                          {acctInfo.kind === 'cartao'
+                            ? <Icon.Card size={11}/>
+                            : <span className="fds-tx-v2-card-dot" style={{ background: acctInfo.color }}/>}
+                          {acctInfo.name}
+                        </span>
+                      )}
+
+                      <span className="fds-tx-v2-card-meta fds-tx-v2-card-date">{t.d}</span>
+
+                      {t.status === 'pago' && (
+                        <span className="fds-tx-v2-badge status-pago">
+                          <Icon.Check size={10}/> Pago
+                        </span>
+                      )}
+                      {t.status === 'pendente' && (
+                        <span className="fds-tx-v2-badge status-pendente">
+                          <Icon.Clock size={10}/> Pendente
+                        </span>
+                      )}
+                      {t.status === 'agendado' && (
+                        <span className="fds-tx-v2-badge status-agendado">
+                          <Icon.Calendar size={10}/> Agendado
+                        </span>
+                      )}
+                      {t.recur && (
+                        <span className="fds-tx-v2-badge recur">
+                          <Icon.Refresh size={10}/> {t.recur}
+                        </span>
+                      )}
+                      {t.sub && <span className="fds-tx-v2-badge sub">{t.sub}</span>}
+                    </div>
+                  </div>
+
+                  <button type="button" className="fds-tx-v2-card-menu"
+                          aria-label="Editar transação"
+                          onClick={function(e) {
+                            e.stopPropagation();
+                            setEditingTx(Object.assign({}, t));
+                          }}>
+                    <Icon.Dots size={15}/>
+                  </button>
+                </div>
+              );
+            })}
+          </div>
+
+          {hasAnyFilter && filtered.length < baseList.length && (
+            <div className="fds-tx-v2-list-foot">
+              <span className="fds-muted">
+                Mostrando <strong>{filtered.length}</strong> de {baseList.length} em {lbl.long}
+              </span>
+              <button type="button" className="fds-tx-v2-clear-link" onClick={clearAllFilters}>
+                Limpar filtros
+              </button>
+            </div>
+          )}
+        </section>
+      )}
+
+      <TxAdvFiltersModal open={advFilterOpen}
+                         onClose={function() { setAdvFilterOpen(false); }}
+                         filters={advFilters}
+                         onApply={setAdvFilters}
+                         categories={categories}
+                         accounts={safeAccounts}
+                         cards={safeCards}/>
 
       <ConfirmHost />
 
-      {editingTx && <EditTxModal tx={editingTx} onClose={() => setEditingTx(null)}/>}
+      {editingTx && <EditTxModal tx={editingTx} onClose={function() { setEditingTx(null); }}/>}
     </div>
   );
 }
+
 
 // ─── TX KPI tile (compact) ────────────────────────────────────
 function TxKpi({ label, value, accent, delta, spark, kind, variant, pendingCount, onSeePending }) {
