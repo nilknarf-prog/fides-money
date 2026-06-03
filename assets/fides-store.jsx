@@ -30,6 +30,11 @@ async function getAuthUser() {
 const STATUS_TO_UI = { cleared: 'pago', pending: 'pendente', scheduled: 'agendado' };
 const STATUS_TO_DB = { pago: 'cleared', pendente: 'pending', agendado: 'scheduled' };
 
+// Categorias do sistema (sintéticas) — não vivem em fides-data.jsx nem no banco.
+const SYSTEM_CATEGORIES = {
+  transferencia: { label: 'Transferência', emoji: '🔁', tint: 'var(--ink-3)', group: 'sistema' },
+};
+
 function normalizeTx(row) {
   const dateStr = row.date || '';
   const d = dateStr.length >= 10
@@ -46,6 +51,9 @@ function normalizeTx(row) {
     mes: row.month,
     recur: row.recurrent ? 'mensal' : null,
     subscription: !!row.subscription,
+    settled: !!row.settled,
+    paidAt: row.paid_at || null,
+    isTransfer: !!row.is_transfer,
   };
 }
 
@@ -118,10 +126,14 @@ function FidesProvider({ children }) {
   const [cards,    setCards]    = React.useState(() => CARDS.slice());
   const [goals,    setGoals]    = React.useState(() => METAS.slice());
 
-  const [categories, setCategories]           = React.useState(() => ({ ...CATEGORIES }));
+  const [categories, setCategories]           = React.useState(() => ({ ...CATEGORIES, ...SYSTEM_CATEGORIES }));
   const [plannedOverrides, setPlannedOverrides] = React.useState({});
+  const [categoryLimits, setCategoryLimits]     = React.useState({});
   const [categoryModalOpen, setCategoryModalOpen] = React.useState(false);
-  const [selectedMonth, setSelectedMonth]         = React.useState('2026-05');
+  const [selectedMonth, setSelectedMonth]         = React.useState(function() {
+    var now = new Date();
+    return now.getFullYear() + '-' + String(now.getMonth() + 1).padStart(2, '0');
+  });
   const [assistantOpen, setAssistantOpen]         = React.useState(false);
 
   // ─── Helpers ─────────────────────────────────────────────────
@@ -159,12 +171,13 @@ function FidesProvider({ children }) {
     const uid = uidOverride != null ? uidOverride : userId;
     if (!uid || !isSupabaseReady()) return;
     try {
-      const [txRes, acctRes, cardRes, goalRes, catRes] = await Promise.all([
+      const [txRes, acctRes, cardRes, goalRes, catRes, limitsRes] = await Promise.all([
         window.fidesDb.from('transactions').select('*').eq('user_id', uid).order('date', { ascending: false }),
         window.fidesDb.from('accounts').select('*').eq('user_id', uid).order('created_at'),
         window.fidesDb.from('cards').select('*').eq('user_id', uid).order('created_at'),
         window.fidesDb.from('goals').select('*').eq('user_id', uid).order('created_at'),
         window.fidesDb.from('user_categories').select('*').eq('user_id', uid).order('created_at'),
+        window.fidesDb.from('category_limits').select('cat_key, month, monthly_limit').eq('user_id', uid),
       ]);
       if (!txRes.error)   setTransactions((txRes.data   || []).map(normalizeTx));
       if (!acctRes.error) setAccounts((acctRes.data     || []).map(normalizeAccount));
@@ -178,14 +191,34 @@ function FidesProvider({ children }) {
       try {
         if (catRes && !catRes.error) {
           const custom = Object.fromEntries((catRes.data || []).map(r => [r.cat_key, normalizeCategory(r)]));
-          setCategories({ ...CATEGORIES, ...custom });
+          setCategories({ ...CATEGORIES, ...SYSTEM_CATEGORIES, ...custom });
         } else {
           if (catRes && catRes.error) console.error('[Fides] Erro categorias:', catRes.error.message);
-          setCategories({ ...CATEGORIES });
+          setCategories({ ...CATEGORIES, ...SYSTEM_CATEGORIES });
         }
       } catch (catErr) {
         console.error('[Fides] Erro categorias:', catErr.message);
         setCategories({ ...CATEGORIES });
+      }
+      // Limites por categoria. Estrutura por chave:
+      //   { cat_key: { byMonth: { 'YYYY-MM': number, ... }, default: number|null } }
+      // byMonth = rows com month especifico; default = row com month NULL.
+      try {
+        const lmap = {};
+        if (limitsRes && !limitsRes.error) {
+          (limitsRes.data || []).forEach(r => {
+            if (!lmap[r.cat_key]) lmap[r.cat_key] = { byMonth: {}, default: null };
+            const lim = Number(r.monthly_limit);
+            if (r.month == null) lmap[r.cat_key].default = lim;
+            else lmap[r.cat_key].byMonth[r.month] = lim;
+          });
+        } else if (limitsRes && limitsRes.error) {
+          console.error('[Fides] Erro limites:', limitsRes.error.message);
+        }
+        setCategoryLimits(lmap);
+      } catch (limErr) {
+        console.error('[Fides] Erro limites:', limErr.message);
+        setCategoryLimits({});
       }
     } catch (err) {
       console.error('[Fides] Erro refreshData:', err.message);
@@ -343,63 +376,75 @@ function FidesProvider({ children }) {
     setTransactions(prev => prev.map(t => t._id === id ? { ...t, ...patch } : t));
   }, [mode, userId, refreshData]);
 
-  const deleteTransaction = React.useCallback(async (id) => {
-    if (mode === 'live' && userId) {
+  async function deleteTransaction(id) {
+    if (mode !== 'live') return;
+    try {
+      var result = await window.fidesDb.rpc('delete_transaction', { p_tx_id: id });
+      if (result.error) throw result.error;
+      await refreshData();
+    } catch (err) {
+      console.error('[Fides] deleteTransaction RPC error:', err);
+    }
+  }
+
+  // payCartaoFatura: new signature { cartaoId, accountId, txIds }
+  // Live: atomic via RPC pay_card_invoice — server inserts payment tx, debits
+  //       account, marks txs settled and reduces card.used in one transaction
+  // Mock: marks selected txs as paid (status:'pago') locally
+  const payCartaoFatura = React.useCallback(async ({ cartaoId, accountId, txIds } = {}) => {
+    if (!txIds?.length) return false;
+    if (mode === 'live' && userId && cartaoId && accountId) {
       try {
-        const { error } = await window.fidesDb.from('transactions').delete().eq('id', id);
+        const { error } = await window.fidesDb.rpc('pay_card_invoice', {
+          p_card_id:    cartaoId,
+          p_account_id: accountId,
+          p_tx_ids:     txIds,
+        });
         if (error) throw error;
         await refreshData(userId);
-      } catch (err) {
-        console.error('[Fides] deleteTransaction:', err.message);
-      }
-      return;
-    }
-    setTransactions(prev => prev.filter(t => t._id !== id));
-  }, [mode, userId, refreshData]);
-
-  // payCartaoFatura: new signature { cartaoId, accountId, valor }
-  // Live: inserts payment tx + debits account + resets card.used
-  // Mock: marks card's transactions as paid locally
-  const payCartaoFatura = React.useCallback(async ({ cartaoId, accountId, valor } = {}) => {
-    if (mode === 'live' && userId && cartaoId && accountId && valor > 0) {
-      try {
-        const today = new Date();
-        const isoDate = today.toISOString().slice(0, 10);
-        const mes = isoDate.slice(0, 7);
-        const [, mm, dd] = isoDate.split('-');
-        await window.fidesDb.from('transactions').insert({
-          user_id:      userId,
-          description:  'Pagamento de fatura',
-          value:        -valor,
-          category:     'divida',
-          account:      accountId,
-          date:         isoDate,
-          month:        mes,
-          status:       'cleared',
-          recurrent:    false,
-          subscription: false,
-          account_id:   accountId,
-          card_id:      null,
-        });
-        const { data: acct } = await window.fidesDb
-          .from('accounts').select('balance').eq('id', accountId).single();
-        if (acct) {
-          await window.fidesDb.from('accounts')
-            .update({ balance: Number(acct.balance) - valor })
-            .eq('id', accountId);
-        }
-        await window.fidesDb.from('cards').update({ used: 0 }).eq('id', cartaoId);
-        await refreshData(userId);
+        return true;
       } catch (err) {
         console.error('[Fides] payCartaoFatura:', err.message);
+        return false;
       }
-      return;
     }
-    if (cartaoId) {
-      setTransactions(prev => prev.map(t =>
-        t.acct === cartaoId && t.status !== 'pago' ? { ...t, status: 'pago' } : t
-      ));
+    // mock
+    setTransactions(prev => prev.map(t =>
+      txIds.includes(t._id) ? { ...t, status: 'pago' } : t
+    ));
+    return true;
+  }, [mode, userId, refreshData]);
+
+  // transferFunds: movimentação entre contas (sem trava de saldo — permite negativo)
+  // Live: atomic via RPC transfer_funds. Mock: dois lançamentos locais marcados isTransfer.
+  const transferFunds = React.useCallback(async ({ from, to, val, date, desc } = {}) => {
+    if (!from || !to || from === to || !(Number(val) > 0)) return false;
+    if (mode === 'live' && userId) {
+      try {
+        const { error } = await window.fidesDb.rpc('transfer_funds', {
+          p_from:  from,
+          p_to:    to,
+          p_value: Number(val),
+          p_date:  date || null,        // 'YYYY-MM-DD' ou null
+          p_desc:  desc || null,
+        });
+        if (error) throw error;
+        await refreshData(userId);
+        return true;
+      } catch (err) {
+        console.error('[Fides] transferFunds:', err.message);
+        return false;
+      }
     }
+    // mock: dois lançamentos locais (demo)
+    const grp = 'tf' + Date.now();
+    const mkMes = (d) => (d || new Date().toISOString().slice(0,10)).slice(0,7);
+    setTransactions(prev => ([
+      { _id: grp+'a', d: '', mes: mkMes(date), desc: desc || 'Transferência', cat: 'transferencia', acct: from, val: -Number(val), status: 'pago', isTransfer: true },
+      { _id: grp+'b', d: '', mes: mkMes(date), desc: desc || 'Transferência', cat: 'transferencia', acct: to,   val:  Number(val), status: 'pago', isTransfer: true },
+      ...prev,
+    ]));
+    return true;
   }, [mode, userId, refreshData]);
 
   // ─── Accounts ─────────────────────────────────────────────────
@@ -552,7 +597,7 @@ function FidesProvider({ children }) {
       } catch (err) {
         console.error('[Fides] addCategory:', err.message);
         setCategories(prev => { const nx = { ...prev }; delete nx[uniqueId]; return nx; });
-        window.alert('Não foi possível salvar a categoria. Tente novamente.');
+        window.FidesUI.toast.error('Não foi possível salvar a categoria. Tente novamente.');
       }
     }
     return uniqueId;
@@ -579,7 +624,7 @@ function FidesProvider({ children }) {
       } catch (err) {
         console.error('[Fides] updateCategory:', err.message);
         setCategories(prev => ({ ...prev, [id]: prevCat }));
-        window.alert('Não foi possível atualizar a categoria. Tente novamente.');
+        window.FidesUI.toast.error('Não foi possível atualizar a categoria. Tente novamente.');
       }
     }
   }, [mode, userId, categories]);
@@ -604,7 +649,7 @@ function FidesProvider({ children }) {
         console.error('[Fides] deleteCategory:', err.message);
         setTransactions(txSnapshot);
         setCategories(prev => ({ ...prev, [id]: prevCat }));
-        window.alert('Não foi possível excluir a categoria. Tente novamente.');
+        window.FidesUI.toast.error('Não foi possível excluir a categoria. Tente novamente.');
       }
     }
   }, [mode, userId, categories, transactions]);
@@ -616,6 +661,73 @@ function FidesProvider({ children }) {
   const setPlanned = React.useCallback((catId, value) => {
     setPlannedOverrides(p => ({ ...p, [catId]: value }));
   }, []);
+
+  // ─── Category limits (Lote 3) ─────────────────────────────────
+  // scope: 'this' (mes selecionado), 'default' (month=null) ou 'custom'
+  // (cada month do array `months`). Para month=null fazemos delete+insert,
+  // pois o unique constraint do Postgres nao deduplica linhas com NULL, entao
+  // um upsert com onConflict nao funcionaria nesse caso.
+  const setCategoryLimit = React.useCallback(async (cat_key, limit, scope, months) => {
+    const val = Number(limit);
+    if (!cat_key || !isFinite(val) || val <= 0) {
+      window.FidesUI.toast.error('Informe um limite valido maior que zero.');
+      return;
+    }
+    if (mode !== 'live' || !userId) return;
+    const persist = async (month) => {
+      if (month == null) {
+        await window.fidesDb.from('category_limits').delete()
+          .eq('user_id', userId).eq('cat_key', cat_key).is('month', null);
+        const { error } = await window.fidesDb.from('category_limits')
+          .insert([{ user_id: userId, cat_key: cat_key, month: null, monthly_limit: val }]);
+        if (error) throw error;
+      } else {
+        const { error } = await window.fidesDb.from('category_limits')
+          .upsert([{ user_id: userId, cat_key: cat_key, month: month, monthly_limit: val }],
+                  { onConflict: 'user_id,cat_key,month' });
+        if (error) throw error;
+      }
+    };
+    try {
+      if (scope === 'default') {
+        await persist(null);
+      } else if (scope === 'custom') {
+        const list = months || [];
+        if (!list.length) return;
+        for (let i = 0; i < list.length; i++) await persist(list[i]);
+      } else {
+        await persist(selectedMonth);
+      }
+      await refreshData(userId);
+    } catch (err) {
+      console.error('[Fides] setCategoryLimit:', err.message);
+      window.FidesUI.toast.error('Nao foi possivel salvar o limite. Tente novamente.');
+    }
+  }, [mode, userId, selectedMonth, refreshData]);
+
+  // scope: 'this' (mes selecionado), 'default' (month=null) ou 'specific'
+  // (o month passado como argumento).
+  const removeCategoryLimit = React.useCallback(async (cat_key, scope, month) => {
+    if (!cat_key) return;
+    if (mode !== 'live' || !userId) return;
+    try {
+      let q = window.fidesDb.from('category_limits').delete()
+        .eq('user_id', userId).eq('cat_key', cat_key);
+      if (scope === 'default') {
+        q = q.is('month', null);
+      } else if (scope === 'specific') {
+        q = q.eq('month', month);
+      } else {
+        q = q.eq('month', selectedMonth);
+      }
+      const { error } = await q;
+      if (error) throw error;
+      await refreshData(userId);
+    } catch (err) {
+      console.error('[Fides] removeCategoryLimit:', err.message);
+      window.FidesUI.toast.error('Nao foi possivel remover o limite. Tente novamente.');
+    }
+  }, [mode, userId, selectedMonth, refreshData]);
 
   // ─── Month helpers ────────────────────────────────────────────
 
@@ -645,13 +757,51 @@ function FidesProvider({ children }) {
   const spendByCategory = React.useMemo(() => {
     const map = {};
     monthTransactions.forEach(t => {
-      if (t.val < 0) map[t.cat] = (map[t.cat] || 0) + Math.abs(t.val);
+      if (t.val < 0 && !t.isTransfer) map[t.cat] = (map[t.cat] || 0) + Math.abs(t.val);
     });
     return Object.entries(map).map(([key, val]) => {
       const c = categories[key] || { label: key, tint: '#888', emoji: '🏷️' };
       return { key, val, label: c.label, tint: c.tint, emoji: c.emoji };
     }).sort((a, b) => b.val - a.val);
   }, [monthTransactions, categories]);
+
+  // Uso vs limite por categoria para o mes selecionado. Regra de leitura:
+  // limite do mes especifico (byMonth[selectedMonth]) tem prioridade sobre o
+  // default; sem nenhum dos dois, a categoria fica sem limite (status null).
+  const categoryUsage = React.useMemo(() => {
+    const spentByKey = {};
+    spendByCategory.forEach(s => { spentByKey[s.key] = Math.abs(s.val || 0); });
+    const rank = { over: 0, warn: 1, ok: 2 };
+    return Object.entries(categories).map(([cat_key, c]) => {
+      const lim = categoryLimits[cat_key];
+      const limit = lim
+        ? (lim.byMonth && lim.byMonth[selectedMonth] != null
+            ? lim.byMonth[selectedMonth]
+            : (lim.default != null ? lim.default : null))
+        : null;
+      const spent = spentByKey[cat_key] || 0;
+      const pct = limit ? Math.round((spent / limit) * 100) : null;
+      const status = !limit ? null
+        : pct >= 100 ? 'over'
+        : pct >= 80 ? 'warn'
+        : 'ok';
+      return {
+        cat_key: cat_key,
+        label: c.label,
+        emoji: c.emoji,
+        grp: c.group,
+        spent: spent,
+        limit: limit,
+        pct: pct,
+        status: status
+      };
+    }).sort((a, b) => {
+      const ra = a.status == null ? 3 : rank[a.status];
+      const rb = b.status == null ? 3 : rank[b.status];
+      if (ra !== rb) return ra - rb;
+      return b.spent - a.spent;
+    });
+  }, [categoryLimits, spendByCategory, selectedMonth, categories]);
 
   const budgetGroups = React.useMemo(() => {
     // BUDGET_GROUPS é usado APENAS para label/target do grupo (50·30·20).
@@ -663,7 +813,7 @@ function FidesProvider({ children }) {
         .map(([id, c]) => {
           const limit = plannedOverrides[id] ?? 0;
           const spent = monthTransactions
-            .filter(t => t.cat === id && t.val < 0)
+            .filter(t => t.cat === id && t.val < 0 && !t.isTransfer)
             .reduce((s, t) => s + Math.abs(t.val), 0);
           return { cat: id, limit, spent, _custom: c.custom === true };
         })
@@ -682,7 +832,8 @@ function FidesProvider({ children }) {
     const cardList  = mode === 'live' ? cards : CARDS;
     const cardIdSet = new Set(cardList.map(c => c.id));
     transactions.forEach(t => {
-      if (!cardIdSet.has(t.acct) || t.status === 'pago') return;
+      const isSettled = mode === 'live' ? t.settled : (t.status === 'pago');
+      if (!cardIdSet.has(t.acct) || isSettled) return;
       const card = cardList.find(c => c.id === t.acct);
       const yr   = parseInt((t.mes || '2026-01').split('-')[0], 10);
       const fat  = mesFaturaFor(t.d, card, yr);
@@ -691,6 +842,22 @@ function FidesProvider({ children }) {
       if (!map[key]) map[key] = { cardId: t.acct, mesFatura: fat, total: 0, txs: [] };
       map[key].total += Math.abs(t.val);
       map[key].txs.push(t);
+    });
+    return map;
+  }, [transactions, cards, mode]);
+
+  // faturaAbertaPorCartao: agrega TODAS as txs não quitadas do cartão, independente
+  // do mês de fatura — permite pagar a qualquer tempo (antes do fechamento).
+  const faturaAbertaPorCartao = React.useMemo(() => {
+    const map = {};
+    const cardList  = mode === 'live' ? cards : CARDS;
+    const cardIdSet = new Set(cardList.map(c => c.id));
+    transactions.forEach(t => {
+      const isSettled = mode === 'live' ? t.settled : (t.status === 'pago');
+      if (!cardIdSet.has(t.acct) || isSettled) return;
+      if (!map[t.acct]) map[t.acct] = { cardId: t.acct, total: 0, txs: [] };
+      map[t.acct].total += Math.abs(t.val);
+      map[t.acct].txs.push(t);
     });
     return map;
   }, [transactions, cards, mode]);
@@ -712,7 +879,7 @@ function FidesProvider({ children }) {
     refreshData: () => refreshData(userId),
     goals,
     // Transactions
-    transactions, addTransaction, addTransactions, payCartaoFatura,
+    transactions, addTransaction, addTransactions, payCartaoFatura, transferFunds,
     updateTransaction, deleteTransaction,
     // Accounts
     accounts, addAccount, updateAccount, deleteAccount,
@@ -721,11 +888,13 @@ function FidesProvider({ children }) {
     // Categories
     categories, addCategory, updateCategory, deleteCategory, moveCategory,
     plannedOverrides, setPlanned,
+    // Category limits (Lote 3)
+    categoryLimits, categoryUsage, setCategoryLimit, removeCategoryLimit,
     // Month
     selectedMonth, setSelectedMonth, prevMonth, monthLabel,
     // Derived
     monthTransactions, prevMonthTransactions,
-    spendByCategory, budgetGroups, faturasPorCartao,
+    spendByCategory, budgetGroups, faturasPorCartao, faturaAbertaPorCartao,
     // UI toggles
     categoryModalOpen,
     assistantOpen,
@@ -754,18 +923,21 @@ function useFides() {
     transactions: TRANSACTIONS,
     monthTransactions: TRANSACTIONS,
     prevMonthTransactions: [],
-    addTransaction: () => {}, addTransactions: () => {}, payCartaoFatura: () => {},
+    addTransaction: () => {}, addTransactions: () => {}, payCartaoFatura: () => {}, transferFunds: () => {},
     updateTransaction: () => {}, deleteTransaction: () => {},
     accounts: ACCOUNTS, addAccount: () => {}, updateAccount: () => {}, deleteAccount: () => {},
     cards: CARDS, addCard: () => {}, updateCard: () => {}, deleteCard: () => {},
     categories: CATEGORIES,
     addCategory: () => {}, updateCategory: () => {}, deleteCategory: () => {}, moveCategory: () => {},
     plannedOverrides: {}, setPlanned: () => {},
+    categoryLimits: {}, categoryUsage: [],
+    setCategoryLimit: () => {}, removeCategoryLimit: () => {},
     selectedMonth: '2026-05', setSelectedMonth: () => {},
     prevMonth: (ym) => ym, monthLabel: (ym) => ({ short: ym, long: ym }),
     spendByCategory: SPEND_BY_CATEGORY,
     budgetGroups: BUDGET_GROUPS,
     faturasPorCartao: {},
+    faturaAbertaPorCartao: {},
     openCategoryModal: () => {}, closeCategoryModal: () => {},
     openAssistant: () => {}, closeAssistant: () => {},
     assistantOpen: false, categoryModalOpen: false,

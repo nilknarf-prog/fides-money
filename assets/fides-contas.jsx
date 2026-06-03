@@ -174,11 +174,12 @@ function ConfirmDeleteModal({ open, title, desc, onConfirm, onCancel }) {
   );
 }
 
-function PagarFaturaModal({ modal, onClose, onConfirm }) {
+function PagarFaturaModal({ modal, accounts = [], onClose, onConfirm }) {
   const { categories } = useFides();
   const [selected, setSelected] = React.useState(() =>
     new Set(modal.txs.map(t => t._id))
   );
+  const [selectedAccount, setSelectedAccount] = React.useState(accounts[0]?.id || '');
 
   const toggle = (id) => setSelected(prev => {
     const next = new Set(prev);
@@ -200,6 +201,10 @@ function PagarFaturaModal({ modal, onClose, onConfirm }) {
 
   const allSelected = selected.size === modal.txs.length;
   const noneSelected = selected.size === 0;
+
+  const selectedAcct      = accounts.find(a => a.id === selectedAccount);
+  const semContas         = accounts.length === 0;
+  const saldoInsuficiente = selectedAcct && selectedAcct.balance < totalSelecionado;
 
   return (
     <div className="fds-modal-backdrop" onClick={onClose}
@@ -257,6 +262,36 @@ function PagarFaturaModal({ modal, onClose, onConfirm }) {
               );
             })}
           </div>
+
+          {/* Débitar da conta */}
+          <div style={{ padding: '12px 16px 4px' }}>
+            {semContas ? (
+              <div style={{ color: 'var(--bad)', fontSize: 13 }}>
+                Você não tem contas cadastradas. Adicione uma conta primeiro.
+              </div>
+            ) : (
+              <>
+                <label className="fds-field">
+                  <span>Débitar da conta</span>
+                  <select className="fds-input" value={selectedAccount}
+                          onChange={e => setSelectedAccount(e.target.value)}
+                          style={{ touchAction: 'manipulation', WebkitTapHighlightColor: 'transparent', minHeight: 44, fontSize: 16 }}>
+                    {accounts.map(a => (
+                      <option key={a.id} value={a.id}>
+                        {a.name} · saldo {fmtBRL(a.balance)}
+                      </option>
+                    ))}
+                  </select>
+                </label>
+                {saldoInsuficiente && (
+                  <div style={{ color: 'var(--bad)', fontSize: 13, display: 'flex', alignItems: 'center', gap: 6, marginTop: 8 }}>
+                    <Icon.X size={13}/>
+                    Saldo insuficiente — faltam {fmtBRL(totalSelecionado - (selectedAcct?.balance || 0))}.
+                  </div>
+                )}
+              </>
+            )}
+          </div>
         </div>
 
         <div className="fds-modal-foot" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 8 }}>
@@ -266,124 +301,17 @@ function PagarFaturaModal({ modal, onClose, onConfirm }) {
           </div>
           <div style={{ display: 'flex', gap: 8 }}>
             <button className="fds-btn-ghost" onClick={onClose}
-                    style={{ touchAction: 'manipulation', WebkitTapHighlightColor: 'transparent' }}>
+                    style={{ touchAction: 'manipulation', WebkitTapHighlightColor: 'transparent', minHeight: 44 }}>
               Cancelar
             </button>
             <button className="fds-btn-primary"
-                    disabled={noneSelected}
-                    onClick={() => onConfirm(selected)}
-                    style={{ touchAction: 'manipulation', WebkitTapHighlightColor: 'transparent' }}>
+                    disabled={noneSelected || semContas || saldoInsuficiente || !selectedAccount}
+                    onClick={() => onConfirm({ txIds: [...selected], accountId: selectedAccount })}
+                    style={{ touchAction: 'manipulation', WebkitTapHighlightColor: 'transparent', minHeight: 44 }}>
               <Icon.Check size={13}/>
               Confirmar pagamento
             </button>
           </div>
-        </div>
-      </div>
-    </div>
-  );
-}
-
-// ─── Modal: Pagar fatura (débito em conta) ────────────────────
-function PagarFaturaDebModal({ card, accounts, onClose, onConfirm }) {
-  const totalFatura = card.used;
-  const [selectedAccount, setSelectedAccount] = React.useState(accounts[0]?.id || '');
-  const [success, setSuccess]   = React.useState(false);
-  const [loading, setLoading]   = React.useState(false);
-
-  const selectedAcct        = accounts.find(a => a.id === selectedAccount);
-  const saldoInsuficiente   = selectedAcct && selectedAcct.balance < totalFatura;
-  const semContas           = accounts.length === 0;
-
-  if (success) return (
-    <div className="fds-modal-backdrop" onPointerUp={onClose}
-         style={{ position: 'fixed', inset: 0, zIndex: 200 }}>
-      <div className="fds-modal" style={{ maxWidth: 420, textAlign: 'center' }}
-           onPointerUp={e => e.stopPropagation()}>
-        <div className="fds-modal-body" style={{ padding: '32px 24px' }}>
-          <div style={{ fontSize: 48, lineHeight: 1 }}>✅</div>
-          <div style={{ fontWeight: 700, fontSize: 18, marginTop: 12 }}>Fatura paga!</div>
-          <div style={{ color: 'var(--ink-3)', marginTop: 8, fontSize: 14 }}>
-            {fmtBRL(totalFatura)} debitados de {selectedAcct?.name}
-          </div>
-        </div>
-      </div>
-    </div>
-  );
-
-  return (
-    <div className="fds-modal-backdrop" onPointerUp={onClose}
-         style={{ position: 'fixed', inset: 0, zIndex: 200 }}>
-      <div className="fds-modal" style={{ maxWidth: 420 }}
-           onPointerUp={e => e.stopPropagation()}>
-        <div className="fds-modal-head">
-          <div>
-            <div className="fds-modal-eyebrow">Pagar fatura</div>
-            <div className="fds-modal-title">{card.name}</div>
-          </div>
-          <button className="fds-icon-btn" onPointerUp={onClose}
-                  style={{ touchAction: 'manipulation', WebkitTapHighlightColor: 'transparent' }}>
-            <Icon.X size={16}/>
-          </button>
-        </div>
-
-        <div className="fds-modal-body" style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
-          <label className="fds-field">
-            <span>Total da fatura</span>
-            <input className="fds-input" readOnly value={fmtBRL(totalFatura)}
-                   style={{ color: 'var(--bad)', fontWeight: 600, cursor: 'default' }}/>
-          </label>
-
-          {semContas ? (
-            <div style={{ color: 'var(--bad)', fontSize: 13 }}>
-              Você não tem contas cadastradas. Adicione uma conta primeiro.
-            </div>
-          ) : (
-            <>
-              <label className="fds-field">
-                <span>Débitar da conta</span>
-                <select className="fds-input" value={selectedAccount}
-                        onChange={e => setSelectedAccount(e.target.value)}
-                        style={{ touchAction: 'manipulation', minHeight: 44 }}>
-                  {accounts.map(a => (
-                    <option key={a.id} value={a.id}>
-                      {a.name} · saldo {fmtBRL(a.balance)}
-                    </option>
-                  ))}
-                </select>
-              </label>
-              {saldoInsuficiente && (
-                <div style={{ color: 'var(--bad)', fontSize: 13, display: 'flex', alignItems: 'center', gap: 6 }}>
-                  <Icon.X size={13}/>
-                  Saldo insuficiente — faltam {fmtBRL(totalFatura - (selectedAcct?.balance || 0))}.
-                </div>
-              )}
-            </>
-          )}
-        </div>
-
-        <div className="fds-modal-foot" style={{ display: 'flex', justifyContent: 'flex-end', gap: 8 }}>
-          <button className="fds-btn-ghost" onPointerUp={onClose}
-                  style={{ touchAction: 'manipulation', minHeight: 44 }}>
-            Cancelar
-          </button>
-          <button
-            className="fds-btn-primary"
-            disabled={saldoInsuficiente || semContas || loading}
-            onPointerUp={async () => {
-              if (saldoInsuficiente || semContas || loading || !selectedAccount) return;
-              setLoading(true);
-              try {
-                await onConfirm(selectedAccount);
-                setSuccess(true);
-                setTimeout(onClose, 2000);
-              } catch (_) {
-                setLoading(false);
-              }
-            }}
-            style={{ touchAction: 'manipulation', minHeight: 44 }}
-          >
-            <Icon.Check size={13}/> Confirmar pagamento
-          </button>
         </div>
       </div>
     </div>
@@ -433,7 +361,7 @@ function ColorPicker({ value, onChange }) {
 function ContasStudio({ onAdd }) {
   const {
     transactions, categories, payCartaoFatura, updateTransaction,
-    faturasPorCartao, selectedMonth, monthLabel,
+    faturaAbertaPorCartao, selectedMonth, monthLabel,
     accounts, cards,
     addAccount, addCard, updateAccount, deleteAccount, updateCard, deleteCard,
   } = useFides();
@@ -444,8 +372,6 @@ function ContasStudio({ onAdd }) {
   const [editCartao, setEditCartao]     = React.useState(null);
   const [deleteTarget, setDeleteTarget] = React.useState(null);
   const [payModal, setPayModal]         = React.useState(null);
-  const [payDebModal, setPayDebModal]   = React.useState(null);
-  // payDebModal = { card } when open, null when closed
 
   const BANK_COLORS = ['#2D5A3D','#2C5282','#B45309','#7C3AED','#0F766E','#9B2C2C'];
   const [addContaColor,   setAddContaColor]   = React.useState(BANK_COLORS[0]);
@@ -861,13 +787,11 @@ function ContasStudio({ onAdd }) {
         ) : cards.map(c => {
           const pct = c.used / c.limit;
           const over = pct > 0.85;
-          // Encontra a fatura corrente para este cartão (mês de fatura = selectedMonth)
-          const fatKey = `${c.id}|${selectedMonth}`;
-          const faturaCorrente = faturasPorCartao[fatKey];
-          const faturaValor = faturaCorrente?.total || c.used;
-          const faturaTxs = faturaCorrente?.txs || [];
+          const faturaAberta = faturaAbertaPorCartao[c.id];
+          const faturaTxs   = faturaAberta?.txs   || [];
+          const faturaValor = faturaAberta?.total || 0;
           const handlePay = () => {
-            if (faturaCorrente && faturaTxs.length > 0) {
+            if (faturaTxs.length > 0) {
               setPayModal({ cardId: c.id, cardName: c.name, txs: faturaTxs });
             }
           };
@@ -888,7 +812,9 @@ function ContasStudio({ onAdd }) {
                     <DotsMenu
                       align="left"
                       items={[
-                        { id: 'pay',    label: 'Pagar fatura',  icon: 'Check', onClick: () => setPayDebModal({ card: c }) },
+                        ...(faturaTxs.length > 0 ? [
+                          { id: 'pay', label: 'Pagar fatura', icon: 'Check', onClick: handlePay },
+                        ] : []),
                         { id: 'edit',   label: 'Editar cartão', icon: 'Edit',  onClick: () => { setEditCartao(c); setEditCartaoColor(c.color || '#1A1A2E'); } },
                         { id: 'delete', label: 'Excluir cartão',icon: 'Trash', danger: true, onClick: () => setDeleteTarget({ type: 'cartao', id: c.id, name: c.name }) },
                       ]}
@@ -907,12 +833,12 @@ function ContasStudio({ onAdd }) {
               <div className="ctn-card-info">
                 <div className="ctn-card-fatura">
                   <div className="ctn-card-fatura-l">
-                    <div className="ctn-stat-lbl">Fatura de {lbl.short.toLowerCase()}</div>
+                    <div className="ctn-stat-lbl">Fatura em aberto</div>
                     <div className="ctn-card-fatura-val">{fmtBRL(faturaValor)}</div>
                     <div className="ctn-card-fatura-meta">
                       {faturaTxs.length > 0
-                        ? `${faturaTxs.length} ${faturaTxs.length === 1 ? 'lançamento' : 'lançamentos'} · vence ${c.due}`
-                        : `Fatura paga · próxima fecha dia ${c.diaFechamento}`}
+                        ? `${faturaTxs.length} ${faturaTxs.length === 1 ? 'lançamento' : 'lançamentos'} · fecha dia ${c.diaFechamento} · vence dia ${c.due}`
+                        : `Em dia · fecha dia ${c.diaFechamento}`}
                     </div>
                   </div>
                   {faturaTxs.length > 0 ? (
@@ -920,8 +846,8 @@ function ContasStudio({ onAdd }) {
                       <Icon.Check size={13}/> Pagar
                     </button>
                   ) : (
-                    <span className="fds-status pago" style={{ padding: '7px 12px' }}>
-                      <Icon.Check size={11}/> Paga
+                    <span className="fds-status" style={{ padding: '7px 12px' }}>
+                      Em dia
                     </span>
                   )}
                 </div>
@@ -999,25 +925,11 @@ function ContasStudio({ onAdd }) {
       {payModal && (
         <PagarFaturaModal
           modal={payModal}
-          onClose={() => setPayModal(null)}
-          onConfirm={(selectedIds) => {
-            selectedIds.forEach(id => updateTransaction(id, { status: 'pago' }));
-            setPayModal(null);
-          }}
-        />
-      )}
-
-      {payDebModal && (
-        <PagarFaturaDebModal
-          card={payDebModal.card}
           accounts={accounts}
-          onClose={() => setPayDebModal(null)}
-          onConfirm={async (accountId) => {
-            await payCartaoFatura({
-              cartaoId:  payDebModal.card.id,
-              accountId,
-              valor:     payDebModal.card.used,
-            });
+          onClose={() => setPayModal(null)}
+          onConfirm={async ({ txIds, accountId }) => {
+            const ok = await payCartaoFatura({ cartaoId: payModal.cardId, accountId, txIds });
+            if (ok) setPayModal(null);
           }}
         />
       )}

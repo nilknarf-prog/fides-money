@@ -1,395 +1,981 @@
-// fides-orcamento.jsx — Studio budget page (50·30·20 + per-category)
+// fides-orcamento.jsx — Planejamento (Lote 4A — redesign)
 //
-// Editorial idiom: hero headline + Roman-numeral chapters + inline-edit planned values
-// Reuses ProgressBar from fides-charts, tokens from fides-studio.css
+// Mobile-first: insights agregados + secoes de grupos colapsaveis + cards de
+// categoria com limites, edicao inline e modal de 3 escopos.
 
-function OrcamentoStudio({ onAdd }) {
-  const { transactions, accounts, categories, budgetGroups, plannedOverrides, setPlanned, openCategoryModal, selectedMonth, monthLabel } = useFides();
-  const lbl = monthLabel(selectedMonth);
-  const [showHelp, setShowHelp] = React.useState(false);
+(function () {
+  'use strict';
 
-  // ─── Totals across all 50·30·20 groups ────────────────────
-  const totals = budgetGroups.reduce((acc, g) => {
-    acc.planned += g.limit;
-    acc.spent   += g.spent;
-    return acc;
-  }, { planned: 0, spent: 0 });
-  const pctSpent = totals.planned ? totals.spent / totals.planned : 0;
-  const sobra = totals.planned - totals.spent;
-  const hasSpend = totals.spent > 0; // false → Capítulo II mostra empty state
-  // Contagem real de categorias visíveis (substitui o "12" hardcoded).
-  const visibleCatCount = budgetGroups.reduce((n, g) => n + g.cats.length, 0);
-  // Estouro só é real quando um grupo tem limite definido E gasto acima dele.
-  const overflowGroup = budgetGroups.find(g => g.limit > 0 && g.spent > g.limit);
-  // crude projection: current burn extrapolated to end of month
-  const dayOfMonth = 16, daysInMonth = 31;
-  const projecaoFinal = totals.spent * (daysInMonth / dayOfMonth);
-  const sobraProjetada = totals.planned - projecaoFinal;
-  const { int, dec } = splitBRL(totals.planned);
+  var PLN_MONTHS = ['Jan','Fev','Mar','Abr','Mai','Jun','Jul','Ago','Set','Out','Nov','Dez'];
+  var PLN_MONTHS_LONG = [
+    'Janeiro','Fevereiro','Marco','Abril','Maio','Junho',
+    'Julho','Agosto','Setembro','Outubro','Novembro','Dezembro'
+  ];
 
-  const [editing, setEditing] = React.useState(null);
-  const [expanded, setExpanded] = React.useState(null);
-  const [collapsedGroups, setCollapsedGroups] = React.useState({});
-  const toggleGroup = (groupId) => setCollapsedGroups(prev => ({ ...prev, [groupId]: !prev[groupId] }));
+  var GROUP_META = {
+    essencial: { label: 'Essencial',                tint: 'var(--g-essencial)', target: 50 },
+    estilo:    { label: 'Estilo de vida',           tint: 'var(--g-estilo)',    target: 30 },
+    divida:    { label: 'Dividas & investimentos',  tint: 'var(--g-divida)',    target: 20 }
+  };
 
-  // ─── 6-month planned vs real (derived from real transactions) ──
-  const MONTH_LABELS = ['Jan','Fev','Mar','Abr','Mai','Jun','Jul','Ago','Set','Out','Nov','Dez'];
-  const history = (() => {
-    const [selY, selM] = selectedMonth.split('-').map(Number);
-    return Array.from({ length: 6 }, (_, i) => {
-      let m = selM - (5 - i);
-      let y = selY;
-      while (m <= 0) { m += 12; y -= 1; }
-      const ym = `${y}-${String(m).padStart(2, '0')}`;
-      const real = transactions
-        .filter(t => t.mes === ym && t.val < 0)
-        .reduce((s, t) => s + Math.abs(t.val), 0);
-      return { m: MONTH_LABELS[m - 1], plan: totals.planned, real, partial: ym === selectedMonth };
+  // ─── Helpers ───────────────────────────────────────────────
+  function goMonth(ym, delta) {
+    var p = ym.split('-').map(Number);
+    var m = p[1] + delta;
+    var y = p[0];
+    if (m < 1) { m = 12; y--; }
+    if (m > 12) { m = 1; y++; }
+    return y + '-' + String(m).padStart(2, '0');
+  }
+  function fmtMesLongo(ym) {
+    var p = ym.split('-').map(Number);
+    return PLN_MONTHS_LONG[p[1] - 1] + ' de ' + p[0];
+  }
+  function fmtVal(v) {
+    if (typeof window.fmtBRL === 'function') {
+      return window.fmtBRL(v).replace(',00', '');
+    }
+    return 'R$ ' + Number(v || 0).toLocaleString('pt-BR', {
+      minimumFractionDigits: 0, maximumFractionDigits: 0
     });
-  })();
-  const histCompleted    = history.filter(h => !h.partial);
-  const histAvgReal      = histCompleted.length > 0 ? histCompleted.reduce((s, h) => s + h.real, 0) / histCompleted.length : 0;
-  const hasPlan          = totals.planned > 0;
-  const histEstourados   = hasPlan ? histCompleted.filter(h => h.real > h.plan) : [];
-  const histAderenciaPct = hasPlan && histCompleted.length > 0
-    ? Math.round(histCompleted.filter(h => h.real <= h.plan).length / histCompleted.length * 100)
-    : null;
-  const histMaiorEstouro = histEstourados.length > 0
-    ? histEstourados.reduce((mx, h) => h.real / h.plan > mx.real / mx.plan ? h : mx, histEstourados[0])
-    : null;
+  }
+  function parseBR(raw) {
+    var s = String(raw || '').trim();
+    if (!s) return 0;
+    if (s.indexOf(',') >= 0) s = s.replace(/\./g, '').replace(',', '.');
+    return parseFloat(s) || 0;
+  }
+  function plnStatus(pct) {
+    if (pct >= 1)   return { cls: 'bad',  label: 'Estourou' };
+    if (pct >= 0.8) return { cls: 'warn', label: 'Atencao'  };
+    return { cls: 'ok', label: 'Em dia' };
+  }
 
-  return (
-    <div className="fds-page stu-page" data-od-id="orcamento">
-      {/* ─── Editorial hero ─── */}
-      <section className="stu-hero" data-od-id="orc-hero">
-        <div className="stu-hero-eyebrow">
-          <Icon.Pie size={11}/>
-          planejamento · 50·30·20 · {lbl.long}
-        </div>
-        <h2 className="stu-hero-headline">
-          Você planejou{' '}
-          <span className="stu-hero-amt">
-            <span className="cur">R$</span>
-            <span className="int">{int}</span>
-            <span className="dec">,{dec}</span>
-          </span>{' '}
-          em {lbl.long.split(' de ')[0]}.
-        </h2>
-        <p className="stu-hero-lede">
-          Até hoje, comprometeu <strong className="stu-num">R$&nbsp;{totals.spent.toLocaleString('pt-BR',{minimumFractionDigits:2})}</strong> — {(pctSpent*100).toFixed(0)}% do total. No ritmo atual, fechará Maio em <strong className="stu-num">R$&nbsp;{Math.round(projecaoFinal).toLocaleString('pt-BR')}</strong>, sobrando <span className="stu-pos">R$&nbsp;{Math.round(sobraProjetada).toLocaleString('pt-BR')}</span>.{overflowGroup && (
-            <> <em>{overflowGroup.label} estourou {Math.round((overflowGroup.spent / overflowGroup.limit - 1) * 100)}% acima do limite</em>.</>
-          )}
-        </p>
+  // ─── Header ────────────────────────────────────────────────
+  function PlnHeader(props) {
+    return React.createElement('header', { className: 'pln-head' },
+      React.createElement('div', { className: 'pln-head-top' },
+        React.createElement('h1', { className: 'pln-title' },
+          React.createElement('span', { className: 'pln-title-mark' },
+            React.createElement(window.Icon.Pie, { size: 16 })
+          ),
+          'Planejamento'
+        ),
+        React.createElement('button', { className: 'pln-copy-btn', onClick: props.onCopy },
+          React.createElement(window.Icon.Import, { size: 15 }),
+          React.createElement('span', { className: 'lbl-long' }, 'Copiar limites'),
+          React.createElement('span', { className: 'lbl-short' }, 'Copiar')
+        )
+      ),
+      React.createElement('div', { className: 'pln-month' },
+        React.createElement('button', {
+          className: 'pln-month-nav', onClick: props.onPrev, title: 'Mes anterior'
+        }, React.createElement(window.Icon.Left, { size: 16 })),
+        React.createElement('span', { className: 'pln-month-lbl' }, props.lbl.long),
+        React.createElement('button', {
+          className: 'pln-month-nav', onClick: props.onNext, title: 'Proximo mes'
+        }, React.createElement(window.Icon.Right, { size: 16 }))
+      ),
+      React.createElement('label', {
+        className: 'pln-toggle',
+        onClick: function (e) { e.preventDefault(); props.onToggleIncPend(); }
+      },
+        React.createElement('span', {
+          className: 'pln-toggle-sw' + (props.incPend ? ' on' : '')
+        }),
+        'Incluir pendentes no realizado',
+        React.createElement('span', { className: 'pln-toggle-hint' },
+          props.incPend ? '· somando previstos' : '· so pagos'
+        )
+      )
+    );
+  }
 
-        <div className="stu-hero-strip" data-od-id="orc-hero-strip">
-          <div className="stu-metric">
-            <div className="stu-metric-lbl">Planejado</div>
-            <div className="stu-metric-val">{fmtBRL(totals.planned)}</div>
-            <div className="stu-metric-tag" style={{ color: 'var(--muted)' }}>
-              <Icon.Tag size={11}/> {visibleCatCount} {visibleCatCount === 1 ? 'categoria' : 'categorias'}
-            </div>
-          </div>
-          <div className="stu-metric-sep"/>
-          <div className="stu-metric">
-            <div className="stu-metric-lbl">Comprometido</div>
-            <div className="stu-metric-val">−{fmtBRL(totals.spent).replace('R$\u00a0','R$\u00a0')}</div>
-            <ProgressBar value={pctSpent} tint="var(--accent)" glow/>
-          </div>
-          <div className="stu-metric-sep"/>
-          <div className="stu-metric">
-            <div className="stu-metric-lbl">Restante</div>
-            <div className="stu-metric-val pos">{fmtBRL(sobra)}</div>
-            <div className="stu-metric-tag" style={{ color: 'var(--muted)' }}>
-              <Icon.Clock size={11}/> 15 dias até o fim
-            </div>
-          </div>
-          <div className="stu-metric-sep"/>
-          <div className="stu-metric">
-            <div className="stu-metric-lbl">Projeção fim de mês</div>
-            <div className="stu-metric-val warn">{fmtBRL(projecaoFinal)}</div>
-            <div className="stu-metric-tag">
-              <Icon.TrendUp size={11}/> {totals.planned > 0 ? `~${((projecaoFinal/totals.planned)*100 - 100).toFixed(0)}% do plano` : '—'}
-            </div>
-          </div>
-        </div>
-      </section>
+  // ─── Insights aggregate ────────────────────────────────────
+  function PlnInsights(props) {
+    var groups = props.groups;
+    var totals = props.totals;
+    var dist = props.dist;
+    var inLimit = totals.catsInLimit;
+    var totalCats = totals.catsWithLimit;
+    var essShare = dist.total ? dist.essencial / dist.total : 0;
+    var dividaShare = dist.total ? dist.divida / dist.total : 0;
 
-      {/* ─── Info: como o crédito conta no Planejamento ─── */}
-      <div className={`pln-info-banner${showHelp ? ' expanded' : ''}`} data-od-id="orc-info-banner">
-        <div className="pln-info-icon"><Icon.Sparkles size={16}/></div>
-        <div className="pln-info-body">
-          <div className="pln-info-title">
-            Gastos no cartão contam no <strong>mês da compra</strong>
-            <button className="pln-info-toggle" onClick={() => setShowHelp(v => !v)}>
-              {showHelp ? 'Entendi' : 'Por quê?'} <Icon.Down size={12} style={{ transform: showHelp ? 'rotate(180deg)' : 'none', transition: 'transform 0.18s' }}/>
-            </button>
-          </div>
-          {showHelp && (
-            <div className="pln-info-desc">
-              Diferente de outros apps, o Fides contabiliza compras de crédito no mês em que foram feitas,
-              não no mês da fatura. Assim seu Planejamento de <strong>{lbl.long.split(' de ')[0]}</strong> reflete
-              o que você gastou em {lbl.long.split(' de ')[0]} — não o que vai vencer em {lbl.long.split(' de ')[0]}.
-              Para fluxo de caixa do cartão (quando vai sair da conta), veja a aba <strong>Contas &amp; cartões</strong>.
-            </div>
-          )}
-        </div>
-      </div>
+    var dots = [];
+    groups.forEach(function (g) {
+      g.withLimit.forEach(function (c) {
+        var p = c.limit ? c.spent / c.limit : 0;
+        dots.push(p >= 1 ? 'bad' : p >= 0.8 ? 'warn' : 'ok');
+      });
+    });
 
-      {/* ─── Capítulo I · A regra ─── */}
-      <ChapterMark roman="I" title="A regra 50·30·20"
-                   caption="Como seu plano se divide entre essencial, estilo e dívidas"/>
-      <div className="orc-rule" data-od-id="orc-regra-502030">
-        {budgetGroups.map((g, idx) => {
-          const tint = g.id === 'essencial' ? 'var(--ok)' : g.id === 'estilo' ? 'var(--info)' : 'var(--bad)';
-          const pct = g.limit ? g.spent / g.limit : 0;
-          const over = pct > 1;
-          const status = over ? 'estourado' : pct > 0.85 ? 'no limite' : 'em dia';
-          const statusCls = over ? 'bad' : pct > 0.85 ? 'warn' : 'ok';
-          return (
-            <div className="orc-rule-col" key={g.id}>
-              <div className="orc-rule-pct" style={{ color: tint }}>
-                {Math.round(g.target * 100)}<span>%</span>
-              </div>
-              <div className="orc-rule-name">{g.label}</div>
-              <div className="orc-rule-amt">{fmtBRL(g.limit)} <span>limite</span></div>
-              <div className="orc-rule-spent">
-                <span className="orc-rule-spent-v">{fmtBRL(g.spent)}</span>
-                <span className={`orc-rule-status ${statusCls}`}>{status}</span>
-              </div>
-              <ProgressBar value={Math.min(pct, 1)} tint={tint} glow/>
-              <div className="orc-rule-foot">
-                <span className={over ? 'over' : ''}>{Math.round(pct*100)}% gasto</span>
-                <span className="fds-muted">{g.cats.length} categorias</span>
-              </div>
-              {over && (
-                <div className="orc-rule-alert">
-                  <Icon.TrendUp size={12}/> {fmtBRL(g.spent - g.limit)} acima do limite
-                </div>
-              )}
-            </div>
-          );
-        })}
-      </div>
+    var msg;
+    if (dividaShare > 0.20) {
+      msg = React.createElement(React.Fragment, null,
+        'Dividas levam ',
+        React.createElement('b', null, Math.round(dividaShare * 100) + '%'),
+        ' do realizado — a regra 50·30·20 sugere ate ',
+        React.createElement('b', null, '20%'),
+        '. Vale priorizar a renegociacao.'
+      );
+    } else if (essShare > 0.50) {
+      msg = React.createElement(React.Fragment, null,
+        'Voce esta alocando ',
+        React.createElement('b', null, Math.round(essShare * 100) + '%'),
+        ' em Essencial — a regra 50·30·20 sugere ate ',
+        React.createElement('b', null, '50%'),
+        '. Olhe contas fixas para abrir espaco.'
+      );
+    } else {
+      msg = React.createElement(React.Fragment, null,
+        'Boa distribuicao: ',
+        React.createElement('b', null, Math.round(essShare * 100) + '%'),
+        ' em Essencial, dentro da meta de ',
+        React.createElement('b', null, '50%'),
+        '. Continue assim.'
+      );
+    }
 
-      {/* ─── Capítulo II · Por categoria — ou empty state se sem gastos ─── */}
-      <ChapterMark roman="II" title="Por categoria"
-                   caption="Clique no valor planejado para editar · clique na linha para ver as transações"
-                   action={<button className="stu-link" onClick={openCategoryModal}><Icon.Plus size={12}/> Gerenciar categorias</button>}/>
-      {!hasSpend ? (
-        <div className="fds-empty-state">
-          <div className="fds-empty-state-icon">🗂️</div>
-          <h2 className="fds-empty-state-title">
-            Sem gastos registrados para planejar este mês.
-          </h2>
-          <p className="fds-empty-state-lede">
-            Adicione uma despesa e ela aparecerá aqui distribuída por categoria.
-          </p>
-        </div>
-      ) : (
-      <div className="stu-card orc-cats" data-od-id="orc-categorias">
-        <div className="orc-cats-head">
-          <div>Categoria</div>
-          <div>Planejado</div>
-          <div>Gasto</div>
-          <div>Restante</div>
-          <div>Progresso</div>
-          <div></div>
-        </div>
-        {budgetGroups.map(g => {
-          const tint = g.id === 'essencial' ? 'var(--ok)' : g.id === 'estilo' ? 'var(--info)' : 'var(--bad)';
-          return (
-            <React.Fragment key={g.id}>
-              <button className="orc-cats-group"
-                      onClick={() => toggleGroup(g.id)}
-                      style={{ touchAction: 'manipulation', WebkitTapHighlightColor: 'transparent', minHeight: 44 }}
-                      role="button"
-                      aria-expanded={!collapsedGroups[g.id]}>
-                <span className="orc-cats-group-dot" style={{ background: tint }}/>
-                {g.label}
-                <span className="orc-cats-group-meta">
-                  {fmtBRL(g.spent)} de {fmtBRL(g.limit)} · {g.limit ? Math.round(g.spent/g.limit*100) : 0}%
-                </span>
-                <Icon.Down size={14} style={{ marginLeft: 'auto', transition: 'transform 0.2s ease', transform: collapsedGroups[g.id] ? 'rotate(-90deg)' : 'rotate(0deg)', color: 'var(--ink-3)' }}/>
-              </button>
-              {!collapsedGroups[g.id] && g.cats.map(c => {
-                const cat = categories[c.cat] || { label: c.cat, tint: '#888', emoji: '🏷️' };
-                const lim = c.limit;
-                const rest = lim - c.spent;
-                const pct = lim ? c.spent / lim : 0;
-                const over = pct > 1;
-                const isEditing = editing === c.cat;
-                const isExpanded = expanded === c.cat;
-                const txs = transactions.filter(t => t.cat === c.cat);
-                return (
-                  <React.Fragment key={c.cat}>
-                    <div className={`orc-cat-row ${isExpanded ? 'expanded' : ''}`}
-                         onClick={() => !isEditing && setExpanded(isExpanded ? null : c.cat)}>
-                      <div className="orc-cat-cell-name">
-                        <CategoryAvatar cat={c.cat} size={28}/>
-                        <span>{cat.label}</span>
-                        {txs.length > 0 && <span className="orc-cat-count">{txs.length}</span>}
-                      </div>
-                      <div className="orc-cat-cell-plan" onClick={(e) => { e.stopPropagation(); setEditing(c.cat); }}>
-                        {isEditing ? (
-                          <span className="orc-cat-edit">
-                            <span className="orc-cat-edit-prefix">R$</span>
-                            <input autoFocus
-                                   className="orc-cat-edit-input"
-                                   defaultValue={lim.toLocaleString('pt-BR',{minimumFractionDigits:0})}
-                                   onBlur={(e) => {
-                                     const v = parseFloat(e.target.value.replace(/\./g,'').replace(',','.')) || 0;
-                                     setPlanned(c.cat, v);
-                                     setEditing(null);
-                                   }}
-                                   onKeyDown={(e) => { if (e.key === 'Enter') e.target.blur(); if (e.key === 'Escape') setEditing(null); }}
-                                   onClick={(e) => e.stopPropagation()}/>
-                          </span>
-                        ) : (
-                          <span className="orc-cat-plan-val">
-                            <span className="cur">R$</span>{lim.toLocaleString('pt-BR',{minimumFractionDigits:0,maximumFractionDigits:0})}
-                          </span>
-                        )}
-                      </div>
-                      <div className="orc-cat-cell-spent">
-                        <span className="orc-cat-spent-val">{fmtBRL(c.spent)}</span>
-                      </div>
-                      <div className={`orc-cat-cell-rest ${over ? 'over' : ''}`}>
-                        {over ? '−' : ''}{fmtBRL(Math.abs(rest))}
-                      </div>
-                      <div className="orc-cat-cell-bar">
-                        <div className="orc-cat-bar-track">
-                          <div className={`orc-cat-bar-fill ${over ? 'over' : pct > 0.85 ? 'near' : ''}`}
-                               style={{ width: `${Math.min(pct, 1.2) * 100}%`, background: over ? 'var(--bad)' : cat.tint }}/>
-                          {over && <div className="orc-cat-bar-overflow" style={{ width: `${Math.min((pct - 1)/0.2, 1) * 100}%` }}/>}
-                        </div>
-                        <span className={`orc-cat-bar-pct ${over ? 'over' : pct > 0.85 ? 'near' : ''}`}>{Math.round(pct*100)}%</span>
-                      </div>
-                      <div className="orc-cat-cell-act">
-                        <Icon.Down size={14} style={{ transform: isExpanded ? 'rotate(180deg)' : 'none', transition: 'transform 0.18s' }}/>
-                      </div>
-                    </div>
-                    {isExpanded && (
-                      <div className="orc-cat-detail">
-                        {txs.length === 0 ? (
-                          <div className="orc-cat-empty">Nenhuma transação em maio para {cat.label}.</div>
-                        ) : (
-                          <>
-                            <div className="orc-cat-detail-head">
-                              {txs.length} {txs.length === 1 ? 'transação' : 'transações'} em maio · {fmtBRL(c.spent)}
-                            </div>
-                            <div className="orc-cat-detail-list">
-                              {txs.map((t, i) => {
-                                const a = accounts.find(x => x.id === t.acct);
-                                return (
-                                  <div className="orc-cat-detail-tx" key={i}>
-                                    <span className="orc-cat-detail-d">{t.d}</span>
-                                    <span className="orc-cat-detail-desc">{t.desc}</span>
-                                    <span className="fds-acct-pill">
-                                      <span className="fds-acct-mark-sm" style={{ background: a?.color }}/>
-                                      {a?.name}
-                                    </span>
-                                    {t.status === 'pendente'
-                                      ? <span className="fds-status pendente"><Icon.Clock size={11}/>Pendente</span>
-                                      : <span className="fds-status pago"><Icon.Check size={11}/>Pago</span>}
-                                    <span className="orc-cat-detail-val">−R$ {Math.abs(t.val).toLocaleString('pt-BR',{minimumFractionDigits:2})}</span>
-                                  </div>
-                                );
-                              })}
-                            </div>
-                          </>
-                        )}
-                      </div>
-                    )}
-                  </React.Fragment>
-                );
-              })}
-            </React.Fragment>
-          );
-        })}
-      </div>
-      )}
+    var segs = [
+      { id: 'essencial', tint: 'var(--g-essencial)', label: 'Essencial', val: dist.essencial, tgt: 50 },
+      { id: 'estilo',    tint: 'var(--g-estilo)',    label: 'Estilo',    val: dist.estilo,    tgt: 30 },
+      { id: 'divida',    tint: 'var(--g-divida)',    label: 'Dividas',   val: dist.divida,    tgt: 20 }
+    ];
 
-      {/* ─── Capítulo III · Comparação ─── */}
-      <ChapterMark roman="III" title="Plano vs. realizado"
-                   caption="Últimos 6 meses · barras escuras = realizado, claras = planejado"
-                   action={<div className="orc-legend">
-                     <span className="orc-legend-item">
-                       <span className="orc-legend-dot plan"/>
-                       Planejado
-                     </span>
-                     <span className="orc-legend-item">
-                       <span className="orc-legend-dot real"/>
-                       Realizado
-                     </span>
-                     <span className="orc-legend-item">
-                       <span className="orc-legend-dot over"/>
-                       Estourado
-                     </span>
-                   </div>}/>
-      <div className="stu-card orc-history" data-od-id="orc-historico">
-        <div className="orc-history-wrap">
-        <div className="orc-history-grid">
-          {(() => {
-            const maxVal = Math.max(1, ...history.flatMap(x => [x.plan, x.real])) * 1.1;
-            return history.map(h => {
-              const planH = (h.plan / maxVal) * 180;
-              const realH = (h.real / maxVal) * 180;
-              const ratio = h.plan > 0 ? h.real / h.plan : 0;
-              const over  = h.plan > 0 && ratio > 1 && !h.partial;
-              return (
-                <div className="orc-history-col" key={h.m}>
-                  <div className="orc-history-bars">
-                    <div className="orc-history-bar plan" style={{ height: planH }}>
-                      {h.plan > 0 && <span className="orc-history-bar-val">{(h.plan/1000).toFixed(1)}k</span>}
-                    </div>
-                    <div className={`orc-history-bar real ${over ? 'over' : ''} ${h.partial ? 'partial' : ''}`}
-                         style={{ height: realH }}>
-                      {h.real > 0 && <span className="orc-history-bar-val">{(h.real/1000).toFixed(1)}k</span>}
-                    </div>
-                  </div>
-                  <div className="orc-history-meta">
-                    <div className="orc-history-month">{h.m}</div>
-                    <div className={`orc-history-pct ${over ? 'over' : ''} ${h.partial ? 'partial' : ''}`}>
-                      {h.plan > 0
-                        ? (h.partial
-                            ? `${Math.round(ratio * 100)}% até hoje`
-                            : over
-                            ? `+${Math.round((ratio - 1) * 100)}%`
-                            : `${Math.round(ratio * 100)}%`)
-                        : (h.real > 0 ? fmtBRL(h.real) : '—')}
-                    </div>
-                  </div>
-                </div>
-              );
+    return React.createElement('div', { className: 'pln-insights' },
+      React.createElement('div', { className: 'pln-ins-top' },
+        React.createElement('div', { className: 'pln-ins-eyebrow' },
+          React.createElement(window.Icon.Sparkles, { size: 12 }),
+          'Resumo do mes'
+        ),
+        React.createElement('div', { className: 'pln-ins-headline' },
+          React.createElement('b', null, String(inLimit)),
+          ' de ',
+          React.createElement('b', null, String(totalCats)),
+          ' categorias dentro do limite',
+          totalCats - inLimit > 0 ? React.createElement(React.Fragment, null,
+            ' · ',
+            React.createElement('b', null, String(totalCats - inLimit)),
+            ' ' + (totalCats - inLimit === 1 ? 'pede' : 'pedem') + ' atencao'
+          ) : null,
+          '.'
+        ),
+        React.createElement('div', { className: 'pln-ins-count-viz' },
+          dots.map(function (d, i) {
+            return React.createElement('span', { key: i, className: 'pln-ins-dot ' + d });
+          })
+        )
+      ),
+      React.createElement('div', { className: 'pln-dist' },
+        React.createElement('div', { className: 'pln-dist-lbl' }, 'Distribuicao este mes'),
+        React.createElement('div', { className: 'pln-dist-bar' },
+          segs.map(function (s) {
+            return React.createElement('div', {
+              key: s.id, className: 'pln-dist-seg',
+              style: {
+                width: (dist.total ? (s.val / dist.total) * 100 : 0) + '%',
+                background: s.tint
+              }
             });
-          })()}
-        </div>
-        </div>{/* /orc-history-wrap */}
-        <div className="orc-history-foot">
-          <div className="orc-history-foot-stat">
-            <div className="orc-history-foot-lbl">Média realizado</div>
-            <div className="orc-history-foot-val">{histCompleted.length > 0 ? fmtBRL(histAvgReal) : '—'}</div>
-          </div>
-          <div className="orc-history-foot-stat">
-            <div className="orc-history-foot-lbl">Aderência ao plano</div>
-            <div className="orc-history-foot-val">{histAderenciaPct !== null ? `${histAderenciaPct}%` : '—'}</div>
-          </div>
-          <div className="orc-history-foot-stat">
-            <div className="orc-history-foot-lbl">Meses estourados</div>
-            <div className="orc-history-foot-val">
-              {hasPlan ? <>{histEstourados.length} <span className="fds-muted">/ {histCompleted.length}</span></> : '—'}
-            </div>
-          </div>
-          <div className="orc-history-foot-stat">
-            <div className="orc-history-foot-lbl">Maior estouro</div>
-            <div className="orc-history-foot-val">
-              {histMaiorEstouro ? `${histMaiorEstouro.m} · +${Math.round((histMaiorEstouro.real / histMaiorEstouro.plan - 1) * 100)}%` : '—'}
-            </div>
-          </div>
-        </div>
-      </div>
-    </div>
-  );
-}
+          })
+        ),
+        React.createElement('div', { className: 'pln-dist-legend' },
+          segs.map(function (s) {
+            return React.createElement('div', { key: s.id, className: 'pln-dist-leg' },
+              React.createElement('span', { className: 'pln-dist-leg-dot', style: { background: s.tint } }),
+              s.label + ' ',
+              React.createElement('b', null,
+                (dist.total ? Math.round((s.val / dist.total) * 100) : 0) + '%'
+              ),
+              React.createElement('span', { className: 'tgt' }, '/ ' + s.tgt + '%')
+            );
+          })
+        )
+      ),
+      React.createElement('div', { className: 'pln-ins-msg' },
+        React.createElement('span', { className: 'pln-ins-msg-ic' },
+          React.createElement(window.Icon.Sparkles, { size: 13 })
+        ),
+        React.createElement('span', null, msg)
+      ),
+      React.createElement('div', { className: 'pln-ins-totals' },
+        React.createElement('div', { className: 'pln-ins-tot' },
+          React.createElement('span', { className: 'pln-ins-tot-lbl' }, 'Planejado'),
+          React.createElement('span', { className: 'pln-ins-tot-val' }, fmtVal(totals.planned))
+        ),
+        React.createElement('div', { className: 'pln-ins-tot' },
+          React.createElement('span', { className: 'pln-ins-tot-lbl' }, 'Realizado'),
+          React.createElement('span', { className: 'pln-ins-tot-val' }, fmtVal(totals.realized))
+        ),
+        React.createElement('div', { className: 'pln-ins-tot' },
+          React.createElement('span', { className: 'pln-ins-tot-lbl' }, 'Projecao'),
+          React.createElement('span', {
+            className: 'pln-ins-tot-val ' + (totals.projection > totals.planned ? 'warn' : 'pos')
+          }, fmtVal(totals.projection))
+        )
+      )
+    );
+  }
 
-Object.assign(window, { OrcamentoStudio });
+  // ─── Category card ─────────────────────────────────────────
+  function PlnCategoryCard(props) {
+    var c = props.c;
+    var ctx = props.ctx;
+    var isOpen = ctx.expanded === c.cat_key;
+    var isEditing = ctx.editing === c.cat_key;
+    var pct = c.limit ? c.spent / c.limit : 0;
+    var st = plnStatus(pct);
+    var rest = c.limit - c.spent;
+    var proj = ctx.dayElapsed ? c.spent * (ctx.daysInMonth / ctx.dayElapsed) : c.spent;
+    var projPct = c.limit ? (proj / c.limit) : 0;
+    var overWidth = Math.min((pct - 1) / 0.5, 1) * 100;
+
+    return React.createElement('div', { className: 'pln-cat' + (isOpen ? ' open' : '') },
+      React.createElement('div', {
+        className: 'pln-cat-main',
+        onClick: function () { if (!isEditing) ctx.onToggle(c.cat_key); },
+        role: 'button', tabIndex: 0
+      },
+        React.createElement('div', { className: 'pln-cat-row1' },
+          React.createElement(window.CategoryAvatar, { cat: c.cat_key, size: 30 }),
+          React.createElement('span', { className: 'pln-cat-name' }, c.label),
+          React.createElement('span', { className: 'pln-status ' + st.cls },
+            React.createElement('span', { className: 'pln-status-dot' }),
+            st.label
+          ),
+          React.createElement(window.Icon.Down, { size: 16, className: 'pln-cat-chev' })
+        ),
+        React.createElement('div', { className: 'pln-cat-row2' },
+          React.createElement('div', { className: 'pln-cat-vals' },
+            React.createElement('span', { className: 'pln-cat-spent' }, fmtVal(c.spent)),
+            React.createElement('span', { className: 'pln-cat-of' }, '/'),
+            isEditing
+              ? React.createElement('span', {
+                  className: 'pln-cat-edit-wrap',
+                  onClick: function (e) { e.stopPropagation(); }
+                },
+                  React.createElement('span', { className: 'cur' }, 'R$'),
+                  React.createElement('input', {
+                    autoFocus: true, inputMode: 'numeric',
+                    className: 'pln-cat-edit-input',
+                    defaultValue: String(c.limit || ''),
+                    onBlur: function (e) { ctx.onEditSave(c.cat_key, e.target.value); },
+                    onKeyDown: function (e) {
+                      if (e.key === 'Enter') e.target.blur();
+                      if (e.key === 'Escape') ctx.onEditSave(c.cat_key, null);
+                    }
+                  })
+                )
+              : React.createElement('span', {
+                  className: 'pln-cat-limit-tap',
+                  onClick: function (e) { e.stopPropagation(); ctx.onEditStart(c.cat_key); },
+                  title: 'Toque para editar o limite'
+                },
+                  React.createElement('span', { className: 'pln-cat-limit' }, fmtVal(c.limit))
+                )
+          ),
+          React.createElement('span', { className: 'pln-cat-pct ' + st.cls },
+            Math.round(pct * 100) + '%'
+          ),
+          React.createElement('button', {
+            className: 'pln-cat-pencil',
+            onClick: function (e) { e.stopPropagation(); ctx.onOpenLimit(c.cat_key); },
+            title: 'Editar limite (opcoes)'
+          },
+            React.createElement(window.Icon.Settings, { size: 15 })
+          )
+        ),
+        React.createElement('div', { className: 'pln-bar' + (pct > 1 ? ' over' : '') },
+          React.createElement('div', {
+            className: 'pln-bar-fill ' + st.cls,
+            style: { width: (Math.min(pct, 1) * 100) + '%' }
+          }),
+          pct > 1
+            ? React.createElement('div', {
+                className: 'pln-bar-over-hatch',
+                style: { width: Math.max(overWidth, 12) + '%' }
+              })
+            : null
+        )
+      ),
+      isOpen
+        ? React.createElement('div', { className: 'pln-cat-detail' },
+            React.createElement('div', { className: 'pln-detail-row' },
+              React.createElement(window.Icon.Wallet, { size: 14, className: 'pln-detail-ic' }),
+              rest >= 0
+                ? React.createElement('span', null,
+                    'Sobra ',
+                    React.createElement('span', { className: 'pos pln-num' }, fmtVal(rest)),
+                    ' do limite deste mes.'
+                  )
+                : React.createElement('span', null,
+                    'Excedente de ',
+                    React.createElement('span', { className: 'neg pln-num' }, fmtVal(Math.abs(rest))),
+                    ' sobre o limite.'
+                  )
+            ),
+            React.createElement('div', { className: 'pln-detail-row' },
+              React.createElement(window.Icon.TrendUp, { size: 14, className: 'pln-detail-ic' }),
+              React.createElement('span', null,
+                'No ritmo atual, fecha em ',
+                React.createElement('b', { className: 'pln-num' }, fmtVal(proj)),
+                ' ',
+                React.createElement('span', { className: projPct > 1 ? 'neg' : 'pos' },
+                  '(' + (projPct >= 1 ? '+' : '-') +
+                  Math.abs(Math.round((projPct - 1) * 100)) + '% do limite)'
+                ),
+                '.'
+              )
+            ),
+            ctx.receita > 0
+              ? React.createElement('div', { className: 'pln-detail-row' },
+                  React.createElement(window.Icon.Pie, { size: 14, className: 'pln-detail-ic' }),
+                  React.createElement('span', null,
+                    'Representa ',
+                    React.createElement('b', { className: 'pln-num' },
+                      ((c.spent / ctx.receita) * 100).toFixed(1) + '%'
+                    ),
+                    ' da sua receita do mes.'
+                  )
+                )
+              : null
+          )
+        : null
+    );
+  }
+
+  // ─── Category WITHOUT a defined limit ──────────────────────
+  function PlnNoLimitCard(props) {
+    var c = props.c;
+    return React.createElement('div', { className: 'pln-cat nolimit' },
+      React.createElement('div', { className: 'pln-cat-nolimit-main' },
+        React.createElement(window.CategoryAvatar, { cat: c.cat_key, size: 30 }),
+        React.createElement('div', { className: 'pln-nolimit-meta' },
+          React.createElement('div', { className: 'pln-nolimit-name' }, c.label),
+          React.createElement('div', { className: 'pln-nolimit-sub' },
+            'sem limite definido',
+            c.spent > 0
+              ? React.createElement(React.Fragment, null,
+                  ' · gastou ',
+                  React.createElement('span', { className: 'pln-num' }, fmtVal(c.spent))
+                )
+              : null
+          )
+        ),
+        React.createElement('button', {
+          className: 'pln-define-btn',
+          onClick: function () { props.onDefine(c.cat_key); }
+        },
+          React.createElement(window.Icon.Plus, { size: 13 }),
+          'Definir limite'
+        )
+      )
+    );
+  }
+
+  // ─── Group section ─────────────────────────────────────────
+  function PlnGroupSection(props) {
+    var g = props.g;
+    var ctx = props.ctx;
+    var collapsed = props.collapsed;
+    var gm = GROUP_META[g.id] || { label: g.label, tint: 'var(--ink)', target: 0 };
+    var pct = g.limit ? g.spent / g.limit : 0;
+    var pctColor = pct >= 1 ? 'var(--bad)'
+                 : pct >= 0.8 ? 'var(--warn)'
+                 : gm.tint;
+
+    return React.createElement('section', {
+      className: 'pln-group' + (collapsed ? ' collapsed' : '')
+    },
+      React.createElement('div', {
+        className: 'pln-group-head',
+        onClick: props.onToggleCollapse,
+        role: 'button', tabIndex: 0
+      },
+        React.createElement('span', { className: 'pln-group-toggle' },
+          React.createElement(window.Icon.Down, { size: 16 })
+        ),
+        React.createElement('span', { className: 'pln-group-bar', style: { background: gm.tint } }),
+        React.createElement('div', { className: 'pln-group-meta' },
+          React.createElement('div', { className: 'pln-group-name' },
+            gm.label,
+            React.createElement('span', { className: 'pln-group-target' },
+              'meta ',
+              React.createElement('b', { style: { fontWeight: 700 } }, gm.target),
+              '%'
+            )
+          ),
+          React.createElement('div', { className: 'pln-group-sub' },
+            React.createElement('span', { className: 'pln-num' }, fmtVal(g.spent)),
+            ' de ',
+            React.createElement('span', { className: 'pln-num' }, fmtVal(g.limit)),
+            ' · ',
+            React.createElement('span', { className: pct > 1 ? 'over' : '' },
+              Math.round(pct * 100) + '% usado'
+            )
+          )
+        ),
+        React.createElement('span', {
+          className: 'pln-group-pct',
+          style: { color: pctColor }
+        }, Math.round(pct * 100) + '%')
+      ),
+      React.createElement('div', { className: 'pln-group-cats' },
+        g.withLimit.map(function (c) {
+          return React.createElement(PlnCategoryCard, { key: c.cat_key, c: c, ctx: ctx });
+        })
+      ),
+      g.noLimit.length > 0
+        ? React.createElement(React.Fragment, null,
+            React.createElement('div', { className: 'pln-group-nolimit-hd' }, 'Sem limite'),
+            React.createElement('div', { className: 'pln-group-cats' },
+              g.noLimit.map(function (c) {
+                return React.createElement(PlnNoLimitCard, {
+                  key: c.cat_key, c: c, onDefine: ctx.onOpenLimit
+                });
+              })
+            )
+          )
+        : null
+    );
+  }
+
+  // ─── Limit edit sheet (bottom sheet) ───────────────────────
+  function LimitSheet(props) {
+    var cat = props.cat;
+    var lbl = props.lbl;
+    var currentLimit = props.currentLimit || 0;
+    var categories = (window.useFides && window.useFides.categories) || {};
+    var catInfo = (window.CATEGORIES && window.CATEGORIES[cat]) || { label: cat, tint: '#888', emoji: '🏷️' };
+
+    var stVal = React.useState(currentLimit ? String(currentLimit).replace('.', ',') : '');
+    var val = stVal[0]; var setVal = stVal[1];
+    var stMode = React.useState(props.initialMode || 'this');
+    var mode = stMode[0]; var setMode = stMode[1];
+
+    var monthName = (lbl && lbl.long) ? lbl.long.split(' de ')[0] : 'este mes';
+    var year = (lbl && lbl.long) ? lbl.long.split(' de ')[1] || '' : '';
+    var selectedIdx = (lbl && lbl.long) ? (function () {
+      for (var i = 0; i < PLN_MONTHS_LONG.length; i++) {
+        if (PLN_MONTHS_LONG[i].toLowerCase() === monthName.toLowerCase()) return i;
+      }
+      return null;
+    })() : null;
+
+    var stPicked = React.useState(function () {
+      var s = new Set();
+      if (selectedIdx != null) s.add(selectedIdx);
+      return s;
+    });
+    var picked = stPicked[0]; var setPicked = stPicked[1];
+
+    function togglePick(i) {
+      setPicked(function (p) {
+        var n = new Set(p);
+        if (n.has(i)) n.delete(i); else n.add(i);
+        return n;
+      });
+    }
+
+    var numericVal = parseBR(val);
+
+    var options = [
+      { id: 'this', main: ('Apenas ' + monthName + (year ? ' ' + year : '')).trim(), sub: 'Vale so para este mes' },
+      { id: 'all',  main: 'Todos os meses', sub: 'Padrao — aplica daqui em diante' },
+      { id: 'specific', main: 'Meses especificos...', sub: 'Escolha quais meses recebem este limite' }
+    ];
+
+    return React.createElement('div', {
+      className: 'pln-sheet-backdrop', onClick: props.onClose
+    },
+      React.createElement('div', {
+        className: 'pln-sheet', onClick: function (e) { e.stopPropagation(); }
+      },
+        React.createElement('div', { className: 'pln-sheet-grip' }),
+        React.createElement('div', { className: 'pln-sheet-head' },
+          React.createElement('span', {
+            className: 'pln-sheet-emoji',
+            style: {
+              background: catInfo.tint + '1A',
+              border: '1px solid ' + catInfo.tint + '33'
+            }
+          }, catInfo.emoji || '🏷️'),
+          React.createElement('div', { className: 'pln-sheet-titles' },
+            React.createElement('div', { className: 'pln-sheet-eyebrow' },
+              currentLimit > 0 ? 'Editar limite' : 'Novo limite'
+            ),
+            React.createElement('div', { className: 'pln-sheet-title' },
+              catInfo.label + ' — Limite mensal'
+            )
+          ),
+          React.createElement('button', {
+            className: 'pln-sheet-x', onClick: props.onClose
+          }, React.createElement(window.Icon.X, { size: 16 }))
+        ),
+        React.createElement('div', { className: 'pln-sheet-body' },
+          React.createElement('div', null,
+            React.createElement('div', { className: 'pln-field-lbl' }, 'Limite'),
+            React.createElement('div', { className: 'pln-value-input' },
+              React.createElement('span', { className: 'cur' }, 'R$'),
+              React.createElement('input', {
+                autoFocus: true, inputMode: 'numeric',
+                placeholder: '0', value: val,
+                onChange: function (e) { setVal(e.target.value); }
+              })
+            )
+          ),
+          React.createElement('div', null,
+            React.createElement('div', { className: 'pln-field-lbl' }, 'Aplicar a'),
+            React.createElement('div', { className: 'pln-radio-list' },
+              options.map(function (o) {
+                return React.createElement('button', {
+                  key: o.id,
+                  className: 'pln-radio' + (mode === o.id ? ' on' : ''),
+                  onClick: function () { setMode(o.id); }
+                },
+                  React.createElement('span', { className: 'pln-radio-mark' }),
+                  React.createElement('span', { className: 'pln-radio-txt' },
+                    React.createElement('span', { className: 'pln-radio-main' }, o.main),
+                    React.createElement('span', { className: 'pln-radio-sub' }, o.sub)
+                  )
+                );
+              })
+            ),
+            mode === 'specific'
+              ? React.createElement('div', { className: 'pln-months-grid' },
+                  PLN_MONTHS.map(function (m, i) {
+                    return React.createElement('button', {
+                      key: m,
+                      className: 'pln-month-cell' + (picked.has(i) ? ' on' : ''),
+                      onClick: function () { togglePick(i); }
+                    }, m);
+                  })
+                )
+              : null
+          )
+        ),
+        React.createElement('div', { className: 'pln-sheet-foot' },
+          currentLimit > 0
+            ? React.createElement('button', {
+                className: 'pln-btn pln-btn-danger',
+                onClick: function () { props.onRemove(cat); }
+              },
+                React.createElement(window.Icon.X, { size: 15 }),
+                'Remover'
+              )
+            : null,
+          React.createElement('button', {
+            className: 'pln-btn pln-btn-ghost', onClick: props.onClose
+          }, 'Cancelar'),
+          React.createElement('button', {
+            className: 'pln-btn pln-btn-primary',
+            disabled: numericVal <= 0,
+            onClick: function () { props.onSave(cat, numericVal, mode, picked); }
+          },
+            React.createElement(window.Icon.Check, { size: 16 }),
+            'Salvar'
+          )
+        )
+      )
+    );
+  }
+
+  // ─── Copy-limits sheet (placeholder visual) ────────────────
+  function CopySheet(props) {
+    var stPicking = React.useState(false);
+    var picking = stPicking[0]; var setPicking = stPicking[1];
+
+    return React.createElement('div', {
+      className: 'pln-sheet-backdrop', onClick: props.onClose
+    },
+      React.createElement('div', {
+        className: 'pln-sheet', onClick: function (e) { e.stopPropagation(); }
+      },
+        React.createElement('div', { className: 'pln-sheet-grip' }),
+        React.createElement('div', { className: 'pln-sheet-head' },
+          React.createElement('span', {
+            className: 'pln-sheet-emoji',
+            style: { background: 'var(--accent-soft)', color: 'var(--accent)' }
+          }, React.createElement(window.Icon.Import, { size: 20 })),
+          React.createElement('div', { className: 'pln-sheet-titles' },
+            React.createElement('div', { className: 'pln-sheet-eyebrow' }, 'Atalho'),
+            React.createElement('div', { className: 'pln-sheet-title' }, 'Copiar limites')
+          ),
+          React.createElement('button', {
+            className: 'pln-sheet-x', onClick: props.onClose
+          }, React.createElement(window.Icon.X, { size: 16 }))
+        ),
+        React.createElement('div', { className: 'pln-sheet-body' },
+          React.createElement('button', {
+            className: 'pln-copy-opt', onClick: props.onApply
+          },
+            React.createElement('span', { className: 'pln-copy-opt-ic' },
+              React.createElement(window.Icon.Left, { size: 17 })
+            ),
+            React.createElement('span', { className: 'pln-copy-opt-txt' },
+              React.createElement('span', { className: 'pln-copy-opt-main' }, 'Copiar do mes anterior'),
+              React.createElement('span', { className: 'pln-copy-opt-sub' }, 'Traz os limites do mes anterior para ca')
+            ),
+            React.createElement(window.Icon.Right, { size: 16, style: { color: 'var(--muted-2)' } })
+          ),
+          React.createElement('button', {
+            className: 'pln-copy-opt',
+            onClick: function () { setPicking(function (v) { return !v; }); }
+          },
+            React.createElement('span', { className: 'pln-copy-opt-ic' },
+              React.createElement(window.Icon.Calendar, { size: 17 })
+            ),
+            React.createElement('span', { className: 'pln-copy-opt-txt' },
+              React.createElement('span', { className: 'pln-copy-opt-main' }, 'Copiar de um mes especifico'),
+              React.createElement('span', { className: 'pln-copy-opt-sub' }, 'Escolha qualquer mes do historico')
+            ),
+            React.createElement(window.Icon.Down, {
+              size: 16,
+              style: {
+                color: 'var(--muted-2)',
+                transform: picking ? 'rotate(180deg)' : 'none',
+                transition: 'transform .18s'
+              }
+            })
+          ),
+          picking
+            ? React.createElement('div', { className: 'pln-months-grid', style: { marginTop: 0 } },
+                PLN_MONTHS.map(function (m) {
+                  return React.createElement('button', {
+                    key: m, className: 'pln-month-cell', onClick: props.onApply
+                  }, m);
+                })
+              )
+            : null,
+          React.createElement('button', {
+            className: 'pln-copy-opt', onClick: props.onApply
+          },
+            React.createElement('span', { className: 'pln-copy-opt-ic' },
+              React.createElement(window.Icon.TrendUp, { size: 17 })
+            ),
+            React.createElement('span', { className: 'pln-copy-opt-txt' },
+              React.createElement('span', { className: 'pln-copy-opt-main' }, 'Sugerir pela media'),
+              React.createElement('span', { className: 'pln-copy-opt-sub' }, 'Calcula com base nos ultimos 3 meses realizados')
+            ),
+            React.createElement(window.Icon.Right, { size: 16, style: { color: 'var(--muted-2)' } })
+          )
+        )
+      )
+    );
+  }
+
+  // ─── Empty state ──────────────────────────────────────────
+  function PlnEmptyState(props) {
+    return React.createElement('div', { className: 'pln-body' },
+      React.createElement('div', { className: 'pln-empty' },
+        React.createElement('div', { className: 'pln-empty-art' },
+          React.createElement(window.Icon.Pie, { size: 36 })
+        ),
+        React.createElement('div', { className: 'pln-empty-title' },
+          'Planeje seu mes por categoria'
+        ),
+        React.createElement('div', { className: 'pln-empty-body' },
+          'Defina quanto pretende gastar em cada categoria. O Fides acompanha o realizado, ' +
+          'avisa quando voce se aproxima do limite e mostra como seu dinheiro se divide entre ' +
+          'o essencial, o estilo de vida e as dividas.'
+        ),
+        React.createElement('div', { className: 'pln-empty-rule' },
+          React.createElement('div', {
+            className: 'pln-empty-rule-seg',
+            style: { background: 'var(--g-essencial)' }
+          },
+            React.createElement('span', { className: 'pln-empty-rule-pct' }, '50%'),
+            React.createElement('span', { className: 'pln-empty-rule-lbl' }, 'Essencial')
+          ),
+          React.createElement('div', {
+            className: 'pln-empty-rule-seg',
+            style: { background: 'var(--g-estilo)' }
+          },
+            React.createElement('span', { className: 'pln-empty-rule-pct' }, '30%'),
+            React.createElement('span', { className: 'pln-empty-rule-lbl' }, 'Estilo')
+          ),
+          React.createElement('div', {
+            className: 'pln-empty-rule-seg',
+            style: { background: 'var(--g-divida)' }
+          },
+            React.createElement('span', { className: 'pln-empty-rule-pct' }, '20%'),
+            React.createElement('span', { className: 'pln-empty-rule-lbl' }, 'Dividas')
+          )
+        ),
+        React.createElement('div', { className: 'pln-empty-acts' },
+          React.createElement('button', {
+            className: 'pln-btn pln-btn-primary', onClick: props.onApplyRule
+          },
+            React.createElement(window.Icon.Sparkles, { size: 16 }),
+            'Comecar com a regra 50·30·20'
+          ),
+          React.createElement('button', {
+            className: 'pln-btn pln-btn-ghost', onClick: props.onCopy
+          },
+            React.createElement(window.Icon.Import, { size: 15 }),
+            'Copiar de outro mes'
+          )
+        )
+      )
+    );
+  }
+
+  // ─── Main component ───────────────────────────────────────
+  function FidesOrcamento() {
+    var store = window.useFides();
+    var categoryUsage      = store.categoryUsage || [];
+    var monthTransactions  = store.monthTransactions || [];
+    var selectedMonth      = store.selectedMonth;
+    var setSelectedMonth   = store.setSelectedMonth;
+    var setCategoryLimit   = store.setCategoryLimit;
+    var removeCategoryLimit = store.removeCategoryLimit;
+
+    var toast = window.FidesUI.useToast();
+    var refConfirm = window.FidesUI.useConfirm();
+    var ConfirmHost = refConfirm.ConfirmHost;
+    var confirm = refConfirm.confirm;
+
+    var stIncPend = React.useState(true);
+    var incPend = stIncPend[0]; var setIncPend = stIncPend[1];
+    var stExp = React.useState(null);
+    var expanded = stExp[0]; var setExpanded = stExp[1];
+    var stEdit = React.useState(null);
+    var editing = stEdit[0]; var setEditing = stEdit[1];
+    var stLimit = React.useState(null);
+    var limitSheet = stLimit[0]; var setLimitSheet = stLimit[1];
+    var stCopy = React.useState(false);
+    var copySheet = stCopy[0]; var setCopySheet = stCopy[1];
+    var stCollapsed = React.useState({});
+    var collapsedGroups = stCollapsed[0]; var setCollapsedGroups = stCollapsed[1];
+
+    var lbl = typeof store.monthLabel === 'function'
+      ? store.monthLabel(selectedMonth)
+      : { long: fmtMesLongo(selectedMonth), short: selectedMonth };
+
+    // Dia atual para projecao
+    var today = new Date();
+    var parts = String(selectedMonth).split('-').map(Number);
+    var daysInMonth = new Date(parts[0], parts[1], 0).getDate();
+    var isCurrentMonth = today.getFullYear() === parts[0] && (today.getMonth() + 1) === parts[1];
+    var dayElapsed = isCurrentMonth ? today.getDate() : daysInMonth;
+
+    // Ajustar spent pelo toggle "incluir pendentes"
+    var adjustedUsage = React.useMemo(function () {
+      if (incPend) return categoryUsage;
+      var spentMap = {};
+      monthTransactions.forEach(function (t) {
+        if (t.isTransfer || t.val >= 0 || t.status !== 'pago') return;
+        spentMap[t.cat] = (spentMap[t.cat] || 0) + Math.abs(t.val);
+      });
+      return categoryUsage.map(function (c) {
+        var sp = spentMap[c.cat_key] || 0;
+        var p = c.limit ? Math.round((sp / c.limit) * 100) : null;
+        var st = !c.limit ? null : p >= 100 ? 'over' : p >= 80 ? 'warn' : 'ok';
+        var n = {};
+        for (var k in c) if (Object.prototype.hasOwnProperty.call(c, k)) n[k] = c[k];
+        n.spent = sp; n.pct = p; n.status = st;
+        return n;
+      });
+    }, [incPend, categoryUsage, monthTransactions]);
+
+    // Receita do mes
+    var receita = React.useMemo(function () {
+      return monthTransactions
+        .filter(function (t) { return t.val > 0 && !t.isTransfer; })
+        .reduce(function (s, t) { return s + t.val; }, 0);
+    }, [monthTransactions]);
+
+    // Construir grupos
+    var groups = React.useMemo(function () {
+      var ids = ['essencial', 'estilo', 'divida'];
+      return ids.map(function (id) {
+        var cats = adjustedUsage.filter(function (c) { return c.grp === id; });
+        var withLimit = cats.filter(function (c) { return c.limit > 0; });
+        var noLimit = cats.filter(function (c) {
+          return !c.limit && c.spent > 0;
+        });
+        withLimit.sort(function (a, b) {
+          var rank = { bad: 3, warn: 2, ok: 1 };
+          var ra = a.limit ? (a.spent / a.limit >= 1 ? 'bad' : a.spent / a.limit >= 0.8 ? 'warn' : 'ok') : 'ok';
+          var rb = b.limit ? (b.spent / b.limit >= 1 ? 'bad' : b.spent / b.limit >= 0.8 ? 'warn' : 'ok') : 'ok';
+          return (rank[rb] || 0) - (rank[ra] || 0) || b.spent - a.spent;
+        });
+        var limit = cats.reduce(function (s, c) { return s + (c.limit || 0); }, 0);
+        var spent = cats.reduce(function (s, c) { return s + c.spent; }, 0);
+        return {
+          id: id,
+          label: (GROUP_META[id] || {}).label || id,
+          cats: cats, withLimit: withLimit, noLimit: noLimit,
+          limit: limit, spent: spent
+        };
+      });
+    }, [adjustedUsage]);
+
+    var totals = React.useMemo(function () {
+      var planned = 0, realized = 0, withLim = 0, inLim = 0;
+      groups.forEach(function (g) {
+        g.cats.forEach(function (c) {
+          planned += (c.limit || 0);
+          realized += c.spent;
+          if (c.limit > 0) { withLim++; if (c.spent <= c.limit) inLim++; }
+        });
+      });
+      var proj = dayElapsed ? realized * (daysInMonth / dayElapsed) : realized;
+      return {
+        planned: planned, realized: realized, projection: proj,
+        catsWithLimit: withLim, catsInLimit: inLim
+      };
+    }, [groups, daysInMonth, dayElapsed]);
+
+    var dist = React.useMemo(function () {
+      var d = { essencial: 0, estilo: 0, divida: 0 };
+      groups.forEach(function (g) { d[g.id] = g.spent; });
+      d.total = d.essencial + d.estilo + d.divida;
+      return d;
+    }, [groups]);
+
+    function toggleGroup(gid) {
+      setCollapsedGroups(function (p) {
+        var n = {};
+        for (var k in p) if (Object.prototype.hasOwnProperty.call(p, k)) n[k] = p[k];
+        n[gid] = !n[gid];
+        return n;
+      });
+    }
+
+    function onEditSave(catKey, raw) {
+      if (raw !== null) {
+        var v = parseBR(raw);
+        if (v > 0) {
+          Promise.resolve(setCategoryLimit(catKey, v, 'this'))
+            .then(function () { toast.success('Limite atualizado'); })
+            .catch(function () { toast.error('Erro ao salvar'); });
+        }
+      }
+      setEditing(null);
+    }
+
+    function onSaveLimit(catKey, value, mode, picked) {
+      var scope = mode === 'all' ? 'default'
+                : mode === 'specific' ? 'custom'
+                : 'this';
+      var months = null;
+      if (scope === 'custom') {
+        var year = String(selectedMonth).split('-')[0];
+        months = Array.from(picked || []).map(function (i) {
+          return year + '-' + String(i + 1).padStart(2, '0');
+        });
+      }
+      Promise.resolve(setCategoryLimit(catKey, value, scope, months))
+        .then(function () {
+          if (scope === 'this') toast.success('Limite definido para ' + lbl.long);
+          else if (scope === 'default') toast.success('Limite padrao salvo');
+          else toast.success('Limite aplicado a ' + (months || []).length + ' meses');
+          setLimitSheet(null);
+        })
+        .catch(function () { toast.error('Erro ao salvar limite'); });
+    }
+
+    function onRemoveLimit(catKey) {
+      confirm({
+        title: 'Remover limite?',
+        message: 'Esta categoria voltara a aparecer sem limite definido.',
+        destructive: true,
+        confirmLabel: 'Remover limite'
+      }).then(function (ok) {
+        if (!ok) return;
+        Promise.resolve(removeCategoryLimit(catKey, 'this'))
+          .then(function () {
+            toast.warn('Limite removido');
+            setLimitSheet(null);
+          })
+          .catch(function () { toast.error('Erro ao remover limite'); });
+      });
+    }
+
+    var ctx = {
+      expanded: expanded,
+      editing: editing,
+      receita: receita,
+      daysInMonth: daysInMonth,
+      dayElapsed: dayElapsed,
+      onToggle: function (id) { setExpanded(function (e) { return e === id ? null : id; }); },
+      onEditStart: function (id) { setEditing(id); },
+      onEditSave: onEditSave,
+      onOpenLimit: function (id) { setLimitSheet({ cat: id, mode: 'this' }); }
+    };
+
+    var isEmpty = !categoryUsage || categoryUsage.length === 0
+      || (totals.catsWithLimit === 0 && totals.realized === 0);
+
+    var sheetCat = limitSheet && limitSheet.cat;
+    var sheetCurrentLimit = 0;
+    if (sheetCat) {
+      for (var i = 0; i < groups.length; i++) {
+        for (var j = 0; j < groups[i].cats.length; j++) {
+          if (groups[i].cats[j].cat_key === sheetCat) {
+            sheetCurrentLimit = groups[i].cats[j].limit || 0;
+            break;
+          }
+        }
+      }
+    }
+
+    return React.createElement('div', { className: 'pln-screen' },
+      React.createElement(PlnHeader, {
+        incPend: incPend,
+        onToggleIncPend: function () { setIncPend(function (v) { return !v; }); },
+        onCopy: function () { setCopySheet(true); },
+        lbl: lbl,
+        onPrev: function () { setSelectedMonth(goMonth(selectedMonth, -1)); },
+        onNext: function () { setSelectedMonth(goMonth(selectedMonth, +1)); }
+      }),
+      isEmpty
+        ? React.createElement(PlnEmptyState, {
+            onCopy: function () { setCopySheet(true); },
+            onApplyRule: function () { toast.info('Em breve — proxima versao'); }
+          })
+        : React.createElement('div', { className: 'pln-body' },
+            React.createElement(PlnInsights, {
+              groups: groups, totals: totals, dist: dist, receita: receita
+            }),
+            groups.map(function (g) {
+              return React.createElement(PlnGroupSection, {
+                key: g.id, g: g, ctx: ctx,
+                collapsed: !!collapsedGroups[g.id],
+                onToggleCollapse: function () { toggleGroup(g.id); }
+              });
+            })
+          ),
+      limitSheet
+        ? React.createElement(LimitSheet, {
+            cat: sheetCat,
+            currentLimit: sheetCurrentLimit,
+            initialMode: limitSheet.mode,
+            lbl: lbl,
+            onClose: function () { setLimitSheet(null); },
+            onSave: onSaveLimit,
+            onRemove: onRemoveLimit
+          })
+        : null,
+      copySheet
+        ? React.createElement(CopySheet, {
+            lbl: lbl,
+            onClose: function () { setCopySheet(false); },
+            onApply: function () {
+              toast.info('Em breve — proxima versao');
+              setCopySheet(false);
+            }
+          })
+        : null,
+      React.createElement(ConfirmHost, null)
+    );
+  }
+
+  // Compatibilidade com o shell atual.
+  var OrcamentoStudio = FidesOrcamento;
+  Object.assign(window, {
+    FidesOrcamento: FidesOrcamento,
+    OrcamentoStudio: OrcamentoStudio
+  });
+})();
