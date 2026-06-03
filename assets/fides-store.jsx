@@ -670,8 +670,7 @@ function FidesProvider({ children }) {
   const setCategoryLimit = React.useCallback(async (cat_key, limit, scope, months) => {
     const val = Number(limit);
     if (!cat_key || !isFinite(val) || val <= 0) {
-      window.FidesUI.toast.error('Informe um limite valido maior que zero.');
-      return;
+      throw new Error('Limite invalido');
     }
     if (mode !== 'live' || !userId) return;
     const persist = async (month) => {
@@ -701,7 +700,7 @@ function FidesProvider({ children }) {
       await refreshData(userId);
     } catch (err) {
       console.error('[Fides] setCategoryLimit:', err.message);
-      window.FidesUI.toast.error('Nao foi possivel salvar o limite. Tente novamente.');
+      throw err;
     }
   }, [mode, userId, selectedMonth, refreshData]);
 
@@ -725,7 +724,7 @@ function FidesProvider({ children }) {
       await refreshData(userId);
     } catch (err) {
       console.error('[Fides] removeCategoryLimit:', err.message);
-      window.FidesUI.toast.error('Nao foi possivel remover o limite. Tente novamente.');
+      throw err;
     }
   }, [mode, userId, selectedMonth, refreshData]);
 

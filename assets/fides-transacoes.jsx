@@ -906,7 +906,8 @@ function EditTxModal({ tx, onClose }) {
 
 // ─── Modal: Nova Transação ────────────────────────────────────
 function NovaTransacaoModal({ open, onClose, onSave, variant }) {
-  const { categories, openCategoryModal, accounts, cards, transferFunds } = useFides();
+  const { categories, openCategoryModal, accounts, cards, transferFunds, addTransaction, addTransactions } = useFides();
+  const toast = window.FidesUI.useToast();
   const today = new Date();
   const todayStr = `${String(today.getDate()).padStart(2,'0')}/${String(today.getMonth()+1).padStart(2,'0')}/${today.getFullYear()}`;
 
@@ -1005,6 +1006,20 @@ function NovaTransacaoModal({ open, onClose, onSave, variant }) {
     });
   };
 
+  const resetForm = () => {
+    setKind('despesa');
+    setPay('debito');
+    setCat('mercado');
+    setPaid(true);
+    setRecur(false);
+    setRecurMode('fixo');
+    setParcelas(1);
+    setDesc('');
+    setVal('');
+    setDate(todayStr);
+    setToAcct('');
+  };
+
   const handleSave = async (keepOpen = false) => {
     if (!canSave) return;
     if (kind === 'transferencia') {
@@ -1013,16 +1028,20 @@ function NovaTransacaoModal({ open, onClose, onSave, variant }) {
         ? `${p[2] || new Date().getFullYear()}-${p[1].padStart(2,'0')}-${p[0].padStart(2,'0')}`
         : null;
       const ok = await transferFunds({ from: acct, to: toAcct, val: parseVal(val), date: iso, desc: desc.trim() });
-      if (ok) { setVal(''); setDesc(''); setToAcct(''); if (!keepOpen) onClose?.(); }
+      if (ok) {
+        toast.success('Transferencia lancada');
+        if (keepOpen) { resetForm(); } else { onClose?.(); }
+      }
       return;
     }
     const txs = buildTxs();
-    onSave?.(txs.length === 1 ? txs[0] : txs);
     if (keepOpen) {
-      setDesc(''); setVal('');
+      if (txs.length === 1) await addTransaction(txs[0]);
+      else await addTransactions(txs);
+      toast.success('Transacao lancada');
+      resetForm();
     } else {
-      setDesc(''); setVal('');
-      onClose?.();
+      onSave?.(txs.length === 1 ? txs[0] : txs);
     }
   };
 
