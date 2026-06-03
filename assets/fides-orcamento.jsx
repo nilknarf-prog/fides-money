@@ -1,701 +1,981 @@
-// fides-orcamento.jsx - Planejamento (Lote 4A)
+// fides-orcamento.jsx — Planejamento (Lote 4A — redesign)
 //
-// Mobile-first: cards por categoria, agrupados por BUDGET_GROUPS, com barra
-// de progresso semantica, edicao inline rapida e modal de 3 escopos.
+// Mobile-first: insights agregados + secoes de grupos colapsaveis + cards de
+// categoria com limites, edicao inline e modal de 3 escopos.
 
 (function () {
   'use strict';
 
-  // ---- Helpers locais ----------------------------------------------------
+  var PLN_MONTHS = ['Jan','Fev','Mar','Abr','Mai','Jun','Jul','Ago','Set','Out','Nov','Dez'];
+  var PLN_MONTHS_LONG = [
+    'Janeiro','Fevereiro','Marco','Abril','Maio','Junho',
+    'Julho','Agosto','Setembro','Outubro','Novembro','Dezembro'
+  ];
 
-  function formatBRL(n) {
-    var v = Number(n) || 0;
-    return 'R$ ' + v.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+  var GROUP_META = {
+    essencial: { label: 'Essencial',                tint: 'var(--g-essencial)', target: 50 },
+    estilo:    { label: 'Estilo de vida',           tint: 'var(--g-estilo)',    target: 30 },
+    divida:    { label: 'Dividas & investimentos',  tint: 'var(--g-divida)',    target: 20 }
+  };
+
+  // ─── Helpers ───────────────────────────────────────────────
+  function goMonth(ym, delta) {
+    var p = ym.split('-').map(Number);
+    var m = p[1] + delta;
+    var y = p[0];
+    if (m < 1) { m = 12; y--; }
+    if (m > 12) { m = 1; y++; }
+    return y + '-' + String(m).padStart(2, '0');
   }
-
-  function parseBRLInput(raw) {
-    if (raw == null) return NaN;
-    var s = String(raw).trim();
-    if (!s) return NaN;
-    // aceita "1.234,56" ou "1234.56" ou "1234,56"
-    if (s.indexOf(',') >= 0) s = s.replace(/\./g, '').replace(',', '.');
-    return parseFloat(s);
+  function fmtMesLongo(ym) {
+    var p = ym.split('-').map(Number);
+    return PLN_MONTHS_LONG[p[1] - 1] + ' de ' + p[0];
   }
-
-  function groupColor(key) {
-    if (key === 'essencial') return 'var(--ok)';
-    if (key === 'estilo')    return 'var(--info)';
-    if (key === 'divida' || key === 'dividas') return 'var(--bad)';
-    return 'var(--accent)';
-  }
-
-  function statusFromPct(limit, spent) {
-    if (!limit || limit <= 0) return { pct: 0, status: null };
-    var pct = Math.round((spent / limit) * 100);
-    var status = pct >= 100 ? 'over' : pct >= 80 ? 'warn' : 'ok';
-    return { pct: pct, status: status };
-  }
-
-  function normalizedGroups() {
-    var raw = window.BUDGET_GROUPS || [];
-    return raw.map(function (g) {
-      return {
-        key:   g.key || g.id,
-        label: g.label,
-        pct:   (g.pct != null ? g.pct : (g.target != null ? g.target : 0))
-      };
+  function fmtVal(v) {
+    if (typeof window.fmtBRL === 'function') {
+      return window.fmtBRL(v).replace(',00', '');
+    }
+    return 'R$ ' + Number(v || 0).toLocaleString('pt-BR', {
+      minimumFractionDigits: 0, maximumFractionDigits: 0
     });
   }
-
-  // months helper: monthLabel can be a fn (yyyy-mm) -> {short,long} or a string
-  function readMonthLabel(monthLabel, ym) {
-    try {
-      if (typeof monthLabel === 'function') {
-        var r = monthLabel(ym);
-        if (r && r.long) return r.long;
-        if (typeof r === 'string') return r;
-      }
-      if (typeof monthLabel === 'string') return monthLabel;
-    } catch (e) { /* ignore */ }
-    return ym;
+  function parseBR(raw) {
+    var s = String(raw || '').trim();
+    if (!s) return 0;
+    if (s.indexOf(',') >= 0) s = s.replace(/\./g, '').replace(',', '.');
+    return parseFloat(s) || 0;
+  }
+  function plnStatus(pct) {
+    if (pct >= 1)   return { cls: 'bad',  label: 'Estourou' };
+    if (pct >= 0.8) return { cls: 'warn', label: 'Atencao'  };
+    return { cls: 'ok', label: 'Em dia' };
   }
 
-  function shortMonthName(ix) {
-    var meses = ['Jan','Fev','Mar','Abr','Mai','Jun','Jul','Ago','Set','Out','Nov','Dez'];
-    return meses[ix] || '';
+  // ─── Header ────────────────────────────────────────────────
+  function PlnHeader(props) {
+    return React.createElement('header', { className: 'pln-head' },
+      React.createElement('div', { className: 'pln-head-top' },
+        React.createElement('h1', { className: 'pln-title' },
+          React.createElement('span', { className: 'pln-title-mark' },
+            React.createElement(window.Icon.Pie, { size: 16 })
+          ),
+          'Planejamento'
+        ),
+        React.createElement('button', { className: 'pln-copy-btn', onClick: props.onCopy },
+          React.createElement(window.Icon.Import, { size: 15 }),
+          React.createElement('span', { className: 'lbl-long' }, 'Copiar limites'),
+          React.createElement('span', { className: 'lbl-short' }, 'Copiar')
+        )
+      ),
+      React.createElement('div', { className: 'pln-month' },
+        React.createElement('button', {
+          className: 'pln-month-nav', onClick: props.onPrev, title: 'Mes anterior'
+        }, React.createElement(window.Icon.Left, { size: 16 })),
+        React.createElement('span', { className: 'pln-month-lbl' }, props.lbl.long),
+        React.createElement('button', {
+          className: 'pln-month-nav', onClick: props.onNext, title: 'Proximo mes'
+        }, React.createElement(window.Icon.Right, { size: 16 }))
+      ),
+      React.createElement('label', {
+        className: 'pln-toggle',
+        onClick: function (e) { e.preventDefault(); props.onToggleIncPend(); }
+      },
+        React.createElement('span', {
+          className: 'pln-toggle-sw' + (props.incPend ? ' on' : '')
+        }),
+        'Incluir pendentes no realizado',
+        React.createElement('span', { className: 'pln-toggle-hint' },
+          props.incPend ? '· somando previstos' : '· so pagos'
+        )
+      )
+    );
   }
 
-  // ---- StatusIcon --------------------------------------------------------
+  // ─── Insights aggregate ────────────────────────────────────
+  function PlnInsights(props) {
+    var groups = props.groups;
+    var totals = props.totals;
+    var dist = props.dist;
+    var inLimit = totals.catsInLimit;
+    var totalCats = totals.catsWithLimit;
+    var essShare = dist.total ? dist.essencial / dist.total : 0;
+    var dividaShare = dist.total ? dist.divida / dist.total : 0;
 
-  function StatusIcon(props) {
-    var status = props.status;
-    var size = props.size || 16;
-    var common = { width: size, height: size, viewBox: '0 0 24 24', fill: 'none', stroke: 'currentColor', strokeWidth: 2, strokeLinecap: 'round', strokeLinejoin: 'round' };
-    if (status === 'ok') {
-      return (
-        <svg {...common} className="fo-status-icon fo-status-ok" aria-label="dentro do limite">
-          <circle cx="12" cy="12" r="9"/>
-          <path d="M8 12l3 3 5-6"/>
-        </svg>
-      );
-    }
-    if (status === 'warn') {
-      return (
-        <svg {...common} className="fo-status-icon fo-status-warn" aria-label="proximo do limite">
-          <circle cx="12" cy="12" r="9"/>
-          <path d="M12 7v6M12 16.5v.5"/>
-        </svg>
-      );
-    }
-    if (status === 'over') {
-      return (
-        <svg {...common} className="fo-status-icon fo-status-over" aria-label="acima do limite">
-          <circle cx="12" cy="12" r="9"/>
-          <path d="M9 9l6 6M15 9l-6 6"/>
-        </svg>
-      );
-    }
-    return null;
-  }
-
-  // ---- LimitEditorModal --------------------------------------------------
-
-  function LimitEditorModal(props) {
-    var cat            = props.cat;            // { cat_key, label, emoji, limit }
-    var open           = props.open;
-    var onClose        = props.onClose;
-    var selectedMonth  = props.selectedMonth;
-    var monthLabelStr  = props.monthLabelStr;
-    var existingByMonth = props.existingByMonth || {}; // { 'YYYY-MM': value }
-    var existingDefault = props.existingDefault;       // number|null
-    var setCategoryLimit    = props.setCategoryLimit;
-    var removeCategoryLimit = props.removeCategoryLimit;
-    var toast               = props.toast;
-    var confirm             = props.confirm;
-
-    var hasThisMonth = existingByMonth[selectedMonth] != null;
-    var hasDefault   = existingDefault != null;
-    var hasAny       = hasThisMonth || hasDefault || Object.keys(existingByMonth).length > 0;
-
-    var initialValue = hasThisMonth
-      ? String(existingByMonth[selectedMonth])
-      : (hasDefault ? String(existingDefault) : '');
-
-    var initialScope = hasThisMonth ? 'this' : 'default';
-
-    var year = (selectedMonth || '2026-01').split('-')[0];
-
-    var refValue   = React.useState(initialValue);
-    var value      = refValue[0]; var setValue = refValue[1];
-    var refScope   = React.useState(initialScope);
-    var scope      = refScope[0]; var setScope = refScope[1];
-
-    // pre-marcar selectedMonth + meses ja com limite no ano corrente
-    var preChecked = React.useMemo(function () {
-      var s = {};
-      Object.keys(existingByMonth).forEach(function (m) {
-        if (m && m.indexOf(year + '-') === 0) s[m] = true;
+    var dots = [];
+    groups.forEach(function (g) {
+      g.withLimit.forEach(function (c) {
+        var p = c.limit ? c.spent / c.limit : 0;
+        dots.push(p >= 1 ? 'bad' : p >= 0.8 ? 'warn' : 'ok');
       });
-      s[selectedMonth] = true;
-      return s;
-    }, [year, selectedMonth, existingByMonth]);
+    });
 
-    var refMonths  = React.useState(preChecked);
-    var months     = refMonths[0]; var setMonths = refMonths[1];
-
-    var refSaving = React.useState(false);
-    var saving = refSaving[0]; var setSaving = refSaving[1];
-
-    var inputRef = React.useRef(null);
-
-    // reset state when modal opens
-    React.useEffect(function () {
-      if (!open) return;
-      setValue(initialValue);
-      setScope(initialScope);
-      setMonths(preChecked);
-      setSaving(false);
-      // focus input
-      var t = setTimeout(function () {
-        if (inputRef.current) {
-          try { inputRef.current.focus(); inputRef.current.select(); } catch (e) {}
-        }
-      }, 30);
-      return function () { clearTimeout(t); };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [open, cat && cat.cat_key]);
-
-    React.useEffect(function () {
-      if (!open) return;
-      function onKey(e) {
-        if (e.key === 'Escape') { e.preventDefault(); onClose && onClose(); }
-      }
-      document.addEventListener('keydown', onKey);
-      return function () { document.removeEventListener('keydown', onKey); };
-    }, [open, onClose]);
-
-    if (!open || !cat) return null;
-
-    function toggleMonth(ym) {
-      setMonths(function (prev) {
-        var nx = Object.assign({}, prev);
-        if (nx[ym]) delete nx[ym]; else nx[ym] = true;
-        return nx;
-      });
+    var msg;
+    if (dividaShare > 0.20) {
+      msg = React.createElement(React.Fragment, null,
+        'Dividas levam ',
+        React.createElement('b', null, Math.round(dividaShare * 100) + '%'),
+        ' do realizado — a regra 50·30·20 sugere ate ',
+        React.createElement('b', null, '20%'),
+        '. Vale priorizar a renegociacao.'
+      );
+    } else if (essShare > 0.50) {
+      msg = React.createElement(React.Fragment, null,
+        'Voce esta alocando ',
+        React.createElement('b', null, Math.round(essShare * 100) + '%'),
+        ' em Essencial — a regra 50·30·20 sugere ate ',
+        React.createElement('b', null, '50%'),
+        '. Olhe contas fixas para abrir espaco.'
+      );
+    } else {
+      msg = React.createElement(React.Fragment, null,
+        'Boa distribuicao: ',
+        React.createElement('b', null, Math.round(essShare * 100) + '%'),
+        ' em Essencial, dentro da meta de ',
+        React.createElement('b', null, '50%'),
+        '. Continue assim.'
+      );
     }
 
-    function handleBackdrop(e) {
-      if (e.target === e.currentTarget) onClose && onClose();
-    }
+    var segs = [
+      { id: 'essencial', tint: 'var(--g-essencial)', label: 'Essencial', val: dist.essencial, tgt: 50 },
+      { id: 'estilo',    tint: 'var(--g-estilo)',    label: 'Estilo',    val: dist.estilo,    tgt: 30 },
+      { id: 'divida',    tint: 'var(--g-divida)',    label: 'Dividas',   val: dist.divida,    tgt: 20 }
+    ];
 
-    function handleSave() {
-      var v = parseBRLInput(value);
-      if (!isFinite(v) || v <= 0) {
-        toast && toast.error('Informe um valor maior que zero.');
-        return;
-      }
-      var months_list = null;
-      if (scope === 'custom') {
-        months_list = Object.keys(months).filter(function (k) { return months[k]; });
-        if (!months_list.length) {
-          toast && toast.error('Selecione ao menos um mes.');
-          return;
-        }
-      }
-      setSaving(true);
-      Promise.resolve(setCategoryLimit(cat.cat_key, v, scope, months_list))
-        .then(function () {
-          if (scope === 'this') {
-            toast && toast.success('Limite definido para ' + monthLabelStr);
-          } else if (scope === 'default') {
-            toast && toast.success('Limite padrao salvo');
-          } else {
-            toast && toast.success('Limite aplicado a ' + (months_list ? months_list.length : 0) + ' meses');
-          }
-          onClose && onClose();
-        })
-        .catch(function () {
-          // toast de erro vem do store
-        })
-        .finally(function () { setSaving(false); });
-    }
-
-    function handleRemove() {
-      var removalScope = hasThisMonth ? 'this' : 'default';
-      var humanScope = removalScope === 'this' ? monthLabelStr : 'todos os meses (padrao)';
-      Promise.resolve(confirm({
-        title: 'Remover limite?',
-        message: 'O limite de ' + cat.label + ' sera removido de ' + humanScope + '.',
-        confirmLabel: 'Remover',
-        destructive: true
-      })).then(function (ok) {
-        if (!ok) return;
-        setSaving(true);
-        Promise.resolve(removeCategoryLimit(cat.cat_key, removalScope))
-          .then(function () {
-            toast && toast.warn('Limite removido');
-            onClose && onClose();
+    return React.createElement('div', { className: 'pln-insights' },
+      React.createElement('div', { className: 'pln-ins-top' },
+        React.createElement('div', { className: 'pln-ins-eyebrow' },
+          React.createElement(window.Icon.Sparkles, { size: 12 }),
+          'Resumo do mes'
+        ),
+        React.createElement('div', { className: 'pln-ins-headline' },
+          React.createElement('b', null, String(inLimit)),
+          ' de ',
+          React.createElement('b', null, String(totalCats)),
+          ' categorias dentro do limite',
+          totalCats - inLimit > 0 ? React.createElement(React.Fragment, null,
+            ' · ',
+            React.createElement('b', null, String(totalCats - inLimit)),
+            ' ' + (totalCats - inLimit === 1 ? 'pede' : 'pedem') + ' atencao'
+          ) : null,
+          '.'
+        ),
+        React.createElement('div', { className: 'pln-ins-count-viz' },
+          dots.map(function (d, i) {
+            return React.createElement('span', { key: i, className: 'pln-ins-dot ' + d });
           })
-          .finally(function () { setSaving(false); });
+        )
+      ),
+      React.createElement('div', { className: 'pln-dist' },
+        React.createElement('div', { className: 'pln-dist-lbl' }, 'Distribuicao este mes'),
+        React.createElement('div', { className: 'pln-dist-bar' },
+          segs.map(function (s) {
+            return React.createElement('div', {
+              key: s.id, className: 'pln-dist-seg',
+              style: {
+                width: (dist.total ? (s.val / dist.total) * 100 : 0) + '%',
+                background: s.tint
+              }
+            });
+          })
+        ),
+        React.createElement('div', { className: 'pln-dist-legend' },
+          segs.map(function (s) {
+            return React.createElement('div', { key: s.id, className: 'pln-dist-leg' },
+              React.createElement('span', { className: 'pln-dist-leg-dot', style: { background: s.tint } }),
+              s.label + ' ',
+              React.createElement('b', null,
+                (dist.total ? Math.round((s.val / dist.total) * 100) : 0) + '%'
+              ),
+              React.createElement('span', { className: 'tgt' }, '/ ' + s.tgt + '%')
+            );
+          })
+        )
+      ),
+      React.createElement('div', { className: 'pln-ins-msg' },
+        React.createElement('span', { className: 'pln-ins-msg-ic' },
+          React.createElement(window.Icon.Sparkles, { size: 13 })
+        ),
+        React.createElement('span', null, msg)
+      ),
+      React.createElement('div', { className: 'pln-ins-totals' },
+        React.createElement('div', { className: 'pln-ins-tot' },
+          React.createElement('span', { className: 'pln-ins-tot-lbl' }, 'Planejado'),
+          React.createElement('span', { className: 'pln-ins-tot-val' }, fmtVal(totals.planned))
+        ),
+        React.createElement('div', { className: 'pln-ins-tot' },
+          React.createElement('span', { className: 'pln-ins-tot-lbl' }, 'Realizado'),
+          React.createElement('span', { className: 'pln-ins-tot-val' }, fmtVal(totals.realized))
+        ),
+        React.createElement('div', { className: 'pln-ins-tot' },
+          React.createElement('span', { className: 'pln-ins-tot-lbl' }, 'Projecao'),
+          React.createElement('span', {
+            className: 'pln-ins-tot-val ' + (totals.projection > totals.planned ? 'warn' : 'pos')
+          }, fmtVal(totals.projection))
+        )
+      )
+    );
+  }
+
+  // ─── Category card ─────────────────────────────────────────
+  function PlnCategoryCard(props) {
+    var c = props.c;
+    var ctx = props.ctx;
+    var isOpen = ctx.expanded === c.cat_key;
+    var isEditing = ctx.editing === c.cat_key;
+    var pct = c.limit ? c.spent / c.limit : 0;
+    var st = plnStatus(pct);
+    var rest = c.limit - c.spent;
+    var proj = ctx.dayElapsed ? c.spent * (ctx.daysInMonth / ctx.dayElapsed) : c.spent;
+    var projPct = c.limit ? (proj / c.limit) : 0;
+    var overWidth = Math.min((pct - 1) / 0.5, 1) * 100;
+
+    return React.createElement('div', { className: 'pln-cat' + (isOpen ? ' open' : '') },
+      React.createElement('div', {
+        className: 'pln-cat-main',
+        onClick: function () { if (!isEditing) ctx.onToggle(c.cat_key); },
+        role: 'button', tabIndex: 0
+      },
+        React.createElement('div', { className: 'pln-cat-row1' },
+          React.createElement(window.CategoryAvatar, { cat: c.cat_key, size: 30 }),
+          React.createElement('span', { className: 'pln-cat-name' }, c.label),
+          React.createElement('span', { className: 'pln-status ' + st.cls },
+            React.createElement('span', { className: 'pln-status-dot' }),
+            st.label
+          ),
+          React.createElement(window.Icon.Down, { size: 16, className: 'pln-cat-chev' })
+        ),
+        React.createElement('div', { className: 'pln-cat-row2' },
+          React.createElement('div', { className: 'pln-cat-vals' },
+            React.createElement('span', { className: 'pln-cat-spent' }, fmtVal(c.spent)),
+            React.createElement('span', { className: 'pln-cat-of' }, '/'),
+            isEditing
+              ? React.createElement('span', {
+                  className: 'pln-cat-edit-wrap',
+                  onClick: function (e) { e.stopPropagation(); }
+                },
+                  React.createElement('span', { className: 'cur' }, 'R$'),
+                  React.createElement('input', {
+                    autoFocus: true, inputMode: 'numeric',
+                    className: 'pln-cat-edit-input',
+                    defaultValue: String(c.limit || ''),
+                    onBlur: function (e) { ctx.onEditSave(c.cat_key, e.target.value); },
+                    onKeyDown: function (e) {
+                      if (e.key === 'Enter') e.target.blur();
+                      if (e.key === 'Escape') ctx.onEditSave(c.cat_key, null);
+                    }
+                  })
+                )
+              : React.createElement('span', {
+                  className: 'pln-cat-limit-tap',
+                  onClick: function (e) { e.stopPropagation(); ctx.onEditStart(c.cat_key); },
+                  title: 'Toque para editar o limite'
+                },
+                  React.createElement('span', { className: 'pln-cat-limit' }, fmtVal(c.limit))
+                )
+          ),
+          React.createElement('span', { className: 'pln-cat-pct ' + st.cls },
+            Math.round(pct * 100) + '%'
+          ),
+          React.createElement('button', {
+            className: 'pln-cat-pencil',
+            onClick: function (e) { e.stopPropagation(); ctx.onOpenLimit(c.cat_key); },
+            title: 'Editar limite (opcoes)'
+          },
+            React.createElement(window.Icon.Settings, { size: 15 })
+          )
+        ),
+        React.createElement('div', { className: 'pln-bar' + (pct > 1 ? ' over' : '') },
+          React.createElement('div', {
+            className: 'pln-bar-fill ' + st.cls,
+            style: { width: (Math.min(pct, 1) * 100) + '%' }
+          }),
+          pct > 1
+            ? React.createElement('div', {
+                className: 'pln-bar-over-hatch',
+                style: { width: Math.max(overWidth, 12) + '%' }
+              })
+            : null
+        )
+      ),
+      isOpen
+        ? React.createElement('div', { className: 'pln-cat-detail' },
+            React.createElement('div', { className: 'pln-detail-row' },
+              React.createElement(window.Icon.Wallet, { size: 14, className: 'pln-detail-ic' }),
+              rest >= 0
+                ? React.createElement('span', null,
+                    'Sobra ',
+                    React.createElement('span', { className: 'pos pln-num' }, fmtVal(rest)),
+                    ' do limite deste mes.'
+                  )
+                : React.createElement('span', null,
+                    'Excedente de ',
+                    React.createElement('span', { className: 'neg pln-num' }, fmtVal(Math.abs(rest))),
+                    ' sobre o limite.'
+                  )
+            ),
+            React.createElement('div', { className: 'pln-detail-row' },
+              React.createElement(window.Icon.TrendUp, { size: 14, className: 'pln-detail-ic' }),
+              React.createElement('span', null,
+                'No ritmo atual, fecha em ',
+                React.createElement('b', { className: 'pln-num' }, fmtVal(proj)),
+                ' ',
+                React.createElement('span', { className: projPct > 1 ? 'neg' : 'pos' },
+                  '(' + (projPct >= 1 ? '+' : '-') +
+                  Math.abs(Math.round((projPct - 1) * 100)) + '% do limite)'
+                ),
+                '.'
+              )
+            ),
+            ctx.receita > 0
+              ? React.createElement('div', { className: 'pln-detail-row' },
+                  React.createElement(window.Icon.Pie, { size: 14, className: 'pln-detail-ic' }),
+                  React.createElement('span', null,
+                    'Representa ',
+                    React.createElement('b', { className: 'pln-num' },
+                      ((c.spent / ctx.receita) * 100).toFixed(1) + '%'
+                    ),
+                    ' da sua receita do mes.'
+                  )
+                )
+              : null
+          )
+        : null
+    );
+  }
+
+  // ─── Category WITHOUT a defined limit ──────────────────────
+  function PlnNoLimitCard(props) {
+    var c = props.c;
+    return React.createElement('div', { className: 'pln-cat nolimit' },
+      React.createElement('div', { className: 'pln-cat-nolimit-main' },
+        React.createElement(window.CategoryAvatar, { cat: c.cat_key, size: 30 }),
+        React.createElement('div', { className: 'pln-nolimit-meta' },
+          React.createElement('div', { className: 'pln-nolimit-name' }, c.label),
+          React.createElement('div', { className: 'pln-nolimit-sub' },
+            'sem limite definido',
+            c.spent > 0
+              ? React.createElement(React.Fragment, null,
+                  ' · gastou ',
+                  React.createElement('span', { className: 'pln-num' }, fmtVal(c.spent))
+                )
+              : null
+          )
+        ),
+        React.createElement('button', {
+          className: 'pln-define-btn',
+          onClick: function () { props.onDefine(c.cat_key); }
+        },
+          React.createElement(window.Icon.Plus, { size: 13 }),
+          'Definir limite'
+        )
+      )
+    );
+  }
+
+  // ─── Group section ─────────────────────────────────────────
+  function PlnGroupSection(props) {
+    var g = props.g;
+    var ctx = props.ctx;
+    var collapsed = props.collapsed;
+    var gm = GROUP_META[g.id] || { label: g.label, tint: 'var(--ink)', target: 0 };
+    var pct = g.limit ? g.spent / g.limit : 0;
+    var pctColor = pct >= 1 ? 'var(--bad)'
+                 : pct >= 0.8 ? 'var(--warn)'
+                 : gm.tint;
+
+    return React.createElement('section', {
+      className: 'pln-group' + (collapsed ? ' collapsed' : '')
+    },
+      React.createElement('div', {
+        className: 'pln-group-head',
+        onClick: props.onToggleCollapse,
+        role: 'button', tabIndex: 0
+      },
+        React.createElement('span', { className: 'pln-group-toggle' },
+          React.createElement(window.Icon.Down, { size: 16 })
+        ),
+        React.createElement('span', { className: 'pln-group-bar', style: { background: gm.tint } }),
+        React.createElement('div', { className: 'pln-group-meta' },
+          React.createElement('div', { className: 'pln-group-name' },
+            gm.label,
+            React.createElement('span', { className: 'pln-group-target' },
+              'meta ',
+              React.createElement('b', { style: { fontWeight: 700 } }, gm.target),
+              '%'
+            )
+          ),
+          React.createElement('div', { className: 'pln-group-sub' },
+            React.createElement('span', { className: 'pln-num' }, fmtVal(g.spent)),
+            ' de ',
+            React.createElement('span', { className: 'pln-num' }, fmtVal(g.limit)),
+            ' · ',
+            React.createElement('span', { className: pct > 1 ? 'over' : '' },
+              Math.round(pct * 100) + '% usado'
+            )
+          )
+        ),
+        React.createElement('span', {
+          className: 'pln-group-pct',
+          style: { color: pctColor }
+        }, Math.round(pct * 100) + '%')
+      ),
+      React.createElement('div', { className: 'pln-group-cats' },
+        g.withLimit.map(function (c) {
+          return React.createElement(PlnCategoryCard, { key: c.cat_key, c: c, ctx: ctx });
+        })
+      ),
+      g.noLimit.length > 0
+        ? React.createElement(React.Fragment, null,
+            React.createElement('div', { className: 'pln-group-nolimit-hd' }, 'Sem limite'),
+            React.createElement('div', { className: 'pln-group-cats' },
+              g.noLimit.map(function (c) {
+                return React.createElement(PlnNoLimitCard, {
+                  key: c.cat_key, c: c, onDefine: ctx.onOpenLimit
+                });
+              })
+            )
+          )
+        : null
+    );
+  }
+
+  // ─── Limit edit sheet (bottom sheet) ───────────────────────
+  function LimitSheet(props) {
+    var cat = props.cat;
+    var lbl = props.lbl;
+    var currentLimit = props.currentLimit || 0;
+    var categories = (window.useFides && window.useFides.categories) || {};
+    var catInfo = (window.CATEGORIES && window.CATEGORIES[cat]) || { label: cat, tint: '#888', emoji: '🏷️' };
+
+    var stVal = React.useState(currentLimit ? String(currentLimit).replace('.', ',') : '');
+    var val = stVal[0]; var setVal = stVal[1];
+    var stMode = React.useState(props.initialMode || 'this');
+    var mode = stMode[0]; var setMode = stMode[1];
+
+    var monthName = (lbl && lbl.long) ? lbl.long.split(' de ')[0] : 'este mes';
+    var year = (lbl && lbl.long) ? lbl.long.split(' de ')[1] || '' : '';
+    var selectedIdx = (lbl && lbl.long) ? (function () {
+      for (var i = 0; i < PLN_MONTHS_LONG.length; i++) {
+        if (PLN_MONTHS_LONG[i].toLowerCase() === monthName.toLowerCase()) return i;
+      }
+      return null;
+    })() : null;
+
+    var stPicked = React.useState(function () {
+      var s = new Set();
+      if (selectedIdx != null) s.add(selectedIdx);
+      return s;
+    });
+    var picked = stPicked[0]; var setPicked = stPicked[1];
+
+    function togglePick(i) {
+      setPicked(function (p) {
+        var n = new Set(p);
+        if (n.has(i)) n.delete(i); else n.add(i);
+        return n;
       });
     }
 
-    var monthsGrid = [];
-    for (var i = 0; i < 12; i++) {
-      var mm = String(i + 1).padStart(2, '0');
-      var ym = year + '-' + mm;
-      var on = !!months[ym];
-      monthsGrid.push(
-        <button key={ym}
-                type="button"
-                className={'fo-month-chip' + (on ? ' on' : '')}
-                onClick={(function (k) { return function () { toggleMonth(k); }; })(ym)}>
-          {shortMonthName(i)}
-        </button>
-      );
-    }
+    var numericVal = parseBR(val);
 
-    return (
-      <div className="fo-modal-backdrop" onMouseDown={handleBackdrop} role="dialog" aria-modal="true">
-        <div className="fo-modal" onMouseDown={function (e) { e.stopPropagation(); }}>
-          <div className="fo-modal-head">
-            <div className="fo-modal-title">
-              <span className="fo-modal-emoji" aria-hidden="true">{cat.emoji || '#'}</span>
-              <span>{cat.label}</span>
-            </div>
-            <button type="button" className="fo-modal-close" onClick={onClose} aria-label="Fechar">
-              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
-                <path d="M6 6l12 12M18 6L6 18"/>
-              </svg>
-            </button>
-          </div>
+    var options = [
+      { id: 'this', main: ('Apenas ' + monthName + (year ? ' ' + year : '')).trim(), sub: 'Vale so para este mes' },
+      { id: 'all',  main: 'Todos os meses', sub: 'Padrao — aplica daqui em diante' },
+      { id: 'specific', main: 'Meses especificos...', sub: 'Escolha quais meses recebem este limite' }
+    ];
 
-          <div className="fo-modal-body">
-            <label className="fo-modal-label" htmlFor="fo-limit-input">Limite mensal</label>
-            <div className="fo-input-wrap">
-              <span className="fo-input-prefix">R$</span>
-              <input id="fo-limit-input"
-                     ref={inputRef}
-                     className="fo-input"
-                     type="number"
-                     inputMode="decimal"
-                     min="0"
-                     step="0.01"
-                     placeholder="0,00"
-                     value={value}
-                     onChange={function (e) { setValue(e.target.value); }}
-                     onKeyDown={function (e) { if (e.key === 'Enter') { e.preventDefault(); handleSave(); } }}/>
-            </div>
-
-            <div className="fo-modal-section-title">Aplicar a</div>
-            <div className="fo-radios">
-              <label className={'fo-radio' + (scope === 'this' ? ' on' : '')}>
-                <input type="radio" name="fo-scope" value="this"
-                       checked={scope === 'this'}
-                       onChange={function () { setScope('this'); }}/>
-                <span className="fo-radio-mark"/>
-                <span className="fo-radio-label">Apenas {monthLabelStr}</span>
-              </label>
-              <label className={'fo-radio' + (scope === 'default' ? ' on' : '')}>
-                <input type="radio" name="fo-scope" value="default"
-                       checked={scope === 'default'}
-                       onChange={function () { setScope('default'); }}/>
-                <span className="fo-radio-mark"/>
-                <span className="fo-radio-label">Todos os meses (padrao)</span>
-              </label>
-              <label className={'fo-radio' + (scope === 'custom' ? ' on' : '')}>
-                <input type="radio" name="fo-scope" value="custom"
-                       checked={scope === 'custom'}
-                       onChange={function () { setScope('custom'); }}/>
-                <span className="fo-radio-mark"/>
-                <span className="fo-radio-label">Meses especificos...</span>
-              </label>
-            </div>
-
-            {scope === 'custom' && (
-              <div className="fo-months-grid" role="group" aria-label="Selecionar meses">
-                {monthsGrid}
-              </div>
-            )}
-          </div>
-
-          <div className="fo-modal-actions">
-            {hasAny && (
-              <button type="button"
-                      className="fo-btn fo-btn-danger"
-                      onClick={handleRemove}
-                      disabled={saving}>
-                Remover limite
-              </button>
-            )}
-            <button type="button"
-                    className="fo-btn fo-btn-ghost"
-                    onClick={onClose}
-                    disabled={saving}>
-              Cancelar
-            </button>
-            <button type="button"
-                    className="fo-btn fo-btn-primary"
-                    onClick={handleSave}
-                    disabled={saving}>
-              {saving ? 'Salvando...' : 'Salvar'}
-            </button>
-          </div>
-        </div>
-      </div>
+    return React.createElement('div', {
+      className: 'pln-sheet-backdrop', onClick: props.onClose
+    },
+      React.createElement('div', {
+        className: 'pln-sheet', onClick: function (e) { e.stopPropagation(); }
+      },
+        React.createElement('div', { className: 'pln-sheet-grip' }),
+        React.createElement('div', { className: 'pln-sheet-head' },
+          React.createElement('span', {
+            className: 'pln-sheet-emoji',
+            style: {
+              background: catInfo.tint + '1A',
+              border: '1px solid ' + catInfo.tint + '33'
+            }
+          }, catInfo.emoji || '🏷️'),
+          React.createElement('div', { className: 'pln-sheet-titles' },
+            React.createElement('div', { className: 'pln-sheet-eyebrow' },
+              currentLimit > 0 ? 'Editar limite' : 'Novo limite'
+            ),
+            React.createElement('div', { className: 'pln-sheet-title' },
+              catInfo.label + ' — Limite mensal'
+            )
+          ),
+          React.createElement('button', {
+            className: 'pln-sheet-x', onClick: props.onClose
+          }, React.createElement(window.Icon.X, { size: 16 }))
+        ),
+        React.createElement('div', { className: 'pln-sheet-body' },
+          React.createElement('div', null,
+            React.createElement('div', { className: 'pln-field-lbl' }, 'Limite'),
+            React.createElement('div', { className: 'pln-value-input' },
+              React.createElement('span', { className: 'cur' }, 'R$'),
+              React.createElement('input', {
+                autoFocus: true, inputMode: 'numeric',
+                placeholder: '0', value: val,
+                onChange: function (e) { setVal(e.target.value); }
+              })
+            )
+          ),
+          React.createElement('div', null,
+            React.createElement('div', { className: 'pln-field-lbl' }, 'Aplicar a'),
+            React.createElement('div', { className: 'pln-radio-list' },
+              options.map(function (o) {
+                return React.createElement('button', {
+                  key: o.id,
+                  className: 'pln-radio' + (mode === o.id ? ' on' : ''),
+                  onClick: function () { setMode(o.id); }
+                },
+                  React.createElement('span', { className: 'pln-radio-mark' }),
+                  React.createElement('span', { className: 'pln-radio-txt' },
+                    React.createElement('span', { className: 'pln-radio-main' }, o.main),
+                    React.createElement('span', { className: 'pln-radio-sub' }, o.sub)
+                  )
+                );
+              })
+            ),
+            mode === 'specific'
+              ? React.createElement('div', { className: 'pln-months-grid' },
+                  PLN_MONTHS.map(function (m, i) {
+                    return React.createElement('button', {
+                      key: m,
+                      className: 'pln-month-cell' + (picked.has(i) ? ' on' : ''),
+                      onClick: function () { togglePick(i); }
+                    }, m);
+                  })
+                )
+              : null
+          )
+        ),
+        React.createElement('div', { className: 'pln-sheet-foot' },
+          currentLimit > 0
+            ? React.createElement('button', {
+                className: 'pln-btn pln-btn-danger',
+                onClick: function () { props.onRemove(cat); }
+              },
+                React.createElement(window.Icon.X, { size: 15 }),
+                'Remover'
+              )
+            : null,
+          React.createElement('button', {
+            className: 'pln-btn pln-btn-ghost', onClick: props.onClose
+          }, 'Cancelar'),
+          React.createElement('button', {
+            className: 'pln-btn pln-btn-primary',
+            disabled: numericVal <= 0,
+            onClick: function () { props.onSave(cat, numericVal, mode, picked); }
+          },
+            React.createElement(window.Icon.Check, { size: 16 }),
+            'Salvar'
+          )
+        )
+      )
     );
   }
 
-  // ---- CategoryCard ------------------------------------------------------
+  // ─── Copy-limits sheet (placeholder visual) ────────────────
+  function CopySheet(props) {
+    var stPicking = React.useState(false);
+    var picking = stPicking[0]; var setPicking = stPicking[1];
 
-  function CategoryCard(props) {
-    var item             = props.item; // { cat_key, label, emoji, spent, limit, pct, status }
-    var monthLabelStr    = props.monthLabelStr;
-    var setCategoryLimit = props.setCategoryLimit;
-    var openModal        = props.openModal;
-    var toast            = props.toast;
-
-    var refEdit = React.useState(false);
-    var editing = refEdit[0]; var setEditing = refEdit[1];
-    var refDraft = React.useState('');
-    var draft = refDraft[0]; var setDraft = refDraft[1];
-    var refSaving = React.useState(false);
-    var saving = refSaving[0]; var setSaving = refSaving[1];
-    var inputRef = React.useRef(null);
-
-    React.useEffect(function () {
-      if (!editing) return;
-      var t = setTimeout(function () {
-        if (inputRef.current) {
-          try { inputRef.current.focus(); inputRef.current.select(); } catch (e) {}
-        }
-      }, 20);
-      return function () { clearTimeout(t); };
-    }, [editing]);
-
-    function startEdit(e) {
-      if (e) e.stopPropagation();
-      setDraft(item.limit != null ? String(item.limit) : '');
-      setEditing(true);
-    }
-
-    function commit() {
-      var v = parseBRLInput(draft);
-      if (!isFinite(v) || v <= 0) {
-        setEditing(false);
-        return;
-      }
-      setSaving(true);
-      Promise.resolve(setCategoryLimit(item.cat_key, v, 'this'))
-        .then(function () {
-          toast && toast.success('Limite atualizado para ' + monthLabelStr);
-          setEditing(false);
-        })
-        .catch(function () { /* store mostra erro */ })
-        .finally(function () { setSaving(false); });
-    }
-
-    var status = item.status;
-    var fillPct = item.limit && item.limit > 0 ? Math.min(100, item.pct || 0) : 0;
-    var overflowPct = status === 'over'
-      ? Math.min(100, Math.max(0, ((item.pct || 0) - 100)))
-      : 0;
-
-    return (
-      <div className={'fo-card fo-card-' + (status || 'none')}>
-        <div className="fo-card-head">
-          <span className="fo-card-emoji" aria-hidden="true">{item.emoji || '#'}</span>
-          <span className="fo-card-label">{item.label}</span>
-          <span className="fo-card-status"><StatusIcon status={status}/></span>
-        </div>
-
-        <div className="fo-card-bar" role="progressbar"
-             aria-valuemin="0" aria-valuemax="100"
-             aria-valuenow={Math.round(item.pct || 0)}>
-          <div className={'fo-card-bar-fill fo-card-bar-fill-' + (status || 'none')}
-               style={{ width: fillPct + '%' }}/>
-          {status === 'over' && (
-            <div className="fo-card-bar-over"
-                 style={{ width: overflowPct + '%' }}/>
-          )}
-        </div>
-
-        <div className="fo-card-values">
-          <div className="fo-card-amounts">
-            {item.limit != null ? (
-              <>
-                <span className="fo-card-spent">{formatBRL(item.spent)}</span>
-                <span className="fo-card-sep">/</span>
-                <span className="fo-card-limit-amt">{formatBRL(item.limit)}</span>
-                <span className={'fo-card-pct fo-card-pct-' + (status || 'none')}>{Math.round(item.pct || 0)}%</span>
-              </>
-            ) : (
-              <>
-                <span className="fo-card-spent">{formatBRL(item.spent)}</span>
-                <span className="fo-card-nolimit">sem limite</span>
-              </>
-            )}
-          </div>
-
-          <div className="fo-card-actions">
-            {editing ? (
-              <span className="fo-card-edit-inline">
-                <span className="fo-card-edit-prefix">R$</span>
-                <input ref={inputRef}
-                       type="number"
-                       inputMode="decimal"
-                       min="0"
-                       step="0.01"
-                       className="fo-card-edit-input"
-                       value={draft}
-                       disabled={saving}
-                       onChange={function (e) { setDraft(e.target.value); }}
-                       onKeyDown={function (e) {
-                         if (e.key === 'Enter') { e.preventDefault(); commit(); }
-                         else if (e.key === 'Escape') { e.preventDefault(); setEditing(false); }
-                       }}
-                       onBlur={function () { commit(); }}/>
-              </span>
-            ) : (
-              <button type="button"
-                      className="fo-card-limit"
-                      onClick={startEdit}
-                      aria-label={item.limit != null ? 'Editar limite (apenas este mes)' : 'Definir limite'}>
-                {item.limit != null ? formatBRL(item.limit) : 'definir limite'}
-              </button>
-            )}
-            <button type="button"
-                    className="fo-card-edit"
-                    onClick={function () { openModal(item); }}
-                    aria-label="Editar limite (mais opcoes)">
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                <path d="M14 4l6 6L8 22H2v-6L14 4z"/>
-              </svg>
-            </button>
-          </div>
-        </div>
-      </div>
+    return React.createElement('div', {
+      className: 'pln-sheet-backdrop', onClick: props.onClose
+    },
+      React.createElement('div', {
+        className: 'pln-sheet', onClick: function (e) { e.stopPropagation(); }
+      },
+        React.createElement('div', { className: 'pln-sheet-grip' }),
+        React.createElement('div', { className: 'pln-sheet-head' },
+          React.createElement('span', {
+            className: 'pln-sheet-emoji',
+            style: { background: 'var(--accent-soft)', color: 'var(--accent)' }
+          }, React.createElement(window.Icon.Import, { size: 20 })),
+          React.createElement('div', { className: 'pln-sheet-titles' },
+            React.createElement('div', { className: 'pln-sheet-eyebrow' }, 'Atalho'),
+            React.createElement('div', { className: 'pln-sheet-title' }, 'Copiar limites')
+          ),
+          React.createElement('button', {
+            className: 'pln-sheet-x', onClick: props.onClose
+          }, React.createElement(window.Icon.X, { size: 16 }))
+        ),
+        React.createElement('div', { className: 'pln-sheet-body' },
+          React.createElement('button', {
+            className: 'pln-copy-opt', onClick: props.onApply
+          },
+            React.createElement('span', { className: 'pln-copy-opt-ic' },
+              React.createElement(window.Icon.Left, { size: 17 })
+            ),
+            React.createElement('span', { className: 'pln-copy-opt-txt' },
+              React.createElement('span', { className: 'pln-copy-opt-main' }, 'Copiar do mes anterior'),
+              React.createElement('span', { className: 'pln-copy-opt-sub' }, 'Traz os limites do mes anterior para ca')
+            ),
+            React.createElement(window.Icon.Right, { size: 16, style: { color: 'var(--muted-2)' } })
+          ),
+          React.createElement('button', {
+            className: 'pln-copy-opt',
+            onClick: function () { setPicking(function (v) { return !v; }); }
+          },
+            React.createElement('span', { className: 'pln-copy-opt-ic' },
+              React.createElement(window.Icon.Calendar, { size: 17 })
+            ),
+            React.createElement('span', { className: 'pln-copy-opt-txt' },
+              React.createElement('span', { className: 'pln-copy-opt-main' }, 'Copiar de um mes especifico'),
+              React.createElement('span', { className: 'pln-copy-opt-sub' }, 'Escolha qualquer mes do historico')
+            ),
+            React.createElement(window.Icon.Down, {
+              size: 16,
+              style: {
+                color: 'var(--muted-2)',
+                transform: picking ? 'rotate(180deg)' : 'none',
+                transition: 'transform .18s'
+              }
+            })
+          ),
+          picking
+            ? React.createElement('div', { className: 'pln-months-grid', style: { marginTop: 0 } },
+                PLN_MONTHS.map(function (m) {
+                  return React.createElement('button', {
+                    key: m, className: 'pln-month-cell', onClick: props.onApply
+                  }, m);
+                })
+              )
+            : null,
+          React.createElement('button', {
+            className: 'pln-copy-opt', onClick: props.onApply
+          },
+            React.createElement('span', { className: 'pln-copy-opt-ic' },
+              React.createElement(window.Icon.TrendUp, { size: 17 })
+            ),
+            React.createElement('span', { className: 'pln-copy-opt-txt' },
+              React.createElement('span', { className: 'pln-copy-opt-main' }, 'Sugerir pela media'),
+              React.createElement('span', { className: 'pln-copy-opt-sub' }, 'Calcula com base nos ultimos 3 meses realizados')
+            ),
+            React.createElement(window.Icon.Right, { size: 16, style: { color: 'var(--muted-2)' } })
+          )
+        )
+      )
     );
   }
 
-  // ---- FidesOrcamento (page) --------------------------------------------
+  // ─── Empty state ──────────────────────────────────────────
+  function PlnEmptyState(props) {
+    return React.createElement('div', { className: 'pln-body' },
+      React.createElement('div', { className: 'pln-empty' },
+        React.createElement('div', { className: 'pln-empty-art' },
+          React.createElement(window.Icon.Pie, { size: 36 })
+        ),
+        React.createElement('div', { className: 'pln-empty-title' },
+          'Planeje seu mes por categoria'
+        ),
+        React.createElement('div', { className: 'pln-empty-body' },
+          'Defina quanto pretende gastar em cada categoria. O Fides acompanha o realizado, ' +
+          'avisa quando voce se aproxima do limite e mostra como seu dinheiro se divide entre ' +
+          'o essencial, o estilo de vida e as dividas.'
+        ),
+        React.createElement('div', { className: 'pln-empty-rule' },
+          React.createElement('div', {
+            className: 'pln-empty-rule-seg',
+            style: { background: 'var(--g-essencial)' }
+          },
+            React.createElement('span', { className: 'pln-empty-rule-pct' }, '50%'),
+            React.createElement('span', { className: 'pln-empty-rule-lbl' }, 'Essencial')
+          ),
+          React.createElement('div', {
+            className: 'pln-empty-rule-seg',
+            style: { background: 'var(--g-estilo)' }
+          },
+            React.createElement('span', { className: 'pln-empty-rule-pct' }, '30%'),
+            React.createElement('span', { className: 'pln-empty-rule-lbl' }, 'Estilo')
+          ),
+          React.createElement('div', {
+            className: 'pln-empty-rule-seg',
+            style: { background: 'var(--g-divida)' }
+          },
+            React.createElement('span', { className: 'pln-empty-rule-pct' }, '20%'),
+            React.createElement('span', { className: 'pln-empty-rule-lbl' }, 'Dividas')
+          )
+        ),
+        React.createElement('div', { className: 'pln-empty-acts' },
+          React.createElement('button', {
+            className: 'pln-btn pln-btn-primary', onClick: props.onApplyRule
+          },
+            React.createElement(window.Icon.Sparkles, { size: 16 }),
+            'Comecar com a regra 50·30·20'
+          ),
+          React.createElement('button', {
+            className: 'pln-btn pln-btn-ghost', onClick: props.onCopy
+          },
+            React.createElement(window.Icon.Import, { size: 15 }),
+            'Copiar de outro mes'
+          )
+        )
+      )
+    );
+  }
 
+  // ─── Main component ───────────────────────────────────────
   function FidesOrcamento() {
-    var store = useFides();
-    var categories          = store.categories || {};
-    var categoryLimits      = store.categoryLimits || {};
-    var categoryUsage       = store.categoryUsage || [];
-    var selectedMonth       = store.selectedMonth;
-    var setSelectedMonth    = store.setSelectedMonth;
-    var prevMonth           = store.prevMonth;
-    var monthLabel          = store.monthLabel;
-    var monthTransactions   = store.monthTransactions || [];
-    var setCategoryLimit    = store.setCategoryLimit;
+    var store = window.useFides();
+    var categoryUsage      = store.categoryUsage || [];
+    var monthTransactions  = store.monthTransactions || [];
+    var selectedMonth      = store.selectedMonth;
+    var setSelectedMonth   = store.setSelectedMonth;
+    var setCategoryLimit   = store.setCategoryLimit;
     var removeCategoryLimit = store.removeCategoryLimit;
 
-    var monthLabelStr = readMonthLabel(monthLabel, selectedMonth);
+    var toast = window.FidesUI.useToast();
+    var refConfirm = window.FidesUI.useConfirm();
+    var ConfirmHost = refConfirm.ConfirmHost;
+    var confirm = refConfirm.confirm;
 
-    var toast = window.FidesUI && window.FidesUI.useToast ? window.FidesUI.useToast() : null;
-    var confirmHook = window.FidesUI && window.FidesUI.useConfirm ? window.FidesUI.useConfirm() : { confirm: function () { return Promise.resolve(true); }, ConfirmHost: function () { return null; } };
-    var confirm     = confirmHook.confirm;
-    var ConfirmHost = confirmHook.ConfirmHost;
+    var stIncPend = React.useState(true);
+    var incPend = stIncPend[0]; var setIncPend = stIncPend[1];
+    var stExp = React.useState(null);
+    var expanded = stExp[0]; var setExpanded = stExp[1];
+    var stEdit = React.useState(null);
+    var editing = stEdit[0]; var setEditing = stEdit[1];
+    var stLimit = React.useState(null);
+    var limitSheet = stLimit[0]; var setLimitSheet = stLimit[1];
+    var stCopy = React.useState(false);
+    var copySheet = stCopy[0]; var setCopySheet = stCopy[1];
+    var stCollapsed = React.useState({});
+    var collapsedGroups = stCollapsed[0]; var setCollapsedGroups = stCollapsed[1];
 
-    var refIncludePending = React.useState(false);
-    var includePending    = refIncludePending[0];
-    var setIncludePending = refIncludePending[1];
+    var lbl = typeof store.monthLabel === 'function'
+      ? store.monthLabel(selectedMonth)
+      : { long: fmtMesLongo(selectedMonth), short: selectedMonth };
 
-    var refModalCat = React.useState(null);
-    var modalCat    = refModalCat[0];
-    var setModalCat = refModalCat[1];
+    // Dia atual para projecao
+    var today = new Date();
+    var parts = String(selectedMonth).split('-').map(Number);
+    var daysInMonth = new Date(parts[0], parts[1], 0).getDate();
+    var isCurrentMonth = today.getFullYear() === parts[0] && (today.getMonth() + 1) === parts[1];
+    var dayElapsed = isCurrentMonth ? today.getDate() : daysInMonth;
 
-    // ---- Items: aplica toggle "incluir pendentes" --------------------
-    var items = React.useMemo(function () {
-      if (!includePending) return categoryUsage;
-
-      var spentByKey = {};
+    // Ajustar spent pelo toggle "incluir pendentes"
+    var adjustedUsage = React.useMemo(function () {
+      if (incPend) return categoryUsage;
+      var spentMap = {};
       monthTransactions.forEach(function (t) {
-        if (t.isTransfer) return;
-        if (!t.val || t.val >= 0) return;
-        var k = t.cat || 'sem-categoria';
-        spentByKey[k] = (spentByKey[k] || 0) + Math.abs(t.val);
+        if (t.isTransfer || t.val >= 0 || t.status !== 'pago') return;
+        spentMap[t.cat] = (spentMap[t.cat] || 0) + Math.abs(t.val);
       });
+      return categoryUsage.map(function (c) {
+        var sp = spentMap[c.cat_key] || 0;
+        var p = c.limit ? Math.round((sp / c.limit) * 100) : null;
+        var st = !c.limit ? null : p >= 100 ? 'over' : p >= 80 ? 'warn' : 'ok';
+        var n = {};
+        for (var k in c) if (Object.prototype.hasOwnProperty.call(c, k)) n[k] = c[k];
+        n.spent = sp; n.pct = p; n.status = st;
+        return n;
+      });
+    }, [incPend, categoryUsage, monthTransactions]);
 
-      var rank = { over: 0, warn: 1, ok: 2 };
-      return categoryUsage.map(function (it) {
-        var newSpent = spentByKey[it.cat_key] || 0;
-        var st = statusFromPct(it.limit, newSpent);
-        return Object.assign({}, it, {
-          spent: newSpent,
-          pct:   it.limit ? st.pct : null,
-          status: st.status
+    // Receita do mes
+    var receita = React.useMemo(function () {
+      return monthTransactions
+        .filter(function (t) { return t.val > 0 && !t.isTransfer; })
+        .reduce(function (s, t) { return s + t.val; }, 0);
+    }, [monthTransactions]);
+
+    // Construir grupos
+    var groups = React.useMemo(function () {
+      var ids = ['essencial', 'estilo', 'divida'];
+      return ids.map(function (id) {
+        var cats = adjustedUsage.filter(function (c) { return c.grp === id; });
+        var withLimit = cats.filter(function (c) { return c.limit > 0; });
+        var noLimit = cats.filter(function (c) {
+          return !c.limit && c.spent > 0;
         });
-      }).sort(function (a, b) {
-        var ra = a.status == null ? 3 : rank[a.status];
-        var rb = b.status == null ? 3 : rank[b.status];
-        if (ra !== rb) return ra - rb;
-        return (b.spent || 0) - (a.spent || 0);
+        withLimit.sort(function (a, b) {
+          var rank = { bad: 3, warn: 2, ok: 1 };
+          var ra = a.limit ? (a.spent / a.limit >= 1 ? 'bad' : a.spent / a.limit >= 0.8 ? 'warn' : 'ok') : 'ok';
+          var rb = b.limit ? (b.spent / b.limit >= 1 ? 'bad' : b.spent / b.limit >= 0.8 ? 'warn' : 'ok') : 'ok';
+          return (rank[rb] || 0) - (rank[ra] || 0) || b.spent - a.spent;
+        });
+        var limit = cats.reduce(function (s, c) { return s + (c.limit || 0); }, 0);
+        var spent = cats.reduce(function (s, c) { return s + c.spent; }, 0);
+        return {
+          id: id,
+          label: (GROUP_META[id] || {}).label || id,
+          cats: cats, withLimit: withLimit, noLimit: noLimit,
+          limit: limit, spent: spent
+        };
       });
-    }, [includePending, categoryUsage, monthTransactions]);
+    }, [adjustedUsage]);
 
-    // ---- Group items ---------------------------------------------------
-    var groups = React.useMemo(normalizedGroups, []);
+    var totals = React.useMemo(function () {
+      var planned = 0, realized = 0, withLim = 0, inLim = 0;
+      groups.forEach(function (g) {
+        g.cats.forEach(function (c) {
+          planned += (c.limit || 0);
+          realized += c.spent;
+          if (c.limit > 0) { withLim++; if (c.spent <= c.limit) inLim++; }
+        });
+      });
+      var proj = dayElapsed ? realized * (daysInMonth / dayElapsed) : realized;
+      return {
+        planned: planned, realized: realized, projection: proj,
+        catsWithLimit: withLim, catsInLimit: inLim
+      };
+    }, [groups, daysInMonth, dayElapsed]);
 
-    var itemsByGroup = React.useMemo(function () {
-      var map = {};
-      groups.forEach(function (g) { map[g.key] = []; });
-      items.forEach(function (it) {
-        var k = it.grp;
-        // fallback: tentar pegar grupo de categories
-        if (!k && categories[it.cat_key]) k = categories[it.cat_key].group;
-        if (!k || !map[k]) {
-          // categoria sem grupo conhecido: ignora (sera mostrada se grupo
-          // corresponder a algum BUDGET_GROUPS conhecido).
-          return;
+    var dist = React.useMemo(function () {
+      var d = { essencial: 0, estilo: 0, divida: 0 };
+      groups.forEach(function (g) { d[g.id] = g.spent; });
+      d.total = d.essencial + d.estilo + d.divida;
+      return d;
+    }, [groups]);
+
+    function toggleGroup(gid) {
+      setCollapsedGroups(function (p) {
+        var n = {};
+        for (var k in p) if (Object.prototype.hasOwnProperty.call(p, k)) n[k] = p[k];
+        n[gid] = !n[gid];
+        return n;
+      });
+    }
+
+    function onEditSave(catKey, raw) {
+      if (raw !== null) {
+        var v = parseBR(raw);
+        if (v > 0) {
+          Promise.resolve(setCategoryLimit(catKey, v, 'this'))
+            .then(function () { toast.success('Limite atualizado'); })
+            .catch(function () { toast.error('Erro ao salvar'); });
         }
-        map[k].push(it);
-      });
-      // ordenar cada grupo: severidade desc, depois alfabetica
-      Object.keys(map).forEach(function (k) {
-        map[k].sort(function (a, b) {
-          var rank = { over: 0, warn: 1, ok: 2 };
-          var ra = a.status == null ? 3 : rank[a.status];
-          var rb = b.status == null ? 3 : rank[b.status];
-          if (ra !== rb) return ra - rb;
-          return (a.label || '').localeCompare(b.label || '', 'pt-BR');
+      }
+      setEditing(null);
+    }
+
+    function onSaveLimit(catKey, value, mode, picked) {
+      var scope = mode === 'all' ? 'default'
+                : mode === 'specific' ? 'custom'
+                : 'this';
+      var months = null;
+      if (scope === 'custom') {
+        var year = String(selectedMonth).split('-')[0];
+        months = Array.from(picked || []).map(function (i) {
+          return year + '-' + String(i + 1).padStart(2, '0');
         });
-      });
-      return map;
-    }, [items, groups, categories]);
-
-    // ---- Empty state condition ----------------------------------------
-    var hasAnyLimit = Object.keys(categoryLimits || {}).length > 0;
-    var totalSpentMonth = React.useMemo(function () {
-      return items.reduce(function (s, it) { return s + (it.spent || 0); }, 0);
-    }, [items]);
-    var showEmptyState = !hasAnyLimit && totalSpentMonth === 0;
-
-    // ---- Month nav -----------------------------------------------------
-    function goPrevMonth() {
-      if (!setSelectedMonth || !prevMonth) return;
-      setSelectedMonth(prevMonth(selectedMonth));
-    }
-    function goNextMonth() {
-      if (!setSelectedMonth) return;
-      var parts = (selectedMonth || '').split('-');
-      var y = parseInt(parts[0], 10);
-      var m = parseInt(parts[1], 10);
-      if (!y || !m) return;
-      m += 1; if (m > 12) { m = 1; y += 1; }
-      setSelectedMonth(y + '-' + String(m).padStart(2, '0'));
+      }
+      Promise.resolve(setCategoryLimit(catKey, value, scope, months))
+        .then(function () {
+          if (scope === 'this') toast.success('Limite definido para ' + lbl.long);
+          else if (scope === 'default') toast.success('Limite padrao salvo');
+          else toast.success('Limite aplicado a ' + (months || []).length + ' meses');
+          setLimitSheet(null);
+        })
+        .catch(function () { toast.error('Erro ao salvar limite'); });
     }
 
-    // ---- Modal helpers -------------------------------------------------
-    function openModal(item) {
-      setModalCat({
-        cat_key: item.cat_key,
-        label:   item.label,
-        emoji:   item.emoji,
-        limit:   item.limit
+    function onRemoveLimit(catKey) {
+      confirm({
+        title: 'Remover limite?',
+        message: 'Esta categoria voltara a aparecer sem limite definido.',
+        destructive: true,
+        confirmLabel: 'Remover limite'
+      }).then(function (ok) {
+        if (!ok) return;
+        Promise.resolve(removeCategoryLimit(catKey, 'this'))
+          .then(function () {
+            toast.warn('Limite removido');
+            setLimitSheet(null);
+          })
+          .catch(function () { toast.error('Erro ao remover limite'); });
       });
     }
-    function closeModal() { setModalCat(null); }
 
-    var modalLimitEntry = modalCat && categoryLimits ? categoryLimits[modalCat.cat_key] : null;
-    var modalByMonth    = modalLimitEntry && modalLimitEntry.byMonth ? modalLimitEntry.byMonth : {};
-    var modalDefault    = modalLimitEntry ? (modalLimitEntry['default'] != null ? modalLimitEntry['default'] : null) : null;
+    var ctx = {
+      expanded: expanded,
+      editing: editing,
+      receita: receita,
+      daysInMonth: daysInMonth,
+      dayElapsed: dayElapsed,
+      onToggle: function (id) { setExpanded(function (e) { return e === id ? null : id; }); },
+      onEditStart: function (id) { setEditing(id); },
+      onEditSave: onEditSave,
+      onOpenLimit: function (id) { setLimitSheet({ cat: id, mode: 'this' }); }
+    };
 
-    return (
-      <div className="fo-page" data-od-id="planejamento">
-        <header className="fo-header">
-          <h1 className="fo-title">Planejamento</h1>
+    var isEmpty = !categoryUsage || categoryUsage.length === 0
+      || (totals.catsWithLimit === 0 && totals.realized === 0);
 
-          <div className="fo-month-row">
-            <button type="button" className="fo-month-nav" onClick={goPrevMonth} aria-label="Mes anterior">
-              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                <path d="M15 6l-6 6 6 6"/>
-              </svg>
-            </button>
-            <div className="fo-month-current">{monthLabelStr}</div>
-            <button type="button" className="fo-month-nav" onClick={goNextMonth} aria-label="Proximo mes">
-              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                <path d="M9 6l6 6-6 6"/>
-              </svg>
-            </button>
-          </div>
+    var sheetCat = limitSheet && limitSheet.cat;
+    var sheetCurrentLimit = 0;
+    if (sheetCat) {
+      for (var i = 0; i < groups.length; i++) {
+        for (var j = 0; j < groups[i].cats.length; j++) {
+          if (groups[i].cats[j].cat_key === sheetCat) {
+            sheetCurrentLimit = groups[i].cats[j].limit || 0;
+            break;
+          }
+        }
+      }
+    }
 
-          <label className={'fo-toggle' + (includePending ? ' on' : '')}>
-            <input type="checkbox"
-                   checked={includePending}
-                   onChange={function (e) { setIncludePending(e.target.checked); }}/>
-            <span className="fo-toggle-track"><span className="fo-toggle-thumb"/></span>
-            <span className="fo-toggle-label">Incluir pendentes no realizado</span>
-          </label>
-        </header>
-
-        {showEmptyState && (
-          <div className="fo-empty">
-            <div className="fo-empty-icon" aria-hidden="true">{'\u{1F3AF}'}</div>
-            <div className="fo-empty-title">Comece a planejar</div>
-            <div className="fo-empty-text">Defina limites por categoria para acompanhar seus gastos.</div>
-          </div>
-        )}
-
-        {groups.map(function (g) {
-          var list = itemsByGroup[g.key] || [];
-          if (list.length === 0) return null;
-          var plannedTotal = list.reduce(function (s, it) { return s + (it.limit || 0); }, 0);
-          var spentTotal   = list.reduce(function (s, it) { return s + (it.spent || 0); }, 0);
-          var dot = groupColor(g.key);
-          return (
-            <section className="fo-group" key={g.key}>
-              <header className="fo-group-header">
-                <div className="fo-group-name">
-                  <span className="fo-group-dot" style={{ background: dot }} aria-hidden="true"/>
-                  <span>{g.label}</span>
-                  <span className="fo-group-target">({Math.round((g.pct || 0) * 100)}%)</span>
-                </div>
-                <div className="fo-group-totals">
-                  <span className="fo-group-planned">{formatBRL(plannedTotal)}</span>
-                  <span className="fo-group-sep">/</span>
-                  <span className="fo-group-spent">{formatBRL(spentTotal)}</span>
-                </div>
-              </header>
-
-              <div className="fo-group-list">
-                {list.map(function (it) {
-                  return (
-                    <CategoryCard key={it.cat_key}
-                                  item={it}
-                                  monthLabelStr={monthLabelStr}
-                                  setCategoryLimit={setCategoryLimit}
-                                  openModal={openModal}
-                                  toast={toast}/>
-                  );
-                })}
-              </div>
-            </section>
-          );
-        })}
-
-        <LimitEditorModal open={!!modalCat}
-                          cat={modalCat}
-                          onClose={closeModal}
-                          selectedMonth={selectedMonth}
-                          monthLabelStr={monthLabelStr}
-                          existingByMonth={modalByMonth}
-                          existingDefault={modalDefault}
-                          setCategoryLimit={setCategoryLimit}
-                          removeCategoryLimit={removeCategoryLimit}
-                          toast={toast}
-                          confirm={confirm}/>
-
-        <ConfirmHost/>
-      </div>
+    return React.createElement('div', { className: 'pln-screen' },
+      React.createElement(PlnHeader, {
+        incPend: incPend,
+        onToggleIncPend: function () { setIncPend(function (v) { return !v; }); },
+        onCopy: function () { setCopySheet(true); },
+        lbl: lbl,
+        onPrev: function () { setSelectedMonth(goMonth(selectedMonth, -1)); },
+        onNext: function () { setSelectedMonth(goMonth(selectedMonth, +1)); }
+      }),
+      isEmpty
+        ? React.createElement(PlnEmptyState, {
+            onCopy: function () { setCopySheet(true); },
+            onApplyRule: function () { toast.info('Em breve — proxima versao'); }
+          })
+        : React.createElement('div', { className: 'pln-body' },
+            React.createElement(PlnInsights, {
+              groups: groups, totals: totals, dist: dist, receita: receita
+            }),
+            groups.map(function (g) {
+              return React.createElement(PlnGroupSection, {
+                key: g.id, g: g, ctx: ctx,
+                collapsed: !!collapsedGroups[g.id],
+                onToggleCollapse: function () { toggleGroup(g.id); }
+              });
+            })
+          ),
+      limitSheet
+        ? React.createElement(LimitSheet, {
+            cat: sheetCat,
+            currentLimit: sheetCurrentLimit,
+            initialMode: limitSheet.mode,
+            lbl: lbl,
+            onClose: function () { setLimitSheet(null); },
+            onSave: onSaveLimit,
+            onRemove: onRemoveLimit
+          })
+        : null,
+      copySheet
+        ? React.createElement(CopySheet, {
+            lbl: lbl,
+            onClose: function () { setCopySheet(false); },
+            onApply: function () {
+              toast.info('Em breve — proxima versao');
+              setCopySheet(false);
+            }
+          })
+        : null,
+      React.createElement(ConfirmHost, null)
     );
   }
 
-  // Compatibilidade com o shell atual que renderiza <OrcamentoStudio/>.
+  // Compatibilidade com o shell atual.
   var OrcamentoStudio = FidesOrcamento;
-
-  Object.assign(window, { FidesOrcamento: FidesOrcamento, OrcamentoStudio: OrcamentoStudio });
+  Object.assign(window, {
+    FidesOrcamento: FidesOrcamento,
+    OrcamentoStudio: OrcamentoStudio
+  });
 })();
