@@ -130,6 +130,7 @@ function FidesProvider({ children }) {
   const [categories, setCategories]           = React.useState(() => ({ ...CATEGORIES, ...SYSTEM_CATEGORIES }));
   const [plannedOverrides, setPlannedOverrides] = React.useState({});
   const [categoryLimits, setCategoryLimits]     = React.useState({});
+  const [groupTargets, setGroupTargetsState] = React.useState({ essencial: 0.50, estilo: 0.30, divida: 0.20 });
   const [categoryModalOpen, setCategoryModalOpen] = React.useState(false);
   const [selectedMonth, setSelectedMonth]         = React.useState(function() {
     var now = new Date();
@@ -255,8 +256,17 @@ function FidesProvider({ children }) {
         setTransactions([]); setAccounts([]); setCards([]); setGoals([]);
         refreshData(user.id);
         try {
-          const { data: profile } = await window.fidesDb.from('profiles').select('name').eq('id', user.id).single();
-          if (mounted) setUserName(profile?.name || '');
+          const { data: profile } = await window.fidesDb.from('profiles').select('name, group_targets').eq('id', user.id).single();
+          if (mounted) {
+            setUserName(profile?.name || '');
+            if (profile?.group_targets && typeof profile.group_targets === 'object') {
+              setGroupTargetsState({
+                essencial: Number(profile.group_targets.essencial) || 0.50,
+                estilo:    Number(profile.group_targets.estilo)    || 0.30,
+                divida:    Number(profile.group_targets.divida)    || 0.20,
+              });
+            }
+          }
         } catch (_) {}
         console.log('[Fides] Store: modo live — userId:', user.id);
       } else {
@@ -276,8 +286,17 @@ function FidesProvider({ children }) {
         refreshData(user.id);
         (async () => {
           try {
-            const { data: profile } = await window.fidesDb.from('profiles').select('name').eq('id', user.id).single();
-            if (mounted) setUserName(profile?.name || '');
+            const { data: profile } = await window.fidesDb.from('profiles').select('name, group_targets').eq('id', user.id).single();
+            if (mounted) {
+              setUserName(profile?.name || '');
+              if (profile?.group_targets && typeof profile.group_targets === 'object') {
+                setGroupTargetsState({
+                  essencial: Number(profile.group_targets.essencial) || 0.50,
+                  estilo:    Number(profile.group_targets.estilo)    || 0.30,
+                  divida:    Number(profile.group_targets.divida)    || 0.20,
+                });
+              }
+            }
           } catch (_) {}
         })();
         console.log('[Fides] Store: modo live — userId:', user.id);
@@ -740,6 +759,33 @@ function FidesProvider({ children }) {
     }
   }, [mode, userId, selectedMonth, refreshData]);
 
+  const setGroupTargets = React.useCallback(async (patch) => {
+    const next = { ...groupTargets, ...patch };
+    next.essencial = Math.max(0, Number(next.essencial) || 0);
+    next.estilo    = Math.max(0, Number(next.estilo)    || 0);
+    next.divida    = Math.max(0, Number(next.divida)    || 0);
+    if (mode === 'live' && userId) {
+      const { error } = await window.fidesDb
+        .from('profiles')
+        .update({ group_targets: next })
+        .eq('id', userId);
+      if (error) throw error;
+    }
+    setGroupTargetsState(next);
+  }, [mode, userId, groupTargets]);
+
+  const resetGroupTargets = React.useCallback(async () => {
+    const def = { essencial: 0.50, estilo: 0.30, divida: 0.20 };
+    if (mode === 'live' && userId) {
+      const { error } = await window.fidesDb
+        .from('profiles')
+        .update({ group_targets: def })
+        .eq('id', userId);
+      if (error) throw error;
+    }
+    setGroupTargetsState(def);
+  }, [mode, userId]);
+
   // ─── Month helpers ────────────────────────────────────────────
 
   const prevMonth = (ym) => {
@@ -833,9 +879,9 @@ function FidesProvider({ children }) {
         .map(({ _custom, ...c }) => c);
       const limit = cats.reduce((s, c) => s + c.limit, 0);
       const spent = cats.reduce((s, c) => s + c.spent, 0);
-      return { id: groupId, label: def?.label || groupId, target: def?.target || 0, limit, spent, cats };
+      return { id: groupId, label: def?.label || groupId, target: groupTargets[groupId] || 0, limit, spent, cats };
     });
-  }, [monthTransactions, categories, plannedOverrides]);
+  }, [monthTransactions, categories, plannedOverrides, groupTargets]);
 
   // faturasPorCartao: mode-aware so live card UUIDs resolve correctly
   const faturasPorCartao = React.useMemo(() => {
@@ -901,6 +947,8 @@ function FidesProvider({ children }) {
     plannedOverrides, setPlanned,
     // Category limits (Lote 3)
     categoryLimits, categoryUsage, setCategoryLimit, removeCategoryLimit,
+    // Group targets (Lote 4B)
+    groupTargets, setGroupTargets, resetGroupTargets,
     // Month
     selectedMonth, setSelectedMonth, prevMonth, monthLabel,
     // Derived
@@ -943,6 +991,8 @@ function useFides() {
     plannedOverrides: {}, setPlanned: () => {},
     categoryLimits: {}, categoryUsage: [],
     setCategoryLimit: () => {}, removeCategoryLimit: () => {},
+    groupTargets: { essencial: 0.50, estilo: 0.30, divida: 0.20 },
+    setGroupTargets: async () => {}, resetGroupTargets: async () => {},
     selectedMonth: '2026-05', setSelectedMonth: () => {},
     prevMonth: (ym) => ym, monthLabel: (ym) => ({ short: ym, long: ym }),
     spendByCategory: SPEND_BY_CATEGORY,

@@ -96,10 +96,21 @@
     var groups = props.groups;
     var totals = props.totals;
     var dist = props.dist;
+    var receita = props.receita || 0;
+    var targets = props.groupTargets || { essencial: 0.50, estilo: 0.30, divida: 0.20 };
+    var onEditTargets = props.onEditTargets;
     var inLimit = totals.catsInLimit;
     var totalCats = totals.catsWithLimit;
-    var essShare = dist.total ? dist.essencial / dist.total : 0;
-    var dividaShare = dist.total ? dist.divida / dist.total : 0;
+
+    var denom = receita > 0 ? receita : dist.total;
+    var isFallbackDenom = !(receita > 0) && dist.total > 0;
+    var essShare    = denom ? dist.essencial / denom : 0;
+    var estiloShare = denom ? dist.estilo    / denom : 0;
+    var dividaShare = denom ? dist.divida    / denom : 0;
+
+    var pctEss = Math.round((targets.essencial || 0) * 100);
+    var pctEst = Math.round((targets.estilo    || 0) * 100);
+    var pctDiv = Math.round((targets.divida    || 0) * 100);
 
     var dots = [];
     groups.forEach(function (g) {
@@ -110,20 +121,20 @@
     });
 
     var msg;
-    if (dividaShare > 0.20) {
+    if (dividaShare > (targets.divida || 0)) {
       msg = React.createElement(React.Fragment, null,
         'Dividas levam ',
         React.createElement('b', null, Math.round(dividaShare * 100) + '%'),
-        ' do realizado — a regra 50·30·20 sugere ate ',
-        React.createElement('b', null, '20%'),
+        ' do realizado — sua meta e ate ',
+        React.createElement('b', null, pctDiv + '%'),
         '. Vale priorizar a renegociacao.'
       );
-    } else if (essShare > 0.50) {
+    } else if (essShare > (targets.essencial || 0)) {
       msg = React.createElement(React.Fragment, null,
         'Voce esta alocando ',
         React.createElement('b', null, Math.round(essShare * 100) + '%'),
-        ' em Essencial — a regra 50·30·20 sugere ate ',
-        React.createElement('b', null, '50%'),
+        ' em Essencial — sua meta e ate ',
+        React.createElement('b', null, pctEss + '%'),
         '. Olhe contas fixas para abrir espaco.'
       );
     } else {
@@ -131,15 +142,15 @@
         'Boa distribuicao: ',
         React.createElement('b', null, Math.round(essShare * 100) + '%'),
         ' em Essencial, dentro da meta de ',
-        React.createElement('b', null, '50%'),
+        React.createElement('b', null, pctEss + '%'),
         '. Continue assim.'
       );
     }
 
     var segs = [
-      { id: 'essencial', tint: 'var(--g-essencial)', label: 'Essencial', val: dist.essencial, tgt: 50 },
-      { id: 'estilo',    tint: 'var(--g-estilo)',    label: 'Estilo',    val: dist.estilo,    tgt: 30 },
-      { id: 'divida',    tint: 'var(--g-divida)',    label: 'Dividas',   val: dist.divida,    tgt: 20 }
+      { id: 'essencial', tint: 'var(--g-essencial)', label: 'Essencial', val: dist.essencial, tgt: pctEss },
+      { id: 'estilo',    tint: 'var(--g-estilo)',    label: 'Estilo',    val: dist.estilo,    tgt: pctEst },
+      { id: 'divida',    tint: 'var(--g-divida)',    label: 'Dividas',   val: dist.divida,    tgt: pctDiv }
     ];
 
     return React.createElement('div', { className: 'pln-insights' },
@@ -167,13 +178,29 @@
         )
       ),
       React.createElement('div', { className: 'pln-dist' },
-        React.createElement('div', { className: 'pln-dist-lbl' }, 'Distribuicao este mes'),
+        React.createElement('div', { className: 'pln-dist-head' },
+          React.createElement('div', { className: 'pln-dist-lbl' },
+            'Distribuicao este mes',
+            isFallbackDenom
+              ? React.createElement('span', { className: 'pln-dist-badge' }, 'do total')
+              : null
+          ),
+          React.createElement('button', {
+            className: 'pln-dist-edit',
+            type: 'button',
+            onClick: onEditTargets,
+            title: 'Editar metas dos grupos'
+          },
+            React.createElement(window.Icon.Edit || window.Icon.Pencil || window.Icon.Settings, { size: 13 }),
+            React.createElement('span', null, 'Editar metas')
+          )
+        ),
         React.createElement('div', { className: 'pln-dist-bar' },
           segs.map(function (s) {
             return React.createElement('div', {
               key: s.id, className: 'pln-dist-seg',
               style: {
-                width: (dist.total ? (s.val / dist.total) * 100 : 0) + '%',
+                width: (denom ? (s.val / denom) * 100 : 0) + '%',
                 background: s.tint
               }
             });
@@ -185,7 +212,7 @@
               React.createElement('span', { className: 'pln-dist-leg-dot', style: { background: s.tint } }),
               s.label + ' ',
               React.createElement('b', null,
-                (dist.total ? Math.round((s.val / dist.total) * 100) : 0) + '%'
+                (denom ? Math.round((s.val / denom) * 100) : 0) + '%'
               ),
               React.createElement('span', { className: 'tgt' }, '/ ' + s.tgt + '%')
             );
@@ -580,6 +607,96 @@
     );
   }
 
+  // ─── Group targets sheet (Lote 4B) ──────────────────────────
+  function GroupTargetsSheet(props) {
+    var current = props.current || { essencial: 0.50, estilo: 0.30, divida: 0.20 };
+    var stEss = React.useState(String(Math.round((current.essencial || 0) * 100)));
+    var ess = stEss[0]; var setEss = stEss[1];
+    var stEst = React.useState(String(Math.round((current.estilo || 0) * 100)));
+    var est = stEst[0]; var setEst = stEst[1];
+    var stDiv = React.useState(String(Math.round((current.divida || 0) * 100)));
+    var div = stDiv[0]; var setDiv = stDiv[1];
+    var stBusy = React.useState(false);
+    var busy = stBusy[0]; var setBusy = stBusy[1];
+
+    function parsePct(s) {
+      var n = parseInt(String(s).replace(/[^0-9]/g, ''), 10);
+      if (isNaN(n)) return 0;
+      return Math.max(0, Math.min(100, n));
+    }
+
+    var nEss = parsePct(ess);
+    var nEst = parsePct(est);
+    var nDiv = parsePct(div);
+    var sum  = nEss + nEst + nDiv;
+    var sumWarn = sum !== 100;
+
+    function handleSave() {
+      if (busy) return;
+      setBusy(true);
+      props.onSave({
+        essencial: nEss / 100,
+        estilo:    nEst / 100,
+        divida:    nDiv / 100,
+      }).finally(function () { setBusy(false); });
+    }
+
+    function handleReset() {
+      if (busy) return;
+      setBusy(true);
+      props.onReset().finally(function () { setBusy(false); });
+    }
+
+    return React.createElement('div', { className: 'pln-sheet-back', onClick: props.onClose },
+      React.createElement('div', { className: 'pln-sheet pln-tgt-sheet', onClick: function (e) { e.stopPropagation(); } },
+        React.createElement('div', { className: 'pln-sheet-head' },
+          React.createElement('h3', { className: 'pln-sheet-title' }, 'Editar metas dos grupos'),
+          React.createElement('button', { className: 'pln-sheet-close', type: 'button', onClick: props.onClose },
+            React.createElement(window.Icon.X, { size: 14 })
+          )
+        ),
+        React.createElement('p', { className: 'pln-tgt-help' },
+          'Defina a porcentagem alvo da sua renda para cada grupo. Os valores ideais sao 50/30/20, mas voce pode ajustar.'
+        ),
+        React.createElement('div', { className: 'pln-tgt-rows' },
+          [
+            { id: 'essencial', label: 'Essencial', tint: 'var(--g-essencial)', val: ess, set: setEss },
+            { id: 'estilo',    label: 'Estilo de vida', tint: 'var(--g-estilo)', val: est, set: setEst },
+            { id: 'divida',    label: 'Dividas & invest.', tint: 'var(--g-divida)', val: div, set: setDiv },
+          ].map(function (r) {
+            return React.createElement('div', { key: r.id, className: 'pln-tgt-row' },
+              React.createElement('span', { className: 'pln-tgt-dot', style: { background: r.tint } }),
+              React.createElement('span', { className: 'pln-tgt-lbl' }, r.label),
+              React.createElement('div', { className: 'pln-tgt-input-wrap' },
+                React.createElement('input', {
+                  className: 'pln-tgt-input',
+                  type: 'tel',
+                  inputMode: 'numeric',
+                  maxLength: 3,
+                  value: r.val,
+                  onChange: function (e) { r.set(e.target.value.replace(/[^0-9]/g, '').slice(0, 3)); }
+                }),
+                React.createElement('span', { className: 'pln-tgt-pct' }, '%')
+              )
+            );
+          })
+        ),
+        React.createElement('div', { className: 'pln-tgt-sum' + (sumWarn ? ' warn' : '') },
+          'Soma: ', React.createElement('b', null, sum + '%'),
+          sumWarn ? React.createElement('span', { className: 'pln-tgt-sum-note' }, ' (ideal 100%)') : null
+        ),
+        React.createElement('div', { className: 'pln-sheet-foot' },
+          React.createElement('button', {
+            className: 'pln-btn-ghost', type: 'button', onClick: handleReset, disabled: busy
+          }, 'Resetar 50/30/20'),
+          React.createElement('button', {
+            className: 'pln-btn-primary', type: 'button', onClick: handleSave, disabled: busy
+          }, 'Salvar')
+        )
+      )
+    );
+  }
+
   // ─── Copy-limits sheet (placeholder visual) ────────────────
   function CopySheet(props) {
     var stPicking = React.useState(false);
@@ -720,6 +837,45 @@
     );
   }
 
+  // ─── Rule info card (Lote 4B) ─────────────────────────────
+  function RuleInfoCard() {
+    var stDismissed = React.useState(function () {
+      try { return localStorage.getItem('fides:dismissed_503020_card') === '1'; }
+      catch (_) { return false; }
+    });
+    var dismissed = stDismissed[0];
+    var setDismissed = stDismissed[1];
+
+    if (dismissed) return null;
+
+    function handleDismiss() {
+      try { localStorage.setItem('fides:dismissed_503020_card', '1'); } catch (_) {}
+      setDismissed(true);
+    }
+
+    return React.createElement('div', { className: 'pln-rule-card' },
+      React.createElement('button', {
+        className: 'pln-rule-dismiss',
+        type: 'button',
+        onClick: handleDismiss,
+        'aria-label': 'Dispensar'
+      }, React.createElement(window.Icon.X, { size: 13 })),
+      React.createElement('div', { className: 'pln-rule-eyebrow' },
+        React.createElement(window.Icon.Sparkles, { size: 12 }),
+        'Sobre a regra 50·30·20'
+      ),
+      React.createElement('p', { className: 'pln-rule-body' },
+        'Um guia simples de quanto da sua renda destinar a cada grupo: ',
+        React.createElement('b', null, '50% Essencial'),
+        ' (moradia, mercado, transporte), ',
+        React.createElement('b', null, '30% Estilo de vida'),
+        ' (lazer, compras, assinaturas) e ',
+        React.createElement('b', null, '20% Dividas e investimentos'),
+        '. Voce pode editar essas metas no botao acima.'
+      )
+    );
+  }
+
   // ─── Main component ───────────────────────────────────────
   function FidesOrcamento() {
     var store = window.useFides();
@@ -729,6 +885,9 @@
     var setSelectedMonth   = store.setSelectedMonth;
     var setCategoryLimit   = store.setCategoryLimit;
     var removeCategoryLimit = store.removeCategoryLimit;
+    var groupTargets        = store.groupTargets || { essencial: 0.50, estilo: 0.30, divida: 0.20 };
+    var setGroupTargetsStore = store.setGroupTargets;
+    var resetGroupTargetsStore = store.resetGroupTargets;
 
     var toast = window.FidesUI.useToast();
     var refConfirm = window.FidesUI.useConfirm();
@@ -747,6 +906,8 @@
     var copySheet = stCopy[0]; var setCopySheet = stCopy[1];
     var stCollapsed = React.useState({});
     var collapsedGroups = stCollapsed[0]; var setCollapsedGroups = stCollapsed[1];
+    var stTargets = React.useState(false);
+    var targetsSheetOpen = stTargets[0]; var setTargetsSheetOpen = stTargets[1];
 
     var lbl = typeof store.monthLabel === 'function'
       ? store.monthLabel(selectedMonth)
@@ -893,6 +1054,27 @@
       });
     }
 
+    function handleSaveTargets(next) {
+      return setGroupTargetsStore(next)
+        .then(function () {
+          toast.success('Metas atualizadas');
+          setTargetsSheetOpen(false);
+        })
+        .catch(function (err) {
+          toast.error('Erro ao salvar: ' + (err.message || 'tente novamente'));
+        });
+    }
+    function handleResetTargets() {
+      return resetGroupTargetsStore()
+        .then(function () {
+          toast.success('Metas resetadas para 50/30/20');
+          setTargetsSheetOpen(false);
+        })
+        .catch(function (err) {
+          toast.error('Erro ao resetar: ' + (err.message || 'tente novamente'));
+        });
+    }
+
     var ctx = {
       expanded: expanded,
       editing: editing,
@@ -936,8 +1118,11 @@
             onApplyRule: function () { toast.info('Em breve — proxima versao'); }
           })
         : React.createElement('div', { className: 'pln-body' },
+            React.createElement(RuleInfoCard, null),
             React.createElement(PlnInsights, {
-              groups: groups, totals: totals, dist: dist, receita: receita
+              groups: groups, totals: totals, dist: dist, receita: receita,
+              groupTargets: groupTargets,
+              onEditTargets: function () { setTargetsSheetOpen(true); }
             }),
             groups.map(function (g) {
               return React.createElement(PlnGroupSection, {
@@ -966,6 +1151,14 @@
               toast.info('Em breve — proxima versao');
               setCopySheet(false);
             }
+          })
+        : null,
+      targetsSheetOpen
+        ? React.createElement(GroupTargetsSheet, {
+            current: groupTargets,
+            onSave: handleSaveTargets,
+            onReset: handleResetTargets,
+            onClose: function () { setTargetsSheetOpen(false); }
           })
         : null,
       React.createElement(ConfirmHost, null)
