@@ -874,7 +874,7 @@
             React.createElement('b', null, '30% Estilo de vida'),
             ' (lazer, compras, assinaturas) e ',
             React.createElement('b', null, '20% Dividas e investimentos'),
-            '. Voce pode editar essas metas no botao acima.'
+            '. Voce pode ajustar essas metas no botao Editar metas.'
           )
         : null
     );
