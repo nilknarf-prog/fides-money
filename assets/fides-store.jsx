@@ -44,6 +44,7 @@ function normalizeTx(row) {
     _id: row.id,
     val: Number(row.value),
     d,
+    date: dateStr,
     desc: row.description,
     cat: row.category,
     acct: row.card_id || row.account_id || row.account || '',
@@ -361,10 +362,21 @@ function FidesProvider({ children }) {
     if (mode === 'live' && userId) {
       try {
         const dbPatch = {};
-        if (patch.status !== undefined) dbPatch.status = STATUS_TO_DB[patch.status] || patch.status;
-        if (patch.desc    !== undefined) dbPatch.description = patch.desc;
-        if (patch.val     !== undefined) dbPatch.value       = patch.val;
-        if (patch.cat     !== undefined) dbPatch.category    = patch.cat;
+        if (patch.status !== undefined) dbPatch.status      = STATUS_TO_DB[patch.status] || patch.status;
+        if (patch.desc   !== undefined) dbPatch.description = patch.desc;
+        if (patch.val    !== undefined) dbPatch.value       = patch.val;
+        if (patch.cat    !== undefined) dbPatch.category    = patch.cat;
+        if (patch.date) {
+          dbPatch.date  = patch.date;
+          dbPatch.month = String(patch.date).slice(0, 7);
+        }
+        if (patch.acct !== undefined) {
+          const cardIdSet = new Set((cards || []).map(c => c.id));
+          const isCard    = cardIdSet.has(patch.acct);
+          dbPatch.account    = patch.acct || '';
+          dbPatch.account_id = isCard ? null : (patch.acct || null);
+          dbPatch.card_id    = isCard ? patch.acct : null;
+        }
         const { error } = await window.fidesDb.from('transactions').update(dbPatch).eq('id', id);
         if (error) throw error;
         await refreshData(userId);
@@ -374,7 +386,7 @@ function FidesProvider({ children }) {
       return;
     }
     setTransactions(prev => prev.map(t => t._id === id ? { ...t, ...patch } : t));
-  }, [mode, userId, refreshData]);
+  }, [mode, userId, refreshData, cards]);
 
   async function deleteTransaction(id) {
     if (mode !== 'live') return;
