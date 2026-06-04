@@ -647,7 +647,7 @@
       props.onReset().finally(function () { setBusy(false); });
     }
 
-    return React.createElement('div', { className: 'pln-sheet-back', onClick: props.onClose },
+    return React.createElement('div', { className: 'pln-sheet-backdrop', onClick: props.onClose },
       React.createElement('div', { className: 'pln-sheet pln-tgt-sheet', onClick: function (e) { e.stopPropagation(); } },
         React.createElement('div', { className: 'pln-sheet-head' },
           React.createElement('h3', { className: 'pln-sheet-title' }, 'Editar metas dos grupos'),
@@ -839,40 +839,44 @@
 
   // ─── Rule info card (Lote 4B) ─────────────────────────────
   function RuleInfoCard() {
-    var stDismissed = React.useState(function () {
-      try { return localStorage.getItem('fides:dismissed_503020_card') === '1'; }
+    var stCollapsed = React.useState(function () {
+      try { return localStorage.getItem('fides:collapsed_503020_card') === '1'; }
       catch (_) { return false; }
     });
-    var dismissed = stDismissed[0];
-    var setDismissed = stDismissed[1];
+    var collapsed = stCollapsed[0];
+    var setCollapsed = stCollapsed[1];
 
-    if (dismissed) return null;
-
-    function handleDismiss() {
-      try { localStorage.setItem('fides:dismissed_503020_card', '1'); } catch (_) {}
-      setDismissed(true);
+    function handleToggle() {
+      var next = !collapsed;
+      try { localStorage.setItem('fides:collapsed_503020_card', next ? '1' : '0'); } catch (_) {}
+      setCollapsed(next);
     }
 
-    return React.createElement('div', { className: 'pln-rule-card' },
+    return React.createElement('div', { className: 'pln-rule-card' + (collapsed ? ' collapsed' : '') },
       React.createElement('button', {
-        className: 'pln-rule-dismiss',
+        className: 'pln-rule-toggle',
         type: 'button',
-        onClick: handleDismiss,
-        'aria-label': 'Dispensar'
-      }, React.createElement(window.Icon.X, { size: 13 })),
-      React.createElement('div', { className: 'pln-rule-eyebrow' },
-        React.createElement(window.Icon.Sparkles, { size: 12 }),
-        'Sobre a regra 50·30·20'
+        onClick: handleToggle,
+        'aria-expanded': String(!collapsed),
+        'aria-label': collapsed ? 'Expandir dica 50/30/20' : 'Recolher dica 50/30/20'
+      },
+        React.createElement('div', { className: 'pln-rule-eyebrow' },
+          React.createElement(window.Icon.Sparkles, { size: 12 }),
+          'Sobre a regra 50·30·20'
+        ),
+        React.createElement(window.Icon.Down, { size: 14, className: 'pln-rule-chevron' })
       ),
-      React.createElement('p', { className: 'pln-rule-body' },
-        'Um guia simples de quanto da sua renda destinar a cada grupo: ',
-        React.createElement('b', null, '50% Essencial'),
-        ' (moradia, mercado, transporte), ',
-        React.createElement('b', null, '30% Estilo de vida'),
-        ' (lazer, compras, assinaturas) e ',
-        React.createElement('b', null, '20% Dividas e investimentos'),
-        '. Voce pode editar essas metas no botao acima.'
-      )
+      !collapsed
+        ? React.createElement('p', { className: 'pln-rule-body' },
+            'Um guia simples de quanto da sua renda destinar a cada grupo: ',
+            React.createElement('b', null, '50% Essencial'),
+            ' (moradia, mercado, transporte), ',
+            React.createElement('b', null, '30% Estilo de vida'),
+            ' (lazer, compras, assinaturas) e ',
+            React.createElement('b', null, '20% Dividas e investimentos'),
+            '. Voce pode editar essas metas no botao acima.'
+          )
+        : null
     );
   }
 

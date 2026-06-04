@@ -670,34 +670,38 @@
 
 /* ── Lote 4B: card didatico 50/30/20 ─────────────────────────── */
 .pln-rule-card {
-  position: relative;
-  padding: 14px 36px 14px 14px;
   border: 1px solid var(--border);
   border-radius: 12px;
   background: var(--card-soft);
   margin-bottom: 14px;
+  overflow: hidden;
 }
+.pln-rule-toggle {
+  display: flex; align-items: center; justify-content: space-between;
+  width: 100%; padding: 12px 14px;
+  border: none; background: transparent;
+  cursor: pointer; text-align: left; gap: 8px;
+}
+.pln-rule-toggle:hover { background: var(--card); }
+.pln-rule-chevron { color: var(--muted); flex: none; transition: transform 0.2s ease; }
+.pln-rule-card:not(.collapsed) .pln-rule-chevron { transform: rotate(180deg); }
 .pln-rule-eyebrow {
   display: inline-flex; align-items: center; gap: 6px;
-  font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.04em;
-  color: var(--muted); margin-bottom: 6px;
+  font-size: 11px; font-weight: 600; text-transform: uppercase;
+  letter-spacing: 0.04em; color: var(--muted);
 }
-.pln-rule-body { font-size: 13px; line-height: 1.5; color: var(--ink-2); margin: 0; }
+.pln-rule-body {
+  font-size: 13px; line-height: 1.5; color: var(--ink-2);
+  margin: 0; padding: 0 14px 12px;
+}
 .pln-rule-body b { color: var(--ink); font-weight: 600; }
-.pln-rule-dismiss {
-  position: absolute; top: 8px; right: 8px;
-  width: 28px; height: 28px; min-width: 28px; min-height: 28px;
-  display: inline-flex; align-items: center; justify-content: center;
-  border: none; background: transparent; color: var(--muted);
-  border-radius: 8px; cursor: pointer;
-}
-.pln-rule-dismiss:hover { background: var(--card); color: var(--ink); }
 
 /* ── Lote 4B: header de distribuicao + botao editar metas ─────── */
 .pln-dist-head {
   display: flex; align-items: center; justify-content: space-between;
   gap: 8px; margin-bottom: 8px;
 }
+.pln-dist-head .pln-dist-lbl { margin-bottom: 0; }
 .pln-dist-edit {
   display: inline-flex; align-items: center; gap: 5px;
   height: 30px; padding: 0 10px;
