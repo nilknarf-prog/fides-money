@@ -158,7 +158,19 @@ function FidesProvider({ children }) {
       category:     tx.cat || 'outros',
       account:      tx.acct || '',
       date:         `${yyyy}-${mm}-${dd}`,
-      month:        tx.mes || '',
+      month:        (function() {
+        if (cardIdSet && cardIdSet.has(tx.acct)) {
+          const card = (liveCards || []).find(c => c.id === tx.acct);
+          if (card && tx.d) {
+            const yr = parseInt(String(tx.date || '').slice(0, 4))
+                       || parseInt(String(tx.mes  || '').slice(0, 4))
+                       || new Date().getFullYear();
+            const mes = window.mesFaturaFor(tx.d, card, yr);
+            if (mes) return mes;
+          }
+        }
+        return tx.mes || '';
+      })(),
       status:       STATUS_TO_DB[tx.status] || 'cleared',
       recurrent:    !!(tx.recur || tx.recurrent),
       subscription: !!tx.subscription,
