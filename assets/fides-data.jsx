@@ -54,15 +54,13 @@ function mesFaturaFor(dStr, card, year = 2026) {
   const [dd, mm] = String(dStr).split('/').map(s => parseInt(s, 10));
   if (!dd || !mm) return null;
   const fechamento = card.diaFechamento || 5;
-  const vencimento = card.diaVencimento || 15;
-  // mês em que a compra fecha
+  // mês em que a fatura fecha (= mês da fatura, convencao BR)
+  // dia exato do fechamento ja pertence ao proximo ciclo, portanto >=
   let monthClose = mm;
-  if (dd > fechamento) monthClose = mm + 1;
-  // se diaVencimento < diaFechamento, vence no mês seguinte ao do fechamento
-  let monthDue = monthClose + (vencimento < fechamento ? 1 : 0);
+  if (dd >= fechamento) monthClose = mm + 1;
   let y = year;
-  while (monthDue > 12) { monthDue -= 12; y += 1; }
-  return ymOf(y, monthDue);
+  while (monthClose > 12) { monthClose -= 12; y += 1; }
+  return ymOf(y, monthClose);
 }
 
 // Verifica se uma conta/cartão id é cartão de crédito (vs débito)
