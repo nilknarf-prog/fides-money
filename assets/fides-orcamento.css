@@ -667,3 +667,85 @@
   .pln-group { grid-column: 2; }
   .pln-group-cats { grid-template-columns: repeat(2, 1fr); }
 }
+
+/* ── Lote 4B: card didatico 50/30/20 ─────────────────────────── */
+.pln-rule-card {
+  position: relative;
+  padding: 14px 36px 14px 14px;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  background: var(--card-soft);
+  margin-bottom: 14px;
+}
+.pln-rule-eyebrow {
+  display: inline-flex; align-items: center; gap: 6px;
+  font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.04em;
+  color: var(--muted); margin-bottom: 6px;
+}
+.pln-rule-body { font-size: 13px; line-height: 1.5; color: var(--ink-2); margin: 0; }
+.pln-rule-body b { color: var(--ink); font-weight: 600; }
+.pln-rule-dismiss {
+  position: absolute; top: 8px; right: 8px;
+  width: 28px; height: 28px; min-width: 28px; min-height: 28px;
+  display: inline-flex; align-items: center; justify-content: center;
+  border: none; background: transparent; color: var(--muted);
+  border-radius: 8px; cursor: pointer;
+}
+.pln-rule-dismiss:hover { background: var(--card); color: var(--ink); }
+
+/* ── Lote 4B: header de distribuicao + botao editar metas ─────── */
+.pln-dist-head {
+  display: flex; align-items: center; justify-content: space-between;
+  gap: 8px; margin-bottom: 8px;
+}
+.pln-dist-edit {
+  display: inline-flex; align-items: center; gap: 5px;
+  height: 30px; padding: 0 10px;
+  border: 1px solid var(--border); background: var(--card);
+  color: var(--ink-2); border-radius: 8px;
+  font-size: 12px; font-weight: 500;
+  cursor: pointer;
+}
+.pln-dist-edit:hover { color: var(--ink); border-color: var(--ink-3); }
+.pln-dist-badge {
+  display: inline-block; margin-left: 6px;
+  padding: 1px 6px; border-radius: 6px;
+  font-size: 10px; font-weight: 600; text-transform: lowercase;
+  color: var(--muted); background: var(--card);
+  border: 1px solid var(--border);
+}
+
+/* ── Lote 4B: GroupTargetsSheet (reusa .pln-sheet do LimitSheet) ─ */
+.pln-tgt-sheet { max-width: 480px; }
+.pln-tgt-help { font-size: 13px; color: var(--ink-2); margin: 0 0 14px; line-height: 1.5; }
+.pln-tgt-rows { display: flex; flex-direction: column; gap: 10px; margin-bottom: 12px; }
+.pln-tgt-row {
+  display: grid;
+  grid-template-columns: auto 1fr auto;
+  align-items: center; gap: 10px;
+  padding: 10px 12px;
+  border: 1px solid var(--border); border-radius: 10px;
+  background: var(--card);
+}
+.pln-tgt-dot { width: 12px; height: 12px; border-radius: 4px; display: inline-block; }
+.pln-tgt-lbl { font-size: 14px; color: var(--ink); font-weight: 500; }
+.pln-tgt-input-wrap {
+  display: inline-flex; align-items: center; gap: 4px;
+  padding: 6px 10px; border: 1px solid var(--border); border-radius: 8px;
+  background: var(--card-soft);
+}
+.pln-tgt-input {
+  width: 48px; min-height: 36px;
+  border: none; background: transparent; outline: none;
+  font-size: 16px; font-weight: 600; color: var(--ink);
+  text-align: right; font-variant-numeric: tabular-nums;
+}
+.pln-tgt-pct { font-size: 13px; color: var(--muted); }
+.pln-tgt-sum {
+  font-size: 12px; color: var(--muted);
+  text-align: right; padding: 4px 4px 0;
+}
+.pln-tgt-sum b { color: var(--ink); }
+.pln-tgt-sum.warn { color: var(--warn); }
+.pln-tgt-sum.warn b { color: var(--warn); }
+.pln-tgt-sum-note { font-size: 11px; opacity: 0.8; }
