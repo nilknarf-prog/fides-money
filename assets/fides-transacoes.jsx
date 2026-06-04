@@ -1074,6 +1074,12 @@ function NovaTransacaoModal({ open, onClose, onSave, variant }) {
   const canParcelar = pay === 'credito' && kind === 'despesa';
   React.useEffect(() => { if (!canParcelar) setParcelas(1); }, [canParcelar]);
 
+  // derivado — true quando a conta selecionada for um cartão de crédito
+  const isCard = pay === 'credito';
+  React.useEffect(() => {
+    if (isCard) setPaid(false);
+  }, [isCard]);
+
   // When user switches kind, pick a sensible default category
   React.useEffect(() => {
     if (kind === 'receita' && categories[cat]?.group !== 'receita') {
@@ -1428,11 +1434,16 @@ function NovaTransacaoModal({ open, onClose, onSave, variant }) {
 
           {kind !== 'transferencia' && (
           <div className="fds-toggles">
-            <label className="fds-toggle">
-              <input type="checkbox" checked={paid} onChange={(e) => setPaid(e.target.checked)}/>
+            <label className={`fds-toggle${isCard ? ' toggle-disabled' : ''}`}>
+              <input type="checkbox" checked={paid} disabled={isCard} onChange={(e) => setPaid(e.target.checked)}/>
               <span className="fds-toggle-sw"/>
               <span>Marcar como pago</span>
             </label>
+            {isCard && (
+              <p className="tx-credit-notice">
+                Compras no crédito são pagas ao quitar a fatura
+              </p>
+            )}
             <label className="fds-toggle">
               <input type="checkbox" checked={recur} onChange={(e) => setRecur(e.target.checked)}/>
               <span className="fds-toggle-sw"/>

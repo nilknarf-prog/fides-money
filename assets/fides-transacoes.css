@@ -914,3 +914,16 @@
   .fds-tx-v2-bulk-act { padding: 5px 8px; }
   .fds-tx-v2-card { grid-template-columns: auto 1fr auto; }
 }
+
+/* FIX-CREDITO — toggle desabilitado para cartão de crédito */
+.toggle-disabled {
+  opacity: 0.45;
+  pointer-events: none;
+}
+
+.tx-credit-notice {
+  font-size: 0.75rem;
+  color: var(--warn);
+  margin-top: 4px;
+  margin-bottom: 0;
+}
