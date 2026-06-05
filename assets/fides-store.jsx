@@ -401,6 +401,7 @@ function FidesProvider({ children }) {
           dbPatch.date  = patch.date;
           dbPatch.month = String(patch.date).slice(0, 7);
         }
+        if (patch.month !== undefined) dbPatch.month = patch.month;
         if (patch.acct !== undefined) {
           const cardIdSet = new Set((cards || []).map(c => c.id));
           const isCard    = cardIdSet.has(patch.acct);

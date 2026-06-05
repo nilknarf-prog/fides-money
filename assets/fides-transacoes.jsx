@@ -936,6 +936,16 @@ function EditTxModal({ tx, onClose }) {
 
   const handleSave = () => {
     const numVal = parseVal(val);
+    // FIX-EDIT-MES: recalcular mes de fatura se for cartao de credito
+    let mesFinal;
+    if (pay === 'credito' && acct && date) {
+      const card = (cards || []).find(c => c.id === acct);
+      if (card) {
+        const [yr, mm, dd] = String(date).split('-');
+        const mesCalc = window.mesFaturaFor(dd + '/' + mm, card, parseInt(yr));
+        if (mesCalc) mesFinal = mesCalc;
+      }
+    }
     updateTransaction(tx._id, {
       desc,
       val:    kind === 'despesa' ? -numVal : numVal,
@@ -943,6 +953,7 @@ function EditTxModal({ tx, onClose }) {
       acct,
       status,
       date,
+      ...(mesFinal !== undefined ? { month: mesFinal } : {}),
     });
     onClose();
   };
