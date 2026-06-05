@@ -378,6 +378,11 @@ function ContasStudio({ onAdd }) {
   const [addCartaoColor,  setAddCartaoColor]  = React.useState('#1A1A2E');
   const [editContaColor,  setEditContaColor]  = React.useState('#00C37B');
   const [editCartaoColor, setEditCartaoColor] = React.useState('#1A1A2E');
+  // Lote 4E — preview do ciclo da fatura
+  const [pvEditFechamento, setPvEditFechamento] = React.useState('');
+  const [pvEditDue,        setPvEditDue       ] = React.useState('');
+  const [pvAddFechamento,  setPvAddFechamento ] = React.useState('');
+  const [pvAddDue,         setPvAddDue        ] = React.useState('');
 
   async function handleAddConta(e) {
     e.preventDefault();
@@ -522,9 +527,21 @@ function ContasStudio({ onAdd }) {
               </div>
               <div className="fds-modal-row two">
                 <label className="fds-field"><span>Limite total (R$)</span><input className="fds-input" name="limit" type="number" step="0.01" defaultValue={editCartao.limit} required/></label>
-                <label className="fds-field"><span>Vencimento (dia)</span><input className="fds-input" name="due" type="number" min={1} max={31} defaultValue={String(editCartao.diaVencimento || editCartao.due || '')}/></label>
+                <label className="fds-field"><span>Vencimento da fatura (dia)</span><input className="fds-input" name="due" type="number" min={1} max={31} defaultValue={String(editCartao.diaVencimento || editCartao.due || '')} onChange={e => setPvEditDue(e.target.value)}/></label>
               </div>
-              <label className="fds-field"><span>Fechamento da fatura (dia)</span><input className="fds-input" name="fechamento" type="number" min={1} max={31} defaultValue={editCartao.diaFechamento}/></label>
+              <label className="fds-field">
+                <span>Melhor data de compra (dia)</span>
+                <span style={{ fontSize: '0.7rem', color: 'var(--ink-3, #888)', display: 'block', marginBottom: 2 }}>Quando começa o próximo ciclo (ex: todo dia 19)</span>
+                <input className="fds-input" name="fechamento" type="number" min={1} max={31} defaultValue={editCartao.diaFechamento} onChange={e => setPvEditFechamento(e.target.value)}/>
+              </label>
+              {(pvEditFechamento || pvEditDue) && (
+                <div style={{ background: 'var(--surface-alt, #f5f0eb)', borderRadius: 8, padding: '10px 14px', fontSize: '0.78rem', color: 'var(--ink-3, #666)', lineHeight: 1.5 }}>
+                  <div style={{ fontWeight: 600, marginBottom: 4, color: 'var(--ink, #333)' }}>📅 Ciclo da fatura</div>
+                  {pvEditFechamento && <div>• Compras até dia {parseInt(pvEditFechamento) - 1 || '—'} → fatura atual{pvEditDue ? ` (vence dia ${pvEditDue})` : ''}</div>}
+                  {pvEditFechamento && <div>• Do dia {pvEditFechamento} em diante → próxima fatura</div>}
+                  {pvEditFechamento && <div style={{ marginTop: 4, color: 'var(--ok, #2e7d32)', fontSize: '0.74rem' }}>💡 Melhor dia para parcelar: dia {pvEditFechamento}</div>}
+                </div>
+              )}
               <div className="fds-field">
                 <span className="fds-field-lbl" style={{ fontSize: 12, color: 'var(--ink-3)', display: 'block', marginBottom: 2 }}>Cor do cartão</span>
                 <ColorPicker value={editCartaoColor} onChange={setEditCartaoColor}/>
@@ -607,14 +624,23 @@ function ContasStudio({ onAdd }) {
                   <input className="fds-input" name="limit" type="number" step="0.01" placeholder="0,00" required/>
                 </label>
                 <label className="fds-field">
-                  <span>Vencimento (dia)</span>
-                  <input className="fds-input" name="due" type="number" min={1} max={31} placeholder="10"/>
+                  <span>Vencimento da fatura (dia)</span>
+                  <input className="fds-input" name="due" type="number" min={1} max={31} placeholder="10" onChange={e => setPvAddDue(e.target.value)}/>
                 </label>
               </div>
               <label className="fds-field">
-                <span>Fechamento da fatura (dia)</span>
-                <input className="fds-input" name="fechamento" type="number" min={1} max={31} placeholder="03"/>
+                <span>Melhor data de compra (dia)</span>
+                <span style={{ fontSize: '0.7rem', color: 'var(--ink-3, #888)', display: 'block', marginBottom: 2 }}>Quando começa o próximo ciclo (ex: todo dia 19)</span>
+                <input className="fds-input" name="fechamento" type="number" min={1} max={31} placeholder="03" onChange={e => setPvAddFechamento(e.target.value)}/>
               </label>
+              {(pvAddFechamento || pvAddDue) && (
+                <div style={{ background: 'var(--surface-alt, #f5f0eb)', borderRadius: 8, padding: '10px 14px', fontSize: '0.78rem', color: 'var(--ink-3, #666)', lineHeight: 1.5 }}>
+                  <div style={{ fontWeight: 600, marginBottom: 4, color: 'var(--ink, #333)' }}>📅 Ciclo da fatura</div>
+                  {pvAddFechamento && <div>• Compras até dia {parseInt(pvAddFechamento) - 1 || '—'} → fatura atual{pvAddDue ? ` (vence dia ${pvAddDue})` : ''}</div>}
+                  {pvAddFechamento && <div>• Do dia {pvAddFechamento} em diante → próxima fatura</div>}
+                  {pvAddFechamento && <div style={{ marginTop: 4, color: 'var(--ok, #2e7d32)', fontSize: '0.74rem' }}>💡 Melhor dia para parcelar: dia {pvAddFechamento}</div>}
+                </div>
+              )}
               <div className="fds-field">
                 <span className="fds-field-lbl" style={{ fontSize: 12, color: 'var(--ink-3)', display: 'block', marginBottom: 2 }}>Cor do cartão</span>
                 <ColorPicker value={addCartaoColor} onChange={setAddCartaoColor}/>
@@ -815,7 +841,7 @@ function ContasStudio({ onAdd }) {
                         ...(faturaTxs.length > 0 ? [
                           { id: 'pay', label: 'Pagar fatura', icon: 'Check', onClick: handlePay },
                         ] : []),
-                        { id: 'edit',   label: 'Editar cartão', icon: 'Edit',  onClick: () => { setEditCartao(c); setEditCartaoColor(c.color || '#1A1A2E'); } },
+                        { id: 'edit',   label: 'Editar cartão', icon: 'Edit',  onClick: () => { setEditCartao(c); setEditCartaoColor(c.color || '#1A1A2E'); setPvEditFechamento(String(c.diaFechamento || '')); setPvEditDue(String(c.diaVencimento || c.due || '')); } },
                         { id: 'delete', label: 'Excluir cartão',icon: 'Trash', danger: true, onClick: () => setDeleteTarget({ type: 'cartao', id: c.id, name: c.name }) },
                       ]}
                     />
@@ -837,8 +863,8 @@ function ContasStudio({ onAdd }) {
                     <div className="ctn-card-fatura-val">{fmtBRL(faturaValor)}</div>
                     <div className="ctn-card-fatura-meta">
                       {faturaTxs.length > 0
-                        ? `${faturaTxs.length} ${faturaTxs.length === 1 ? 'lançamento' : 'lançamentos'} · fecha dia ${c.diaFechamento} · vence dia ${c.due}`
-                        : `Em dia · fecha dia ${c.diaFechamento}`}
+                        ? `${faturaTxs.length} ${faturaTxs.length === 1 ? 'lançamento' : 'lançamentos'} · melhor compra: dia ${c.diaFechamento} · vence dia ${c.due}`
+                        : `Em dia · melhor compra: dia ${c.diaFechamento}`}
                     </div>
                   </div>
                   {faturaTxs.length > 0 ? (
