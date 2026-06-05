@@ -160,7 +160,7 @@ function TransacoesStudio({ onAdd }) {
 //   }>
 //   style?:     object    — style extra para o <section>
 //   className?: string    — classe extra para o <section>
-function EditorialHero({ eyebrow, headline, lede, headlineStyle, metrics, style, className }) {
+function EditorialHero({ eyebrow, headline, lede, headlineStyle, metrics, notice, style, className }) {
   const hasMetrics = metrics && metrics.length > 0;
   return (
     <section className={`stu-hero${className ? ' ' + className : ''}`} style={style}>
@@ -171,6 +171,7 @@ function EditorialHero({ eyebrow, headline, lede, headlineStyle, metrics, style,
       {lede != null && (
         <p className="stu-hero-lede">{lede}</p>
       )}
+      {notice != null && notice}
       {hasMetrics && (
         <div className="stu-hero-strip">
           {metrics.map((m, i) => (
@@ -543,7 +544,7 @@ function StudioMasthead({ onAdd }) {
 
 // ─── Studio dashboard ─────────────────────────────────────────
 function DashboardStudio({ onAdd, onNav }) {
-  const { transactions, accounts, cards, goals, monthTransactions, prevMonthTransactions, categories, spendByCategory, budgetGroups, openCategoryModal, selectedMonth, monthLabel, prevMonth, isEmpty } = useFides();
+  const { transactions, accounts, cards, goals, monthTransactions, prevMonthTransactions, virtualRecurringRevenue, categories, spendByCategory, budgetGroups, openCategoryModal, selectedMonth, monthLabel, prevMonth, isEmpty } = useFides();
 
   if (isEmpty) return (
     <div className="fds-page stu-page">
@@ -566,9 +567,11 @@ function DashboardStudio({ onAdd, onNav }) {
   const flow     = monthTransactions.filter(t => !t.isTransfer);
   const flowPrev = prevMonthTransactions.filter(t => !t.isTransfer);
   const receitas  = flow.filter(t => t.val > 0).reduce((s,t) => s + t.val, 0);
+  const receitaVirtual = (virtualRecurringRevenue || []).reduce((s, t) => s + t.val, 0);
+  const receitaTotal   = receitas + receitaVirtual;
   const despesas  = flow.filter(t => t.val < 0 && t.status === 'pago').reduce((s,t) => s + Math.abs(t.val), 0);
   const pendentes = flow.filter(t => t.val < 0 && t.status === 'pendente').reduce((s,t) => s + Math.abs(t.val), 0);
-  const saldoFinal = receitas - despesas - pendentes;
+  const saldoFinal = receitaTotal - despesas - pendentes;
   const pendCount = monthTransactions.filter(t => t.status === 'pendente').length;
 
   // Comparativo com mês anterior
@@ -650,16 +653,24 @@ function DashboardStudio({ onAdd, onNav }) {
           {saldoFinal >= 0 ? 'livre' : 'no vermelho'}.
         </>}
         lede={<>
-          Chegam <strong className="stu-num">{fmtBRL(receitas, { compact: true })}</strong> em receitas. {salarioInfo}
+          Chegam <strong className="stu-num">{fmtBRL(receitaTotal, { compact: true })}</strong> em receitas. {salarioInfo}
           {' '}Saem <strong className="stu-num">{fmtBRL(despesas + pendentes, { compact: true })}</strong> em despesas previstas, sendo{' '}
           <em>{fmtBRL(pendentes)} ainda em aberto</em>.
           {prevReceitas > 0 && <> {prevLbl.long.split(' de ')[0]} fechou em <strong className="stu-num">{fmtBRL(prevSaldo, { compact: true })}</strong> — você está{' '}
             <span className="stu-pos">{deltaSaldo >= 0 ? '+' : '−'}{fmtBRL(Math.abs(deltaSaldo), { compact: true })}</span> em relação ao mês passado.</>}
         </>}
+        notice={receitaTotal === 0 ? (
+          <div className="pln-revenue-hint">
+            <p>
+              💡 Registre suas receitas recorrentes (salário, plantão, freelance)
+              marcando "Repetir mensalmente". Assim a projeção fica realista.
+            </p>
+          </div>
+        ) : null}
         metrics={[
           {
             label: 'Receitas',
-            value: `+${fmtBRL(receitas)}`,
+            value: `+${fmtBRL(receitaTotal)}`,
             accent: true,
             sub: prevReceitas > 0 ? (
               <div className="stu-metric-tag" style={{ color: deltaReceitas >= 0 ? 'var(--ok)' : 'var(--bad)' }}>
