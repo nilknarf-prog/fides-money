@@ -753,3 +753,11 @@
 .pln-tgt-sum.warn { color: var(--warn); }
 .pln-tgt-sum.warn b { color: var(--warn); }
 .pln-tgt-sum-note { font-size: 11px; opacity: 0.8; }
+
+/* Lote 4C — indicador de projecao no card fechado */
+.pln-proj-warn {
+  font-size: 0.72rem;
+  color: var(--bad, #c0392b);
+  padding: 3px 0 2px 4px;
+  opacity: 0.85;
+}
