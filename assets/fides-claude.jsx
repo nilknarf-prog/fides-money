@@ -22,7 +22,7 @@ function FidesAssistant() {
     assistantOpen, closeAssistant,
     transactions, monthTransactions, accounts, cards, categories,
     spendByCategory, budgetGroups, faturaAbertaPorCartao,
-    selectedMonth, monthLabel, goals, userName,
+    selectedMonth, monthLabel, goals, userName, firstName,
     addTransaction, updateTransaction, addCategory,
   } = fs;
   const lbl = monthLabel(selectedMonth);
@@ -67,7 +67,7 @@ function FidesAssistant() {
     if (assistantOpen && messages.length === 0) {
       setMessages([{
         role: 'assistant',
-        content: `Olá${userName ? `, ${userName.split(' ')[0]}` : ''}! Sou o Assistente Fides. Posso consultar seus saldos, analisar seu extrato e responder duvidas sobre suas financas. Estou aqui para ajudar. Você está vendo o ${lbl.long} agora — me pergunte algo.`,
+        content: `Olá${firstName ? `, ${firstName}` : ''}! Sou o Assistente Fides. Posso consultar seus saldos, analisar seu extrato e responder duvidas sobre suas financas. Estou aqui para ajudar. Você está vendo o ${lbl.long} agora — me pergunte algo.`,
         ts: Date.now(),
       }]);
     }

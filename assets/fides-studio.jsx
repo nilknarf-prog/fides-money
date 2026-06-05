@@ -261,8 +261,8 @@ function StudioLogo({ size = 30 }) {
 }
 // ─── Slim icon-only sidebar ───────────────────────────────────
 function SidebarSlim({ active, onNav }) {
-  const { userName } = useFides();
-  const displayName = userName || 'Usuário';
+  const { userName, firstName } = useFides();
+  const displayName = firstName || userName || 'Usuário';
   const initials = displayName.split(' ').filter(Boolean).map(w => w[0]).slice(0, 2).join('').toUpperCase() || 'U';
   return (
     <aside className="fds-sb-slim">
