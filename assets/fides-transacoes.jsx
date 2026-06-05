@@ -912,7 +912,7 @@ function TxKpi({ label, value, accent, delta, spark, kind, variant, pendingCount
 
 // ─── Modal: Editar Transação ──────────────────────────────────
 function EditTxModal({ tx, onClose }) {
-  const { categories, updateTransaction, deleteTransaction, accounts } = useFides();
+  const { categories, updateTransaction, deleteTransaction, accounts, cards } = useFides();
   const { confirm: confirmDelete, ConfirmHost } = window.FidesUI.useConfirm();
 
   const parseVal = (s) => {
@@ -920,6 +920,9 @@ function EditTxModal({ tx, onClose }) {
     return parseFloat(clean) || 0;
   };
 
+  // Inferir pay da tx existente — cartão UUID → credito, conta → debito
+  const _cardIds = new Set((cards || []).map(c => c.id));
+  const [pay,    setPay]    = React.useState(_cardIds.has(tx.acct) ? 'credito' : 'debito');
   const [kind,   setKind]   = React.useState(tx.val >= 0 ? 'receita' : 'despesa');
   const [desc,   setDesc]   = React.useState(tx.desc  || '');
   const [val,    setVal]    = React.useState(Math.abs(tx.val).toLocaleString('pt-BR', { minimumFractionDigits: 2 }));
@@ -973,6 +976,21 @@ function EditTxModal({ tx, onClose }) {
             </div>
           </div>
 
+          {/* Pagamento: Débito / Crédito */}
+          <div className="fds-field">
+            <label className="fds-label">Forma de pagamento</label>
+            <div className="fds-seg">
+              <button type="button" className={pay === 'debito' ? 'on' : ''} onClick={() => {
+                setPay('debito');
+                setAcct(accounts[0]?.id || '');
+              }}>Débito</button>
+              <button type="button" className={pay === 'credito' ? 'on' : ''} onClick={() => {
+                setPay('credito');
+                setAcct(cards[0]?.id || '');
+              }}>Crédito</button>
+            </div>
+          </div>
+
           {/* Descrição */}
           <div className="fds-field">
             <label className="fds-label">Descrição</label>
@@ -1006,13 +1024,13 @@ function EditTxModal({ tx, onClose }) {
             </select>
           </div>
 
-          {/* Conta */}
+          {/* Conta / Cartão */}
           <div className="fds-field">
-            <label className="fds-label">Conta</label>
+            <label className="fds-label">{pay === 'credito' ? 'Cartão' : 'Conta'}</label>
             <select className="fds-select" value={acct} onChange={(e) => setAcct(e.target.value)}>
-              {accounts.map(a => (
-                <option key={a.id} value={a.id}>{a.name} ·· {a.tag}</option>
-              ))}
+              {pay === 'credito'
+                ? cards.map(c => <option key={c.id} value={c.id}>{c.name} {c.tag}</option>)
+                : accounts.map(a => <option key={a.id} value={a.id}>{a.name} ·· {a.tag}</option>)}
             </select>
           </div>
 
