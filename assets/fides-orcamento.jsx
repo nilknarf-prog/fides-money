@@ -120,6 +120,10 @@
       });
     });
 
+    var allCats = (groups || []).reduce(function (acc, g) { return acc.concat(g.cats || []); }, []);
+    var overCount = allCats.filter(function (c) { return c.status === 'bad'; }).length;
+    var warnCount = allCats.filter(function (c) { return c.status === 'warn'; }).length;
+
     var msg;
     if (dividaShare > (targets.divida || 0)) {
       msg = React.createElement(React.Fragment, null,
@@ -129,6 +133,14 @@
         React.createElement('b', null, pctDiv + '%'),
         '. Vale priorizar a renegociacao.'
       );
+    } else if (estiloShare > (targets.estilo || 0)) {
+      msg = React.createElement(React.Fragment, null,
+        'Estilo & Lazer consome ',
+        React.createElement('b', null, Math.round(estiloShare * 100) + '%'),
+        ' do realizado — sua meta e ate ',
+        React.createElement('b', null, pctEst + '%'),
+        '. Revise gastos nao essenciais.'
+      );
     } else if (essShare > (targets.essencial || 0)) {
       msg = React.createElement(React.Fragment, null,
         'Voce esta alocando ',
@@ -136,6 +148,21 @@
         ' em Essencial — sua meta e ate ',
         React.createElement('b', null, pctEss + '%'),
         '. Olhe contas fixas para abrir espaco.'
+      );
+    } else if (overCount >= 2) {
+      msg = React.createElement(React.Fragment, null,
+        React.createElement('b', null, String(overCount)),
+        ' categorias estouraram o limite este mes. Considere revisar os tetos ou redistribuir gastos.'
+      );
+    } else if (overCount === 1) {
+      msg = React.createElement(React.Fragment, null,
+        '1 categoria estourou o limite este mes. Fique de olho nos proximos lancamentos.'
+      );
+    } else if (warnCount > 0) {
+      msg = React.createElement(React.Fragment, null,
+        React.createElement('b', null, String(warnCount)),
+        (warnCount === 1 ? ' categoria esta' : ' categorias estao'),
+        ' se aproximando do limite. Bom sinal, mas atencao.'
       );
     } else {
       msg = React.createElement(React.Fragment, null,
@@ -301,7 +328,7 @@
                   React.createElement('span', { className: 'pln-cat-limit' }, fmtVal(c.limit))
                 )
           ),
-          React.createElement('span', { className: 'pln-cat-pct ' + st.cls },
+          React.createElement('span', { className: 'pln-cat-pct ' + st.cls, title: '% do limite definido' },
             Math.round(pct * 100) + '%'
           ),
           React.createElement('button', {
@@ -323,7 +350,12 @@
                 style: { width: Math.max(overWidth, 12) + '%' }
               })
             : null
-        )
+        ),
+        ctx.isCurrentMonth && c.limit > 0 && projPct > 1.05
+          ? React.createElement('div', { className: 'pln-proj-warn' },
+              '↗ projetado: ' + fmtVal(proj) + ' · vai ' + Math.round((projPct - 1) * 100) + '% acima do limite'
+            )
+          : null
       ),
       isOpen
         ? React.createElement('div', { className: 'pln-cat-detail' },
@@ -362,7 +394,7 @@
                     React.createElement('b', { className: 'pln-num' },
                       ((c.spent / ctx.receita) * 100).toFixed(1) + '%'
                     ),
-                    ' da sua receita do mes.'
+                    ' da receita do mes · base: receitas registradas'
                   )
                 )
               : null
@@ -1085,6 +1117,7 @@
       receita: receita,
       daysInMonth: daysInMonth,
       dayElapsed: dayElapsed,
+      isCurrentMonth: isCurrentMonth,
       onToggle: function (id) { setExpanded(function (e) { return e === id ? null : id; }); },
       onEditStart: function (id) { setEditing(id); },
       onEditSave: onEditSave,
