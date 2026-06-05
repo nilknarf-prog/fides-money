@@ -51,8 +51,8 @@ const NAV = [
 ];
 
 function Sidebar({ active, onNav, variant }) {
-  const { userName, userEmail } = useFides();
-  const displayName = userName || 'Usuário';
+  const { userName, firstName, userEmail } = useFides();
+  const displayName = firstName || userName || 'Usuário';
   const initials = displayName.split(' ').filter(Boolean).map(w => w[0]).slice(0, 2).join('').toUpperCase() || 'U';
   return (
     <aside className="fds-sb" data-od-id="sidebar">

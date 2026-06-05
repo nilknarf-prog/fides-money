@@ -59,11 +59,6 @@
       <path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84C6.71 7.31 9.14 5.38 12 5.38z"/>
     </svg>
   );
-  const AppleLogo = () => (
-    <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
-      <path d="M17.05 12.04c-.03-3.16 2.58-4.68 2.7-4.75-1.47-2.15-3.76-2.44-4.58-2.48-1.95-.2-3.8 1.15-4.79 1.15-.99 0-2.51-1.12-4.13-1.09-2.12.03-4.08 1.23-5.17 3.13-2.2 3.82-.56 9.46 1.59 12.56 1.05 1.52 2.3 3.22 3.94 3.16 1.58-.06 2.18-1.02 4.09-1.02 1.91 0 2.45 1.02 4.13.99 1.71-.03 2.79-1.55 3.83-3.07 1.21-1.76 1.7-3.47 1.73-3.56-.04-.02-3.31-1.27-3.34-5.02zM13.95 3.5c.87-1.06 1.46-2.54 1.3-4-1.26.05-2.78.84-3.69 1.9-.81.93-1.52 2.42-1.33 3.86 1.4.11 2.84-.71 3.72-1.76z"/>
-    </svg>
-  );
 
   // ─── Field ──────────────────────────────────────────────────
   function Field({ label, icon, type = 'text', name, value, onChange, placeholder, autoComplete, disabled, error, trailing, autoFocus }) {
@@ -391,12 +386,6 @@
                           disabled={isLoading || !!success}>
                     {loading === 'google' ? <Ic.spinner width="16" height="16"/> : <GoogleG/>}
                     <span>Google</span>
-                  </button>
-                  <button type="button" className="fa-social-btn"
-                          onClick={() => handleOAuth('apple')}
-                          disabled={isLoading || !!success}>
-                    {loading === 'apple' ? <Ic.spinner width="16" height="16"/> : <AppleLogo/>}
-                    <span>Apple</span>
                   </button>
                 </div>
               </>

@@ -118,6 +118,11 @@ function FidesProvider({ children }) {
   const [userId, setUserId] = React.useState(null);
   const [userName,  setUserName]  = React.useState('');
   const [userEmail, setUserEmail] = React.useState('');
+  // LOTE-NAME: primeiro nome para saudacoes
+  const firstName = React.useMemo(function () {
+    if (!userName) return '';
+    return String(userName).trim().split(/\s+/)[0] || '';
+  }, [userName]);
 
   // Data state — starts with mock data; replaced on live login
   const [transactions, setTransactions] = React.useState(() =>
@@ -979,7 +984,7 @@ function FidesProvider({ children }) {
   const value = {
     // Mode & auth
     mode, userId, isLoading, isEmpty,
-    userName, userEmail,
+    userName, firstName, userEmail,
     refreshData: () => refreshData(userId),
     goals,
     // Transactions
@@ -1023,7 +1028,7 @@ function useFides() {
   if (ctx) return ctx;
   return {
     mode: 'mock', userId: null, isLoading: false, isEmpty: false,
-    userName: '', userEmail: '',
+    userName: '', firstName: '', userEmail: '',
     refreshData: async () => {},
     goals: [],
     transactions: TRANSACTIONS,
