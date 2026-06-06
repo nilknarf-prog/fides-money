@@ -264,8 +264,8 @@
         React.createElement('div', { className: 'pln-ins-tot' },
           React.createElement('span', { className: 'pln-ins-tot-lbl' }, 'Projecao'),
           React.createElement('span', {
-            className: 'pln-ins-tot-val ' + (totals.projection > totals.planned ? 'warn' : 'pos')
-          }, fmtVal(totals.projection))
+            className: 'pln-ins-tot-val ' + (totals.projection != null && totals.projection > totals.planned ? 'warn' : 'pos')
+          }, totals.projection != null ? fmtVal(totals.projection) : '—')
         )
       )
     );
@@ -282,6 +282,11 @@
     var rest = c.limit - c.spent;
     var proj = ctx.dayElapsed ? c.spent * (ctx.daysInMonth / ctx.dayElapsed) : c.spent;
     var projPct = c.limit ? (proj / c.limit) : 0;
+    var dailyRate = ctx.dayElapsed ? Math.round(c.spent / ctx.dayElapsed) : 0;
+    var showProj = ctx.isCurrentMonth && c.limit > 0 && ctx.dayElapsed >= 7 && (
+      (ctx.dayElapsed < 15 && projPct > 1.30) ||
+      (ctx.dayElapsed >= 15 && projPct > 1.05)
+    );
     var overWidth = Math.min((pct - 1) / 0.5, 1) * 100;
 
     return React.createElement('div', { className: 'pln-cat' + (isOpen ? ' open' : '') },
@@ -351,9 +356,9 @@
               })
             : null
         ),
-        ctx.isCurrentMonth && c.limit > 0 && projPct > 1.05
+        showProj
           ? React.createElement('div', { className: 'pln-proj-warn' },
-              '↗ projetado: ' + fmtVal(proj) + ' · vai ' + Math.round((projPct - 1) * 100) + '% acima do limite'
+              '📈 No ritmo de ' + fmtVal(dailyRate) + '/dia, deve fechar em ' + fmtVal(proj) + ' (limite ' + fmtVal(c.limit) + ')'
             )
           : null
       ),
@@ -1017,7 +1022,9 @@
           if (c.limit > 0) { withLim++; if (c.spent <= c.limit) inLim++; }
         });
       });
-      var proj = dayElapsed ? realized * (daysInMonth / dayElapsed) : realized;
+      var proj = (isCurrentMonth && dayElapsed < 7)
+        ? null
+        : (dayElapsed ? realized * (daysInMonth / dayElapsed) : realized);
       return {
         planned: planned, realized: realized, projection: proj,
         catsWithLimit: withLim, catsInLimit: inLim
