@@ -22,7 +22,7 @@ function FidesAssistant() {
     assistantOpen, closeAssistant,
     transactions, monthTransactions, accounts, cards, categories,
     spendByCategory, budgetGroups, faturaAbertaPorCartao,
-    selectedMonth, monthLabel, goals, userName,
+    selectedMonth, monthLabel, goals, userName, firstName,
     addTransaction, updateTransaction, addCategory,
   } = fs;
   const lbl = monthLabel(selectedMonth);
@@ -67,7 +67,7 @@ function FidesAssistant() {
     if (assistantOpen && messages.length === 0) {
       setMessages([{
         role: 'assistant',
-        content: `Olá${userName ? `, ${userName.split(' ')[0]}` : ''}! Sou o Assistente Fides. Posso consultar seus saldos, analisar seu extrato e responder duvidas sobre suas financas. Estou aqui para ajudar. Você está vendo o ${lbl.long} agora — me pergunte algo.`,
+        content: `Olá${firstName ? `, ${firstName}` : ''}! Sou o Assistente Fides. Posso consultar seus saldos, analisar seu extrato e responder duvidas sobre suas financas. Estou aqui para ajudar. Você está vendo o ${lbl.long} agora — me pergunte algo.`,
         ts: Date.now(),
       }]);
     }
@@ -116,6 +116,22 @@ function FidesAssistant() {
       .map(([k, v]) => `${v.label} (id: ${k})`)
       .slice(0, 30)
       .join(', ');
+    // Projeção por dayElapsed
+    const _bctx_today = new Date();
+    const _bctx_parts = (selectedMonth || '').split('-');
+    const _bctx_isCurrentMonth = _bctx_parts.length === 2
+      && parseInt(_bctx_parts[0]) === _bctx_today.getFullYear()
+      && parseInt(_bctx_parts[1]) === (_bctx_today.getMonth() + 1);
+    const _bctx_dayElapsed = _bctx_isCurrentMonth ? _bctx_today.getDate() : null;
+    const _bctx_daysInMonth = _bctx_parts.length === 2
+      ? new Date(parseInt(_bctx_parts[0]), parseInt(_bctx_parts[1]), 0).getDate()
+      : 30;
+    const _bctx_projNote = _bctx_isCurrentMonth && _bctx_dayElapsed != null
+      ? `Dias decorridos: ${_bctx_dayElapsed} de ${_bctx_daysInMonth}. Fórmula de projeção usada pelo app: gasto_atual × (${_bctx_daysInMonth} ÷ ${_bctx_dayElapsed}). ` +
+        (_bctx_dayElapsed < 7
+          ? 'ATENÇÃO: ainda na primeira semana — projeções NÃO são exibidas ao usuário (ruído estatístico).'
+          : 'Projeções estão ativas.')
+      : 'Mês encerrado — sem projeção ativa.';
     return [
       userName ? `Usuário: ${userName}.` : '',
       `Mês em foco: ${lbl.long}.`,
@@ -126,6 +142,7 @@ function FidesAssistant() {
       (accounts && accounts.length > 0) ? `Contas: ${accounts.map(a => `${a.name} (id: ${a.id}, saldo ${fmtBRL(a.balance)})`).join(', ')}.` : 'Nenhuma conta cadastrada.',
       (cards && cards.length > 0) ? `Cartões: ${cards.map(c => `${c.name} (id: ${c.id}, usando ${fmtBRL(c.used)} de ${fmtBRL(c.limit)})`).join(', ')}.` : 'Nenhum cartão cadastrado.',
       `Categorias disponíveis: ${categoriasDisponiveis || 'apenas as padrão'}.`,
+      `\n\nProjeção: ${_bctx_projNote}`,
     ].filter(Boolean).join(' ');
   };
 

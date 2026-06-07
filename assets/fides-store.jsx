@@ -118,6 +118,11 @@ function FidesProvider({ children }) {
   const [userId, setUserId] = React.useState(null);
   const [userName,  setUserName]  = React.useState('');
   const [userEmail, setUserEmail] = React.useState('');
+  // LOTE-NAME: primeiro nome para saudacoes
+  const firstName = React.useMemo(function () {
+    if (!userName) return '';
+    return String(userName).trim().split(/\s+/)[0] || '';
+  }, [userName]);
 
   // Data state — starts with mock data; replaced on live login
   const [transactions, setTransactions] = React.useState(() =>
@@ -401,6 +406,7 @@ function FidesProvider({ children }) {
           dbPatch.date  = patch.date;
           dbPatch.month = String(patch.date).slice(0, 7);
         }
+        if (patch.month !== undefined) dbPatch.month = patch.month;
         if (patch.acct !== undefined) {
           const cardIdSet = new Set((cards || []).map(c => c.id));
           const isCard    = cardIdSet.has(patch.acct);
@@ -818,6 +824,40 @@ function FidesProvider({ children }) {
     transactions.filter(t => txMonth(t) === selectedMonth),
   [transactions, selectedMonth]);
 
+  // Lote 4D — receitas virtuais derivadas de recorrência
+  const virtualRecurringRevenue = React.useMemo(() => {
+    const recurTemplates = {};
+    transactions.forEach(t => {
+      if (t.recur === 'mensal' && t.val > 0 && !t.isTransfer && !t._isVirtual) {
+        const key = (t.desc || '').toLowerCase().trim();
+        if (!key) return;
+        if (!recurTemplates[key] || t.mes > recurTemplates[key].mes) {
+          recurTemplates[key] = t;
+        }
+      }
+    });
+    const virtuals = [];
+    Object.keys(recurTemplates).forEach(key => {
+      const tpl = recurTemplates[key];
+      if (tpl.mes === selectedMonth) return;
+      const hasReal = monthTransactions.some(t =>
+        !t._isVirtual && t.val > 0 && !t.isTransfer &&
+        (t.desc || '').toLowerCase().trim() === key
+      );
+      if (hasReal) return;
+      const dd = String(tpl.d || '01').split('/')[0].padStart(2, '0');
+      virtuals.push({
+        ...tpl,
+        _id:       'virtual:' + tpl._id + ':' + selectedMonth,
+        _isVirtual: true,
+        mes:       selectedMonth,
+        status:    'pendente',
+        date:      selectedMonth + '-' + dd,
+      });
+    });
+    return virtuals;
+  }, [transactions, monthTransactions, selectedMonth]);
+
   const prevMonthTransactions = React.useMemo(() => {
     const pm = prevMonth(selectedMonth);
     return transactions.filter(t => txMonth(t) === pm);
@@ -944,7 +984,7 @@ function FidesProvider({ children }) {
   const value = {
     // Mode & auth
     mode, userId, isLoading, isEmpty,
-    userName, userEmail,
+    userName, firstName, userEmail,
     refreshData: () => refreshData(userId),
     goals,
     // Transactions
@@ -964,7 +1004,7 @@ function FidesProvider({ children }) {
     // Month
     selectedMonth, setSelectedMonth, prevMonth, monthLabel,
     // Derived
-    monthTransactions, prevMonthTransactions,
+    monthTransactions, prevMonthTransactions, virtualRecurringRevenue,
     spendByCategory, budgetGroups, faturasPorCartao, faturaAbertaPorCartao,
     // UI toggles
     categoryModalOpen,
@@ -988,7 +1028,7 @@ function useFides() {
   if (ctx) return ctx;
   return {
     mode: 'mock', userId: null, isLoading: false, isEmpty: false,
-    userName: '', userEmail: '',
+    userName: '', firstName: '', userEmail: '',
     refreshData: async () => {},
     goals: [],
     transactions: TRANSACTIONS,
@@ -1011,6 +1051,7 @@ function useFides() {
     budgetGroups: BUDGET_GROUPS,
     faturasPorCartao: {},
     faturaAbertaPorCartao: {},
+    virtualRecurringRevenue: [],
     openCategoryModal: () => {}, closeCategoryModal: () => {},
     openAssistant: () => {}, closeAssistant: () => {},
     assistantOpen: false, categoryModalOpen: false,
