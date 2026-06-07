@@ -91,183 +91,94 @@
     );
   }
 
-  // ─── Insights aggregate ────────────────────────────────────
-  function PlnInsights(props) {
+  // ─── Resumo aggregate ─────────────────────────────────────
+  function PlnResumo(props) {
     var groups = props.groups;
     var totals = props.totals;
-    var dist = props.dist;
-    var receita = props.receita || 0;
-    var targets = props.groupTargets || { essencial: 0.50, estilo: 0.30, divida: 0.20 };
-    var onEditTargets = props.onEditTargets;
-    var inLimit = totals.catsInLimit;
-    var totalCats = totals.catsWithLimit;
+    var dayElapsed = props.dayElapsed;
+    var daysInMonth = props.daysInMonth;
+    var isCurrentMonth = props.isCurrentMonth;
 
-    var denom = receita > 0 ? receita : dist.total;
-    var isFallbackDenom = !(receita > 0) && dist.total > 0;
-    var essShare    = denom ? dist.essencial / denom : 0;
-    var estiloShare = denom ? dist.estilo    / denom : 0;
-    var dividaShare = denom ? dist.divida    / denom : 0;
-
-    var pctEss = Math.round((targets.essencial || 0) * 100);
-    var pctEst = Math.round((targets.estilo    || 0) * 100);
-    var pctDiv = Math.round((targets.divida    || 0) * 100);
-
-    var dots = [];
-    groups.forEach(function (g) {
-      g.withLimit.forEach(function (c) {
-        var p = c.limit ? c.spent / c.limit : 0;
-        dots.push(p >= 1 ? 'bad' : p >= 0.8 ? 'warn' : 'ok');
+    var allCats = [];
+    (groups || []).forEach(function(g) {
+      (g.cats || []).forEach(function(c) {
+        if (c.limit > 0) allCats.push({ name: c.label || c.cat_key, spent: c.spent, limit: c.limit });
       });
     });
 
-    var allCats = (groups || []).reduce(function (acc, g) { return acc.concat(g.cats || []); }, []);
-    var overCount = allCats.filter(function (c) { return c.status === 'bad'; }).length;
-    var warnCount = allCats.filter(function (c) { return c.status === 'warn'; }).length;
+    var overCats = allCats.filter(function(c) { return c.spent >= c.limit; });
 
-    var msg;
-    if (dividaShare > (targets.divida || 0)) {
-      msg = React.createElement(React.Fragment, null,
-        'Dividas levam ',
-        React.createElement('b', null, Math.round(dividaShare * 100) + '%'),
-        ' do realizado — sua meta e ate ',
-        React.createElement('b', null, pctDiv + '%'),
-        '. Vale priorizar a renegociacao.'
-      );
-    } else if (estiloShare > (targets.estilo || 0)) {
-      msg = React.createElement(React.Fragment, null,
-        'Estilo & Lazer consome ',
-        React.createElement('b', null, Math.round(estiloShare * 100) + '%'),
-        ' do realizado — sua meta e ate ',
-        React.createElement('b', null, pctEst + '%'),
-        '. Revise gastos nao essenciais.'
-      );
-    } else if (essShare > (targets.essencial || 0)) {
-      msg = React.createElement(React.Fragment, null,
-        'Voce esta alocando ',
-        React.createElement('b', null, Math.round(essShare * 100) + '%'),
-        ' em Essencial — sua meta e ate ',
-        React.createElement('b', null, pctEss + '%'),
-        '. Olhe contas fixas para abrir espaco.'
-      );
-    } else if (overCount >= 2) {
-      msg = React.createElement(React.Fragment, null,
-        React.createElement('b', null, String(overCount)),
-        ' categorias estouraram o limite este mes. Considere revisar os tetos ou redistribuir gastos.'
-      );
-    } else if (overCount === 1) {
-      msg = React.createElement(React.Fragment, null,
-        '1 categoria estourou o limite este mes. Fique de olho nos proximos lancamentos.'
-      );
-    } else if (warnCount > 0) {
-      msg = React.createElement(React.Fragment, null,
-        React.createElement('b', null, String(warnCount)),
-        (warnCount === 1 ? ' categoria esta' : ' categorias estao'),
-        ' se aproximando do limite. Bom sinal, mas atencao.'
-      );
-    } else {
-      msg = React.createElement(React.Fragment, null,
-        'Boa distribuicao: ',
-        React.createElement('b', null, Math.round(essShare * 100) + '%'),
-        ' em Essencial, dentro da meta de ',
-        React.createElement('b', null, pctEss + '%'),
-        '. Continue assim.'
-      );
+    var warnCats = [];
+    if (isCurrentMonth && dayElapsed >= 7) {
+      warnCats = allCats.filter(function(c) {
+        if (c.spent >= c.limit) return false;
+        var proj = c.spent * (daysInMonth / dayElapsed);
+        var projPct = proj / c.limit;
+        var threshold = dayElapsed < 15 ? 1.30 : 1.05;
+        return projPct > threshold;
+      });
     }
 
-    var segs = [
-      { id: 'essencial', tint: 'var(--g-essencial)', label: 'Essencial', val: dist.essencial, tgt: pctEss },
-      { id: 'estilo',    tint: 'var(--g-estilo)',    label: 'Estilo',    val: dist.estilo,    tgt: pctEst },
-      { id: 'divida',    tint: 'var(--g-divida)',    label: 'Dividas',   val: dist.divida,    tgt: pctDiv }
-    ];
+    var sobra = (totals.planned || 0) - (totals.realized || 0);
 
-    return React.createElement('div', { className: 'pln-insights' },
-      React.createElement('div', { className: 'pln-ins-top' },
-        React.createElement('div', { className: 'pln-ins-eyebrow' },
-          React.createElement(window.Icon.Sparkles, { size: 12 }),
-          'Resumo do mes'
-        ),
-        React.createElement('div', { className: 'pln-ins-headline' },
-          React.createElement('b', null, String(inLimit)),
-          ' de ',
-          React.createElement('b', null, String(totalCats)),
-          ' categorias dentro do limite',
-          totalCats - inLimit > 0 ? React.createElement(React.Fragment, null,
-            ' · ',
-            React.createElement('b', null, String(totalCats - inLimit)),
-            ' ' + (totalCats - inLimit === 1 ? 'pede' : 'pedem') + ' atencao'
-          ) : null,
-          '.'
-        ),
-        React.createElement('div', { className: 'pln-ins-count-viz' },
-          dots.map(function (d, i) {
-            return React.createElement('span', { key: i, className: 'pln-ins-dot ' + d });
-          })
-        )
+    return React.createElement('div', { className: 'pln-resumo' },
+      React.createElement('div', { className: 'pln-resumo-head' },
+        React.createElement('span', { className: 'pln-resumo-title' }, '📊 Resumo do mes'),
+        isCurrentMonth
+          ? React.createElement('span', { className: 'pln-resumo-badge' },
+              'dia ' + dayElapsed + ' de ' + daysInMonth)
+          : null
       ),
-      React.createElement('div', { className: 'pln-dist' },
-        React.createElement('div', { className: 'pln-dist-head' },
-          React.createElement('div', { className: 'pln-dist-lbl' },
-            'Distribuicao este mes',
-            isFallbackDenom
-              ? React.createElement('span', { className: 'pln-dist-badge' }, 'do total')
-              : null
-          ),
-          React.createElement('button', {
-            className: 'pln-dist-edit',
-            type: 'button',
-            onClick: onEditTargets,
-            title: 'Editar metas dos grupos'
-          },
-            React.createElement(window.Icon.Edit || window.Icon.Pencil || window.Icon.Settings, { size: 13 }),
-            React.createElement('span', null, 'Editar metas')
-          )
+      React.createElement('div', { className: 'pln-resumo-kpis' },
+        React.createElement('div', { className: 'pln-resumo-kpi' },
+          React.createElement('span', { className: 'pln-resumo-kpi-lbl' }, 'Realizado'),
+          React.createElement('span', { className: 'pln-resumo-kpi-val' }, fmtVal(totals.realized || 0))
         ),
-        React.createElement('div', { className: 'pln-dist-bar' },
-          segs.map(function (s) {
-            return React.createElement('div', {
-              key: s.id, className: 'pln-dist-seg',
-              style: {
-                width: (denom ? (s.val / denom) * 100 : 0) + '%',
-                background: s.tint
-              }
-            });
-          })
+        React.createElement('div', { className: 'pln-resumo-kpi' },
+          React.createElement('span', { className: 'pln-resumo-kpi-lbl' }, 'Planejado'),
+          React.createElement('span', { className: 'pln-resumo-kpi-val' }, fmtVal(totals.planned || 0))
         ),
-        React.createElement('div', { className: 'pln-dist-legend' },
-          segs.map(function (s) {
-            return React.createElement('div', { key: s.id, className: 'pln-dist-leg' },
-              React.createElement('span', { className: 'pln-dist-leg-dot', style: { background: s.tint } }),
-              s.label + ' ',
-              React.createElement('b', null,
-                (denom ? Math.round((s.val / denom) * 100) : 0) + '%'
-              ),
-              React.createElement('span', { className: 'tgt' }, '/ ' + s.tgt + '%')
-            );
-          })
-        )
-      ),
-      React.createElement('div', { className: 'pln-ins-msg' },
-        React.createElement('span', { className: 'pln-ins-msg-ic' },
-          React.createElement(window.Icon.Sparkles, { size: 13 })
-        ),
-        React.createElement('span', null, msg)
-      ),
-      React.createElement('div', { className: 'pln-ins-totals' },
-        React.createElement('div', { className: 'pln-ins-tot' },
-          React.createElement('span', { className: 'pln-ins-tot-lbl' }, 'Planejado'),
-          React.createElement('span', { className: 'pln-ins-tot-val' }, fmtVal(totals.planned))
-        ),
-        React.createElement('div', { className: 'pln-ins-tot' },
-          React.createElement('span', { className: 'pln-ins-tot-lbl' }, 'Realizado'),
-          React.createElement('span', { className: 'pln-ins-tot-val' }, fmtVal(totals.realized))
-        ),
-        React.createElement('div', { className: 'pln-ins-tot' },
-          React.createElement('span', { className: 'pln-ins-tot-lbl' }, 'Projecao'),
+        React.createElement('div', { className: 'pln-resumo-kpi' },
+          React.createElement('span', { className: 'pln-resumo-kpi-lbl' }, 'Sobra'),
           React.createElement('span', {
-            className: 'pln-ins-tot-val ' + (totals.projection != null && totals.projection > totals.planned ? 'warn' : 'pos')
+            className: 'pln-resumo-kpi-val' + (sobra >= 0 ? ' pln-resumo-pos' : ' pln-resumo-neg')
+          }, fmtVal(Math.abs(sobra)))
+        ),
+        React.createElement('div', { className: 'pln-resumo-kpi' },
+          React.createElement('span', { className: 'pln-resumo-kpi-lbl' }, 'Projecao'),
+          React.createElement('span', {
+            className: 'pln-resumo-kpi-val' + (totals.projection != null ? '' : ' pln-resumo-muted')
           }, totals.projection != null ? fmtVal(totals.projection) : '—')
         )
-      )
+      ),
+      overCats.length > 0
+        ? React.createElement('div', { className: 'pln-resumo-alert pln-resumo-alert--danger' },
+            React.createElement('span', { className: 'pln-resumo-alert-ico' }, '⚠'),
+            React.createElement('span', { className: 'pln-resumo-alert-txt' },
+              React.createElement('strong', null,
+                overCats.length === 1
+                  ? '1 categoria acima do limite'
+                  : overCats.length + ' categorias acima do limite'
+              ),
+              React.createElement('br', null),
+              overCats.map(function(c) { return c.name; }).join(' · ')
+            )
+          )
+        : null,
+      warnCats.length > 0
+        ? React.createElement('div', { className: 'pln-resumo-alert pln-resumo-alert--warn' },
+            React.createElement('span', { className: 'pln-resumo-alert-ico' }, '📈'),
+            React.createElement('span', { className: 'pln-resumo-alert-txt' },
+              React.createElement('strong', null,
+                warnCats.length === 1
+                  ? '1 categoria no ritmo de estourar'
+                  : warnCats.length + ' no ritmo de estourar'
+              ),
+              React.createElement('br', null),
+              warnCats.map(function(c) { return c.name; }).join(' · ')
+            )
+          )
+        : null
     );
   }
 
@@ -279,14 +190,6 @@
     var isEditing = ctx.editing === c.cat_key;
     var pct = c.limit ? c.spent / c.limit : 0;
     var st = plnStatus(pct);
-    var rest = c.limit - c.spent;
-    var proj = ctx.dayElapsed ? c.spent * (ctx.daysInMonth / ctx.dayElapsed) : c.spent;
-    var projPct = c.limit ? (proj / c.limit) : 0;
-    var dailyRate = ctx.dayElapsed ? Math.round(c.spent / ctx.dayElapsed) : 0;
-    var showProj = ctx.isCurrentMonth && c.limit > 0 && ctx.dayElapsed >= 7 && (
-      (ctx.dayElapsed < 15 && projPct > 1.30) ||
-      (ctx.dayElapsed >= 15 && projPct > 1.05)
-    );
     var overWidth = Math.min((pct - 1) / 0.5, 1) * 100;
 
     return React.createElement('div', { className: 'pln-cat' + (isOpen ? ' open' : '') },
@@ -356,41 +259,9 @@
               })
             : null
         ),
-        showProj
-          ? React.createElement('div', { className: 'pln-proj-warn' },
-              '📈 No ritmo de ' + fmtVal(dailyRate) + '/dia, deve fechar em ' + fmtVal(proj) + ' (limite ' + fmtVal(c.limit) + ')'
-            )
-          : null
       ),
       isOpen
         ? React.createElement('div', { className: 'pln-cat-detail' },
-            React.createElement('div', { className: 'pln-detail-row' },
-              React.createElement(window.Icon.Wallet, { size: 14, className: 'pln-detail-ic' }),
-              rest >= 0
-                ? React.createElement('span', null,
-                    'Sobra ',
-                    React.createElement('span', { className: 'pos pln-num' }, fmtVal(rest)),
-                    ' do limite deste mes.'
-                  )
-                : React.createElement('span', null,
-                    'Excedente de ',
-                    React.createElement('span', { className: 'neg pln-num' }, fmtVal(Math.abs(rest))),
-                    ' sobre o limite.'
-                  )
-            ),
-            React.createElement('div', { className: 'pln-detail-row' },
-              React.createElement(window.Icon.TrendUp, { size: 14, className: 'pln-detail-ic' }),
-              React.createElement('span', null,
-                'No ritmo atual, fecha em ',
-                React.createElement('b', { className: 'pln-num' }, fmtVal(proj)),
-                ' ',
-                React.createElement('span', { className: projPct > 1 ? 'neg' : 'pos' },
-                  '(' + (projPct >= 1 ? '+' : '-') +
-                  Math.abs(Math.round((projPct - 1) * 100)) + '% do limite)'
-                ),
-                '.'
-              )
-            ),
             ctx.receita > 0
               ? React.createElement('div', { className: 'pln-detail-row' },
                   React.createElement(window.Icon.Pie, { size: 14, className: 'pln-detail-ic' }),
@@ -1162,12 +1033,14 @@
             onApplyRule: function () { toast.info('Em breve — proxima versao'); }
           })
         : React.createElement('div', { className: 'pln-body' },
-            React.createElement(RuleInfoCard, null),
-            React.createElement(PlnInsights, {
-              groups: groups, totals: totals, dist: dist, receita: receita,
-              groupTargets: groupTargets,
-              onEditTargets: function () { setTargetsSheetOpen(true); }
+            React.createElement(PlnResumo, {
+              groups: groups,
+              totals: totals,
+              dayElapsed: dayElapsed,
+              daysInMonth: daysInMonth,
+              isCurrentMonth: isCurrentMonth
             }),
+            React.createElement(RuleInfoCard, null),
             groups.map(function (g) {
               return React.createElement(PlnGroupSection, {
                 key: g.id, g: g, ctx: ctx,
