@@ -95,7 +95,7 @@ function Sidebar({ active, onNav, variant }) {
             <div className="fds-hint-s">Você está R$\u00a0892 abaixo da meta de gasto.</div>
           </div>
         </div>
-        <button className="fds-sb-user">
+        <button className="fds-sb-user" onClick={() => onNav?.('perfil')}>
           <div className="fds-avatar">{initials}</div>
           <div style={{ flex: 1, textAlign: 'left' }}>
             <div className="fds-user-name">{displayName}</div>

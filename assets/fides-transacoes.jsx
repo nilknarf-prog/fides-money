@@ -933,6 +933,10 @@ function EditTxModal({ tx, onClose }) {
     if (!acct && accounts.length > 0) setAcct(accounts[0].id);
   }, [accounts]);
   const [status, setStatus] = React.useState(tx.status || 'pago');
+  const isCard = pay === 'credito';
+  React.useEffect(function () {
+    if (isCard) setStatus('pendente');
+  }, [isCard]);
 
   const handleSave = () => {
     const numVal = parseVal(val);
@@ -1049,9 +1053,19 @@ function EditTxModal({ tx, onClose }) {
           <div className="fds-field">
             <label className="fds-label">Status</label>
             <div className="fds-seg">
-              <button type="button" className={status === 'pago' ? 'on' : ''} onClick={() => setStatus('pago')}>Pago</button>
-              <button type="button" className={status === 'pendente' ? 'on' : ''} onClick={() => setStatus('pendente')}>Pendente</button>
+              <button type="button"
+                      className={status === 'pago' ? 'on' : ''}
+                      disabled={isCard}
+                      onClick={() => !isCard && setStatus('pago')}>Pago</button>
+              <button type="button"
+                      className={status === 'pendente' ? 'on' : ''}
+                      onClick={() => setStatus('pendente')}>Pendente</button>
             </div>
+            {isCard && (
+              <p className="tx-credit-notice">
+                Compras no crédito são pagas ao quitar a fatura
+              </p>
+            )}
           </div>
         </div>
 

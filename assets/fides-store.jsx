@@ -777,6 +777,21 @@ function FidesProvider({ children }) {
     }
   }, [mode, userId, selectedMonth, refreshData]);
 
+  const updateProfile = React.useCallback(async function (newName) {
+    const trimmed = String(newName || '').trim();
+    if (!trimmed || trimmed.length < 2) return { error: 'Nome muito curto' };
+    const cleaned = trimmed.replace(/[^a-zA-ZÀ-ÿ0-9 .'-]/g, '').trim();
+    if (!cleaned) return { error: 'Nome inválido' };
+    const uid = userId;
+    if (!uid) return { error: 'Usuário não autenticado' };
+    const { error } = await window.fidesDb
+      .from('profiles')
+      .update({ name: cleaned })
+      .eq('id', uid);
+    if (!error) setUserName(cleaned);
+    return { error: error?.message || null };
+  }, [userId]);
+
   const setGroupTargets = React.useCallback(async (patch) => {
     const next = { ...groupTargets, ...patch };
     next.essencial = Math.max(0, Number(next.essencial) || 0);
@@ -999,6 +1014,8 @@ function FidesProvider({ children }) {
     plannedOverrides, setPlanned,
     // Category limits (Lote 3)
     categoryLimits, categoryUsage, setCategoryLimit, removeCategoryLimit,
+    // Profile
+    updateProfile,
     // Group targets (Lote 4B)
     groupTargets, setGroupTargets, resetGroupTargets,
     // Month

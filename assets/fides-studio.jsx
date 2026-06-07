@@ -55,7 +55,8 @@ function FidesStudioShell({ initialPage = 'dashboard' }) {
           {active === 'orcamento'  && <OrcamentoStudio onAdd={() => setModalOpen(true)}/>}
           {active === 'contas'     && <ContasStudio onAdd={() => setModalOpen(true)}/>}
           {active === 'metas'      && <MetasStudio onAdd={() => setModalOpen(true)} onNav={setActive}/>}
-          {!['dashboard','transacoes','orcamento','contas','metas'].includes(active) && <StudioStub page={active}/>}
+          {active === 'perfil'     && <PerfilView onNav={setActive}/>}
+          {!['dashboard','transacoes','orcamento','contas','metas','perfil'].includes(active) && <StudioStub page={active}/>}
         </main>
       </div>
       <NovaTransacaoModal open={modalOpen}
@@ -539,6 +540,83 @@ function StudioMasthead({ onAdd }) {
         )}
       </div>
     </header>
+  );
+}
+
+// ─── Perfil View ──────────────────────────────────────────────
+function PerfilView({ onNav }) {
+  var _s = window.useFides();
+  var userName = _s.userName;
+  var firstName = _s.firstName;
+  var updateProfile = _s.updateProfile;
+  var _st0 = React.useState(userName || '');
+  var nameVal = _st0[0]; var setNameVal = _st0[1];
+  var _st1 = React.useState(false);
+  var saving = _st1[0]; var setSaving = _st1[1];
+  var _st2 = React.useState(null);
+  var msg = _st2[0]; var setMsg = _st2[1];
+
+  React.useEffect(function () { setNameVal(userName || ''); }, [userName]);
+
+  async function handleSave() {
+    if (saving) return;
+    setSaving(true);
+    setMsg(null);
+    var result = await updateProfile(nameVal);
+    setSaving(false);
+    if (result && result.error) {
+      setMsg({ type: 'erro', text: result.error });
+    } else {
+      setMsg({ type: 'ok', text: 'Nome atualizado com sucesso!' });
+      setTimeout(function () { setMsg(null); }, 3000);
+    }
+  }
+
+  return React.createElement('div', { className: 'prf-view' },
+    React.createElement('div', { className: 'prf-header' },
+      React.createElement('button', {
+        className: 'prf-back',
+        type: 'button',
+        onClick: function () { onNav && onNav('dashboard'); }
+      }, '← Voltar'),
+      React.createElement('h2', { className: 'prf-title' }, 'Perfil')
+    ),
+    React.createElement('div', { className: 'prf-card' },
+      React.createElement('div', { className: 'prf-avatar' },
+        React.createElement('span', { className: 'prf-avatar-initials' },
+          (firstName || '?').charAt(0).toUpperCase()
+        )
+      ),
+      React.createElement('div', { className: 'fds-field' },
+        React.createElement('label', { className: 'fds-label', htmlFor: 'prf-name-input' }, 'Nome completo'),
+        React.createElement('input', {
+          id: 'prf-name-input',
+          type: 'text',
+          className: 'fds-input',
+          value: nameVal,
+          maxLength: 60,
+          autoComplete: 'name',
+          onChange: function (e) {
+            setNameVal(e.target.value);
+            setMsg(null);
+          }
+        }),
+        nameVal.trim().length > 0 && nameVal.trim().length < 2
+          ? React.createElement('span', { className: 'prf-hint prf-hint--err' }, 'Mínimo 2 caracteres')
+          : null
+      ),
+      msg
+        ? React.createElement('p', {
+            className: 'prf-msg prf-msg--' + msg.type
+          }, msg.type === 'ok' ? '✓ ' + msg.text : '⚠ ' + msg.text)
+        : null,
+      React.createElement('button', {
+        type: 'button',
+        className: 'fds-btn fds-btn--primary prf-save-btn',
+        disabled: saving || nameVal.trim().length < 2,
+        onClick: handleSave
+      }, saving ? 'Salvando…' : 'Salvar')
+    )
   );
 }
 
