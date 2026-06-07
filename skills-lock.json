@@ -55,6 +55,12 @@
       "skillPath": "SKILL.md",
       "computedHash": "03691a3a5dd9dcf46febd453370233d0626cd4082f8895abff82dd9299a53334"
     },
+    "humanizer-zh": {
+      "source": "op7418/humanizer-zh",
+      "sourceType": "github",
+      "skillPath": "SKILL.md",
+      "computedHash": "7bd195e3bcdcc24f078dfd4e3b3e37e8ac321c36f410a41241fc4175eab1825a"
+    },
     "internal-comms": {
       "source": "anthropics/skills",
       "sourceType": "github",
