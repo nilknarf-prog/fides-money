@@ -1,6 +1,12 @@
 {
   "version": 1,
   "skills": {
+    "File Organizer": {
+      "source": "claude-office-skills/skills",
+      "sourceType": "github",
+      "skillPath": "file-organizer/SKILL.md",
+      "computedHash": "c0ee059875e0bb07780229a5ba96acfdf151031a05e203168f5ee4a07fff4f8e"
+    },
     "algorithmic-art": {
       "source": "anthropics/skills",
       "sourceType": "github",
