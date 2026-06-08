@@ -792,7 +792,7 @@
 }
 .pln-resumo-kpis {
   display: grid;
-  grid-template-columns: 1fr 1fr;
+  grid-template-columns: repeat(3, 1fr);
   gap: 14px;
   margin-bottom: 14px;
 }
@@ -808,7 +808,7 @@
   letter-spacing: 0.06em;
 }
 .pln-resumo-kpi-val {
-  font-size: 18px;
+  font-size: clamp(14px, 4vw, 16px);
   font-weight: 700;
   color: var(--ink-primary, #1f1f1f);
   font-feature-settings: "tnum";
