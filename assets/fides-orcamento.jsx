@@ -143,12 +143,6 @@
           React.createElement('span', {
             className: 'pln-resumo-kpi-val' + (sobra >= 0 ? ' pln-resumo-pos' : ' pln-resumo-neg')
           }, fmtVal(Math.abs(sobra)))
-        ),
-        React.createElement('div', { className: 'pln-resumo-kpi' },
-          React.createElement('span', { className: 'pln-resumo-kpi-lbl' }, 'Projecao'),
-          React.createElement('span', {
-            className: 'pln-resumo-kpi-val' + (totals.projection != null ? '' : ' pln-resumo-muted')
-          }, totals.projection != null ? fmtVal(totals.projection) : '—')
         )
       ),
       overCats.length > 0
