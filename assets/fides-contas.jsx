@@ -657,7 +657,7 @@ function ContasStudio({ onAdd }) {
       <section className="stu-hero" data-od-id="ctn-hero">
         <div className="stu-hero-eyebrow">
           <Icon.Wallet size={11}/>
-          patrimônio líquido · maio · 2026
+          patrimônio líquido · {lbl.short.toLowerCase()}
         </div>
         <h2 className="stu-hero-headline">
           Você tem{' '}

@@ -3,6 +3,11 @@
 // Reads top-to-bottom like a financial newsletter for one person.
 
 function FidesDiario({ variant = 'diario' }) {
+  const _now = new Date();
+  const _ano = _now.getFullYear();
+  const _mesShort = _now.toLocaleString('pt-BR', { month: 'short' }).replace('.', '');
+  const _mesLong = _now.toLocaleString('pt-BR', { month: 'long' });
+  const _weekNum = Math.ceil(((_now - new Date(_ano, 0, 1)) / 86400000 + new Date(_ano, 0, 1).getDay() + 1) / 7);
   const receitas = 8748.66;
   const despesas = 5832.72;
   const pendentes = 2070.61;
@@ -48,7 +53,7 @@ function FidesDiario({ variant = 'diario' }) {
           <div className="dia-eyebrow">
             <span>Edição de Maio</span>
             <span className="dia-eyebrow-sep"/>
-            <span>2026 · semana 20</span>
+            <span>{_ano} · semana {_weekNum}</span>
             <span className="dia-eyebrow-sep"/>
             <span className="dia-issue">№ 05</span>
           </div>
@@ -69,7 +74,7 @@ function FidesDiario({ variant = 'diario' }) {
               <div className="dia-byline-avatar">{USER.initials}</div>
               <div>
                 <div className="dia-byline-name">{USER.name}</div>
-                <div className="dia-byline-sub">Atualizado às 09:42 · 14 mai 2026</div>
+                <div className="dia-byline-sub">Atualizado às {String(_now.getHours()).padStart(2,'0')}:{String(_now.getMinutes()).padStart(2,'0')} · {_now.getDate()} {_mesShort} {_ano}</div>
               </div>
             </div>
             <button className="dia-byline-act"><Icon.Eye size={13}/> Ocultar valores</button>
@@ -228,7 +233,7 @@ function FidesDiario({ variant = 'diario' }) {
         {/* COLOPHON */}
         <footer className="dia-colophon">
           <div>Fides · um diário financeiro</div>
-          <div>{USER.name} · Maio · 2026</div>
+          <div>{USER.name} · {_mesLong.charAt(0).toUpperCase() + _mesLong.slice(1)} · {_ano}</div>
         </footer>
       </article>
     </div>
