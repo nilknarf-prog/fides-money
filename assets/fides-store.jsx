@@ -147,13 +147,14 @@ function FidesProvider({ children }) {
 
   const ensureMes = (tx) => ({
     ...tx,
-    mes: tx.mes || `2026-${String(tx.d).split('/')[1]}`,
+    mes: tx.mes || `${new Date().getFullYear()}-${String(tx.d).split('/')[1]}`,
   });
 
   // Convert UI tx format to Supabase row, using current cards to detect card txs
   function txToRow(tx, uid, liveCards) {
     const [dd = '01', mm = '01'] = (tx.d || '01/01').split('/');
-    const [yyyy = '2026']        = (tx.mes || '2026-01').split('-');
+    const currYear = String(new Date().getFullYear());
+    const [yyyy = currYear]        = (tx.mes || `${currYear}-01`).split('-');
     const cardIdSet = new Set((liveCards || []).map(c => c.id));
     const isCard    = cardIdSet.has(tx.acct);
     return {
@@ -959,7 +960,7 @@ function FidesProvider({ children }) {
       const isSettled = mode === 'live' ? t.settled : (t.status === 'pago');
       if (!cardIdSet.has(t.acct) || isSettled) return;
       const card = cardList.find(c => c.id === t.acct);
-      const yr   = parseInt((t.mes || '2026-01').split('-')[0], 10);
+      const yr   = parseInt((t.mes || `${new Date().getFullYear()}-01`).split('-')[0], 10);
       const fat  = mesFaturaFor(t.d, card, yr);
       if (!fat) return;
       const key = `${t.acct}|${fat}`;
@@ -1062,7 +1063,7 @@ function useFides() {
     setCategoryLimit: () => {}, removeCategoryLimit: () => {},
     groupTargets: { essencial: 0.50, estilo: 0.30, divida: 0.20 },
     setGroupTargets: async () => {}, resetGroupTargets: async () => {},
-    selectedMonth: '2026-05', setSelectedMonth: () => {},
+    selectedMonth: new Date().toISOString().slice(0, 7), setSelectedMonth: () => {},
     prevMonth: (ym) => ym, monthLabel: (ym) => ({ short: ym, long: ym }),
     spendByCategory: SPEND_BY_CATEGORY,
     budgetGroups: BUDGET_GROUPS,

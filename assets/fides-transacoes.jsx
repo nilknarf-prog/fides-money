@@ -307,7 +307,7 @@ function Transacoes({ variant, onAdd }) {
         const parts = (t.d || '01/01').split('/');
         const dd = (parts[0] || '01').padStart(2,'0');
         const mm = (parts[1] || '01').padStart(2,'0');
-        const yyyy = selectedMonth.split('-')[0] || '2026';
+        const yyyy = selectedMonth.split('-')[0] || String(new Date().getFullYear());
         const dtPosted = `${yyyy}${mm}${dd}120000`;
         const amt = t.val.toFixed(2);
         const memo = (t.desc || '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');

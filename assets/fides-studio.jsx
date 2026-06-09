@@ -782,7 +782,7 @@ function DashboardStudio({ onAdd, onNav }) {
       />
 
       {/* ─── Capítulo I · Fluxo do mês ─── */}
-      <ChapterMark roman="I" title="Fluxo do mês" caption={`Receitas vs. despesas · últimos 7 meses · 2026`}/>
+      <ChapterMark roman="I" title="Fluxo do mês" caption={`Receitas vs. despesas · últimos 7 meses · ${selectedMonth.split('-')[0]}`}/>
       <div className="stu-card stu-flow">
         <div className="stu-flow-head">
           <div className="fds-legend">

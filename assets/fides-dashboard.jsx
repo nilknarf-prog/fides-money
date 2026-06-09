@@ -1,6 +1,9 @@
 // fides-dashboard.jsx — Dashboard / Visão geral
 
 function Dashboard({ variant, onAdd }) {
+  const _now = new Date();
+  const _mes = _now.toLocaleString('pt-BR', { month: 'short' }).replace('.', '');
+  const _ano = _now.getFullYear();
   // KPIs derived
   const receitas = 8748.66;
   const despesas = 5832.72;
@@ -15,7 +18,7 @@ function Dashboard({ variant, onAdd }) {
         <div className="fds-hero-main">
           <div className="fds-hero-eyebrow">
             <span className="fds-pulse-dot"/>
-            Mai · 2026 · em curso
+            {_mes.charAt(0).toUpperCase() + _mes.slice(1)} · {_ano} · em curso
           </div>
           <HeroAmount value={saldoAcumulado} variant={variant}/>
           <div className="fds-hero-meta">
@@ -61,7 +64,7 @@ function Dashboard({ variant, onAdd }) {
             <button>Categoria</button>
           </div>
           <div className="fds-period">
-            <span>2026</span>
+            <span>{_ano}</span>
             <Icon.Down size={13} style={{ opacity: 0.45 }}/>
           </div>
         </header>

@@ -109,7 +109,12 @@ function Sidebar({ active, onNav, variant }) {
 }
 
 // ─── Topbar ───────────────────────────────────────────────────
-function Topbar({ title, subtitle, onAdd, period = 'Maio · 2026', actions, hideTitle = false }) {
+function Topbar({ title, subtitle, onAdd, period, actions, hideTitle = false }) {
+  if (!period) {
+    const _d = new Date();
+    const _m = _d.toLocaleString('pt-BR', { month: 'long' });
+    period = _m.charAt(0).toUpperCase() + _m.slice(1) + ' · ' + _d.getFullYear();
+  }
   return (
     <header className="fds-top" data-od-id="topbar">
       <div className="fds-top-l">
