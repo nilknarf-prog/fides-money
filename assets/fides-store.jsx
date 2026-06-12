@@ -805,17 +805,17 @@ function FidesProvider({ children }) {
     }
   }, [mode, userId, categoryLimits, refreshData]);
 
-  // ─── Category limits — sugerir pela media (Lote 6) ─────────────
+  // ─── Category limits — calcular sugestoes (Lote 6B) ────────────
   // Para cada categoria SEM limite efetivo no mes selecionado (sem override
-  // e sem default), calcula uma sugestao:
+  // e sem default), calcula uma sugestao SEM aplicar:
   //   1) media dos overrides historicos da categoria (>=2 meses anteriores
-  //      com override) — fonte preferencial; ou
+  //      com override) — fonte preferencial, source='historico'; ou
   //   2) media dos gastos reais (transactions, is_transfer=false, valor<0)
-  //      nos ultimos 3 meses anteriores, se nao houver historico de limites; ou
+  //      nos ultimos 3 meses anteriores, source='gastos'; ou
   //   3) omite a categoria, se nenhuma das duas fontes existir.
-  // Aplica via upsert no mes selecionado. Retorna { applied: n }.
-  const suggestLimitsByAverage = React.useCallback(async () => {
-    if (mode !== 'live' || !userId) return { applied: 0 };
+  // Retorna array [{ cat_key, label, emoji, monthly_limit, source }].
+  // Funcao SINCRONA e pura — nao escreve no banco.
+  const computeSuggestions = React.useCallback(() => {
     const monthsBack = [];
     let m = selectedMonth;
     for (let i = 0; i < 12; i++) { m = prevMonth(m); monthsBack.push(m); }
@@ -843,35 +843,56 @@ function FidesProvider({ children }) {
         : [];
 
       let value = null;
+      let source = null;
       if (histLimits.length >= 2) {
         value = histLimits.reduce((a, b) => a + b, 0) / histLimits.length;
+        source = 'historico';
       } else {
         const last3 = monthsBack.slice(0, 3);
         const spends = last3
           .map(mm => (spendByMonthCat[mm] || {})[cat_key] || 0)
           .filter(v => v > 0);
-        if (spends.length) value = spends.reduce((a, b) => a + b, 0) / spends.length;
+        if (spends.length) {
+          value = spends.reduce((a, b) => a + b, 0) / spends.length;
+          source = 'gastos';
+        }
       }
       if (value && value > 0) {
-        suggestions.push({ cat_key, monthly_limit: Math.round(value * 100) / 100 });
+        const c = categories[cat_key] || {};
+        suggestions.push({
+          cat_key,
+          label: c.label || cat_key,
+          emoji: c.emoji || '🏷️',
+          monthly_limit: Math.round(value * 100) / 100,
+          source
+        });
       }
     });
 
-    if (!suggestions.length) return { applied: 0 };
+    return suggestions;
+  }, [selectedMonth, transactions, categories, categoryLimits, prevMonth]);
+
+  // ─── Category limits — aplicar sugestoes selecionadas (Lote 6B) ─
+  // Recebe a lista (ja filtrada pelo usuario) e faz upsert no mes selecionado.
+  // Retorna { applied: n }.
+  const applySuggestions = React.useCallback(async (list) => {
+    if (mode !== 'live' || !userId) return { applied: 0 };
+    if (!list || !list.length) return { applied: 0 };
     try {
-      const rows = suggestions.map(s => ({
-        user_id: userId, cat_key: s.cat_key, month: selectedMonth, monthly_limit: s.monthly_limit
+      const rows = list.map(s => ({
+        user_id: userId, cat_key: s.cat_key, month: selectedMonth,
+        monthly_limit: Number(s.monthly_limit)
       }));
       const { error } = await window.fidesDb.from('category_limits')
         .upsert(rows, { onConflict: 'user_id,cat_key,month' });
       if (error) throw error;
       await refreshData(userId);
-      return { applied: suggestions.length };
+      return { applied: list.length };
     } catch (err) {
-      console.error('[Fides] suggestLimitsByAverage:', err.message);
+      console.error('[Fides] applySuggestions:', err.message);
       throw err;
     }
-  }, [mode, userId, selectedMonth, transactions, categories, categoryLimits, refreshData]);
+  }, [mode, userId, selectedMonth, refreshData]);
 
   const updateProfile = React.useCallback(async function (newName) {
     const trimmed = String(newName || '').trim();
@@ -1110,8 +1131,8 @@ function FidesProvider({ children }) {
     plannedOverrides, setPlanned,
     // Category limits (Lote 3)
     categoryLimits, categoryUsage, setCategoryLimit, removeCategoryLimit,
-    // Category limits — copiar/sugerir (Lote 6)
-    copyLimitsFromMonth, suggestLimitsByAverage,
+    // Category limits — copiar/sugerir (Lote 6 / 6B)
+    copyLimitsFromMonth, computeSuggestions, applySuggestions,
     // Profile
     updateProfile,
     // Group targets (Lote 4B)
