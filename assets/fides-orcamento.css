@@ -845,3 +845,35 @@
   background: var(--warn-bg, #fbf1e5);
   color: var(--warn, #c67d3c);
 }
+
+/* ── Lote 6B: SuggestPreviewSheet ─────────────────────────── */
+.pln-suggest-list {
+  display: flex; flex-direction: column; gap: 8px; margin-top: 8px;
+}
+.pln-suggest-row {
+  display: flex; align-items: center; gap: 10px;
+  padding: 10px 12px; border-radius: 12px;
+  border: 1px solid var(--border); background: var(--card);
+  cursor: pointer; text-align: left; width: 100%;
+  transition: border-color .15s, background .15s;
+}
+.pln-suggest-row:hover { border-color: var(--border-strong); }
+.pln-suggest-row.on { border-color: var(--accent); background: var(--accent-soft); }
+.pln-suggest-check {
+  width: 20px; height: 20px; border-radius: 6px;
+  border: 1.5px solid var(--border-strong);
+  display: flex; align-items: center; justify-content: center;
+  flex-shrink: 0; color: #fff;
+  background: transparent;
+}
+.pln-suggest-row.on .pln-suggest-check {
+  background: var(--accent); border-color: var(--accent);
+}
+.pln-suggest-emoji { font-size: 18px; flex-shrink: 0; }
+.pln-suggest-info { flex: 1; min-width: 0; display: flex; flex-direction: column; }
+.pln-suggest-label { font-size: 13.5px; font-weight: 700; color: var(--ink); }
+.pln-suggest-source { font-size: 11px; color: var(--muted); margin-top: 2px; }
+.pln-suggest-value {
+  font-size: 13.5px; font-weight: 700; color: var(--ink); flex-shrink: 0;
+  white-space: nowrap;
+}

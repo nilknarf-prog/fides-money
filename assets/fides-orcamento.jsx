@@ -684,6 +684,92 @@
     );
   }
 
+  // ─── Suggest preview sheet (Lote 6B) ───────────────────────
+  function SuggestPreviewSheet(props) {
+    var suggestions = props.suggestions || [];
+    var stPicked = React.useState(function () {
+      var s = new Set();
+      suggestions.forEach(function (sug, i) { s.add(i); });
+      return s;
+    });
+    var picked = stPicked[0]; var setPicked = stPicked[1];
+
+    function toggle(i) {
+      setPicked(function (p) {
+        var n = new Set(p);
+        if (n.has(i)) n.delete(i); else n.add(i);
+        return n;
+      });
+    }
+
+    var pickedCount = picked.size;
+
+    return React.createElement('div', {
+      className: 'pln-sheet-backdrop', onClick: props.onClose
+    },
+      React.createElement('div', {
+        className: 'pln-sheet', onClick: function (e) { e.stopPropagation(); }
+      },
+        React.createElement('div', { className: 'pln-sheet-grip' }),
+        React.createElement('div', { className: 'pln-sheet-head' },
+          React.createElement('span', {
+            className: 'pln-sheet-emoji',
+            style: { background: 'var(--accent-soft)', color: 'var(--accent)' }
+          }, React.createElement(window.Icon.TrendUp, { size: 20 })),
+          React.createElement('div', { className: 'pln-sheet-titles' },
+            React.createElement('div', { className: 'pln-sheet-eyebrow' }, 'Sugestao'),
+            React.createElement('div', { className: 'pln-sheet-title' }, 'Limites sugeridos')
+          ),
+          React.createElement('button', {
+            className: 'pln-sheet-x', onClick: props.onClose
+          }, React.createElement(window.Icon.X, { size: 16 }))
+        ),
+        React.createElement('div', { className: 'pln-sheet-body' },
+          React.createElement('div', { className: 'pln-field-lbl' },
+            'Selecione as categorias que deseja aplicar'
+          ),
+          React.createElement('div', { className: 'pln-suggest-list' },
+            suggestions.map(function (s, i) {
+              var on = picked.has(i);
+              return React.createElement('button', {
+                key: s.cat_key,
+                className: 'pln-suggest-row' + (on ? ' on' : ''),
+                onClick: function () { toggle(i); }
+              },
+                React.createElement('span', { className: 'pln-suggest-check' },
+                  on ? React.createElement(window.Icon.Check, { size: 14 }) : null
+                ),
+                React.createElement('span', { className: 'pln-suggest-emoji' }, s.emoji),
+                React.createElement('span', { className: 'pln-suggest-info' },
+                  React.createElement('span', { className: 'pln-suggest-label' }, s.label),
+                  React.createElement('span', { className: 'pln-suggest-source' },
+                    s.source === 'historico'
+                      ? 'baseado no historico de limites'
+                      : 'baseado nos gastos recentes'
+                  )
+                ),
+                React.createElement('span', { className: 'pln-suggest-value' }, window.fmtBRL(s.monthly_limit).replace(',00', ''))
+              );
+            })
+          )
+        ),
+        React.createElement('div', { className: 'pln-sheet-foot' },
+          React.createElement('button', {
+            className: 'pln-btn pln-btn-ghost', onClick: props.onClose
+          }, 'Cancelar'),
+          React.createElement('button', {
+            className: 'pln-btn pln-btn-primary',
+            disabled: pickedCount === 0,
+            onClick: function () {
+              var selected = suggestions.filter(function (_, i) { return picked.has(i); });
+              props.onApply(selected);
+            }
+          }, 'Aplicar (' + pickedCount + ')')
+        )
+      )
+    );
+  }
+
   // ─── Empty state ──────────────────────────────────────────
   function PlnEmptyState(props) {
     return React.createElement('div', { className: 'pln-body' },
@@ -811,6 +897,8 @@
     var limitSheet = stLimit[0]; var setLimitSheet = stLimit[1];
     var stCopy = React.useState(false);
     var copySheet = stCopy[0]; var setCopySheet = stCopy[1];
+    var stSuggestPreview = React.useState(null);
+    var suggestPreview = stSuggestPreview[0]; var setSuggestPreview = stSuggestPreview[1];
     var stCollapsed = React.useState({});
     var collapsedGroups = stCollapsed[0]; var setCollapsedGroups = stCollapsed[1];
     var stTargets = React.useState(false);
@@ -1019,18 +1107,33 @@
     }
 
     function handleSuggestAverage() {
-      Promise.resolve(store.suggestLimitsByAverage())
+      var list = store.computeSuggestions();
+      if (!list.length) {
+        toast.info('Nenhuma sugestao disponivel agora');
+        setCopySheet(false);
+        return;
+      }
+      setCopySheet(false);
+      setSuggestPreview(list);
+    }
+
+    function handleApplySuggestions(selected) {
+      if (!selected || !selected.length) {
+        setSuggestPreview(null);
+        return;
+      }
+      Promise.resolve(store.applySuggestions(selected))
         .then(function (res) {
           var n = (res && res.applied) || 0;
           if (!n) {
-            toast.info('Nenhuma sugestao disponivel agora');
+            toast.info('Nenhuma categoria aplicada');
           } else {
             toast.success(n + ' categoria' + (n === 1 ? '' : 's')
               + ' recebe' + (n === 1 ? '' : 'ram') + ' limite sugerido');
           }
-          setCopySheet(false);
+          setSuggestPreview(null);
         })
-        .catch(function () { toast.error('Erro ao sugerir limites'); });
+        .catch(function () { toast.error('Erro ao aplicar sugestoes'); });
     }
 
     function handleSaveTargets(next) {
@@ -1136,6 +1239,13 @@
               handleCopyFromMonth(month);
             },
             onSuggestAverage: handleSuggestAverage,
+          })
+        : null,
+      suggestPreview
+        ? React.createElement(SuggestPreviewSheet, {
+            suggestions: suggestPreview,
+            onClose: function () { setSuggestPreview(null); },
+            onApply: handleApplySuggestions
           })
         : null,
       targetsSheetOpen
