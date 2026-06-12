@@ -778,6 +778,101 @@ function FidesProvider({ children }) {
     }
   }, [mode, userId, selectedMonth, refreshData]);
 
+  // ─── Category limits — copiar de outro mes (Lote 6) ───────────
+  // Copia todos os overrides (month != null) de sourceMonth para targetMonth.
+  // Sobrescreve overrides existentes em targetMonth (upsert). Nao toca em
+  // defaults (month=null). Retorna { copied: n } com n = qtd de categorias
+  // copiadas (0 se sourceMonth nao tiver nenhum override).
+  const copyLimitsFromMonth = React.useCallback(async (sourceMonth, targetMonth) => {
+    if (mode !== 'live' || !userId) return { copied: 0 };
+    if (!sourceMonth || !targetMonth || sourceMonth === targetMonth) return { copied: 0 };
+    const entries = Object.entries(categoryLimits)
+      .filter(([, lim]) => lim && lim.byMonth && lim.byMonth[sourceMonth] != null)
+      .map(([cat_key, lim]) => ({ cat_key, monthly_limit: Number(lim.byMonth[sourceMonth]) }));
+    if (!entries.length) return { copied: 0 };
+    try {
+      const rows = entries.map(e => ({
+        user_id: userId, cat_key: e.cat_key, month: targetMonth, monthly_limit: e.monthly_limit
+      }));
+      const { error } = await window.fidesDb.from('category_limits')
+        .upsert(rows, { onConflict: 'user_id,cat_key,month' });
+      if (error) throw error;
+      await refreshData(userId);
+      return { copied: entries.length };
+    } catch (err) {
+      console.error('[Fides] copyLimitsFromMonth:', err.message);
+      throw err;
+    }
+  }, [mode, userId, categoryLimits, refreshData]);
+
+  // ─── Category limits — sugerir pela media (Lote 6) ─────────────
+  // Para cada categoria SEM limite efetivo no mes selecionado (sem override
+  // e sem default), calcula uma sugestao:
+  //   1) media dos overrides historicos da categoria (>=2 meses anteriores
+  //      com override) — fonte preferencial; ou
+  //   2) media dos gastos reais (transactions, is_transfer=false, valor<0)
+  //      nos ultimos 3 meses anteriores, se nao houver historico de limites; ou
+  //   3) omite a categoria, se nenhuma das duas fontes existir.
+  // Aplica via upsert no mes selecionado. Retorna { applied: n }.
+  const suggestLimitsByAverage = React.useCallback(async () => {
+    if (mode !== 'live' || !userId) return { applied: 0 };
+    const monthsBack = [];
+    let m = selectedMonth;
+    for (let i = 0; i < 12; i++) { m = prevMonth(m); monthsBack.push(m); }
+
+    const spendByMonthCat = {};
+    transactions.forEach(t => {
+      if (t.isTransfer || t.val >= 0) return;
+      const tm = txMonth(t);
+      if (!monthsBack.includes(tm)) return;
+      spendByMonthCat[tm] = spendByMonthCat[tm] || {};
+      spendByMonthCat[tm][t.cat] = (spendByMonthCat[tm][t.cat] || 0) + Math.abs(t.val);
+    });
+
+    const suggestions = [];
+    Object.keys(categories).forEach(cat_key => {
+      const lim = categoryLimits[cat_key];
+      const hasEffective = lim && (
+        (lim.byMonth && lim.byMonth[selectedMonth] != null) ||
+        lim.default != null
+      );
+      if (hasEffective) return;
+
+      const histLimits = (lim && lim.byMonth)
+        ? monthsBack.map(mm => lim.byMonth[mm]).filter(v => v != null && v > 0)
+        : [];
+
+      let value = null;
+      if (histLimits.length >= 2) {
+        value = histLimits.reduce((a, b) => a + b, 0) / histLimits.length;
+      } else {
+        const last3 = monthsBack.slice(0, 3);
+        const spends = last3
+          .map(mm => (spendByMonthCat[mm] || {})[cat_key] || 0)
+          .filter(v => v > 0);
+        if (spends.length) value = spends.reduce((a, b) => a + b, 0) / spends.length;
+      }
+      if (value && value > 0) {
+        suggestions.push({ cat_key, monthly_limit: Math.round(value * 100) / 100 });
+      }
+    });
+
+    if (!suggestions.length) return { applied: 0 };
+    try {
+      const rows = suggestions.map(s => ({
+        user_id: userId, cat_key: s.cat_key, month: selectedMonth, monthly_limit: s.monthly_limit
+      }));
+      const { error } = await window.fidesDb.from('category_limits')
+        .upsert(rows, { onConflict: 'user_id,cat_key,month' });
+      if (error) throw error;
+      await refreshData(userId);
+      return { applied: suggestions.length };
+    } catch (err) {
+      console.error('[Fides] suggestLimitsByAverage:', err.message);
+      throw err;
+    }
+  }, [mode, userId, selectedMonth, transactions, categories, categoryLimits, refreshData]);
+
   const updateProfile = React.useCallback(async function (newName) {
     const trimmed = String(newName || '').trim();
     if (!trimmed || trimmed.length < 2) return { error: 'Nome muito curto' };
@@ -1015,6 +1110,8 @@ function FidesProvider({ children }) {
     plannedOverrides, setPlanned,
     // Category limits (Lote 3)
     categoryLimits, categoryUsage, setCategoryLimit, removeCategoryLimit,
+    // Category limits — copiar/sugerir (Lote 6)
+    copyLimitsFromMonth, suggestLimitsByAverage,
     // Profile
     updateProfile,
     // Group targets (Lote 4B)
