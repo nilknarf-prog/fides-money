@@ -626,7 +626,7 @@
         ),
         React.createElement('div', { className: 'pln-sheet-body' },
           React.createElement('button', {
-            className: 'pln-copy-opt', onClick: props.onApply
+            className: 'pln-copy-opt', onClick: props.onCopyPrevMonth
           },
             React.createElement('span', { className: 'pln-copy-opt-ic' },
               React.createElement(window.Icon.Left, { size: 17 })
@@ -659,22 +659,23 @@
           ),
           picking
             ? React.createElement('div', { className: 'pln-months-grid', style: { marginTop: 0 } },
-                PLN_MONTHS.map(function (m) {
+                PLN_MONTHS.map(function (m, idx) {
                   return React.createElement('button', {
-                    key: m, className: 'pln-month-cell', onClick: props.onApply
+                    key: m, className: 'pln-month-cell',
+                    onClick: function () { props.onCopySpecificMonth(idx); }
                   }, m);
                 })
               )
             : null,
           React.createElement('button', {
-            className: 'pln-copy-opt', onClick: props.onApply
+            className: 'pln-copy-opt', onClick: props.onSuggestAverage
           },
             React.createElement('span', { className: 'pln-copy-opt-ic' },
               React.createElement(window.Icon.TrendUp, { size: 17 })
             ),
             React.createElement('span', { className: 'pln-copy-opt-txt' },
               React.createElement('span', { className: 'pln-copy-opt-main' }, 'Sugerir pela media'),
-              React.createElement('span', { className: 'pln-copy-opt-sub' }, 'Calcula com base nos ultimos 3 meses realizados')
+              React.createElement('span', { className: 'pln-copy-opt-sub' }, 'Preenche categorias sem limite com base no historico')
             ),
             React.createElement(window.Icon.Right, { size: 16, style: { color: 'var(--muted-2)' } })
           )
@@ -962,6 +963,76 @@
       });
     }
 
+    function buildMonthLabel(m) {
+      return typeof store.monthLabel === 'function'
+        ? store.monthLabel(m)
+        : { long: fmtMesLongo(m), short: m };
+    }
+
+    function handleCopyFromMonth(sourceMonth) {
+      if (!sourceMonth || sourceMonth === selectedMonth) {
+        toast.info('Selecione um mes diferente do atual');
+        return;
+      }
+      var limits = store.categoryLimits || {};
+      var hasSource = Object.keys(limits).some(function (k) {
+        return limits[k] && limits[k].byMonth && limits[k].byMonth[sourceMonth] != null;
+      });
+      if (!hasSource) {
+        toast.info('Nenhum limite encontrado em ' + buildMonthLabel(sourceMonth).long);
+        return;
+      }
+      var overwriteCount = Object.keys(limits).filter(function (k) {
+        return limits[k] && limits[k].byMonth
+          && limits[k].byMonth[sourceMonth] != null
+          && limits[k].byMonth[selectedMonth] != null;
+      }).length;
+
+      function proceed() {
+        Promise.resolve(store.copyLimitsFromMonth(sourceMonth, selectedMonth))
+          .then(function (res) {
+            var n = (res && res.copied) || 0;
+            if (!n) {
+              toast.info('Nenhum limite encontrado em ' + buildMonthLabel(sourceMonth).long);
+            } else {
+              toast.success(n + ' limite' + (n === 1 ? '' : 's') + ' copiado'
+                + (n === 1 ? '' : 's') + ' de ' + buildMonthLabel(sourceMonth).long);
+            }
+            setCopySheet(false);
+          })
+          .catch(function () { toast.error('Erro ao copiar limites'); });
+      }
+
+      if (overwriteCount > 0) {
+        confirm({
+          title: 'Sobrescrever limites?',
+          message: overwriteCount + ' categoria' + (overwriteCount === 1 ? '' : 's')
+            + ' ja tem limite definido em ' + lbl.long + '. Copiar de '
+            + buildMonthLabel(sourceMonth).long + ' vai sobrescrever '
+            + (overwriteCount === 1 ? 'esse valor' : 'esses valores') + '.',
+          destructive: true,
+          confirmLabel: 'Sobrescrever'
+        }).then(function (ok) { if (ok) proceed(); });
+      } else {
+        proceed();
+      }
+    }
+
+    function handleSuggestAverage() {
+      Promise.resolve(store.suggestLimitsByAverage())
+        .then(function (res) {
+          var n = (res && res.applied) || 0;
+          if (!n) {
+            toast.info('Nenhuma sugestao disponivel agora');
+          } else {
+            toast.success(n + ' categoria' + (n === 1 ? '' : 's')
+              + ' recebe' + (n === 1 ? '' : 'ram') + ' limite sugerido');
+          }
+          setCopySheet(false);
+        })
+        .catch(function () { toast.error('Erro ao sugerir limites'); });
+    }
+
     function handleSaveTargets(next) {
       return setGroupTargetsStore(next)
         .then(function () {
@@ -1058,10 +1129,13 @@
         ? React.createElement(CopySheet, {
             lbl: lbl,
             onClose: function () { setCopySheet(false); },
-            onApply: function () {
-              toast.info('Em breve — proxima versao');
-              setCopySheet(false);
-            }
+            onCopyPrevMonth: function () { handleCopyFromMonth(store.prevMonth(selectedMonth)); },
+            onCopySpecificMonth: function (idx) {
+              var year = String(selectedMonth).split('-')[0];
+              var month = year + '-' + String(idx + 1).padStart(2, '0');
+              handleCopyFromMonth(month);
+            },
+            onSuggestAverage: handleSuggestAverage,
           })
         : null,
       targetsSheetOpen
