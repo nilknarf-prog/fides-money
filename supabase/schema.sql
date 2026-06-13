@@ -103,6 +103,23 @@ create table if not exists public.user_categories (
 );
 
 -- ─────────────────────────────────────────────
+-- TABELA: category_limits
+-- ─────────────────────────────────────────────
+create table if not exists public.category_limits (
+  id              uuid primary key default uuid_generate_v4(),
+  user_id         uuid references public.profiles(id) on delete cascade not null,
+  cat_key         text not null,
+  month           text,
+  monthly_limit   numeric(12,2) not null check (monthly_limit > 0),
+  created_at      timestamptz not null default now(),
+  updated_at      timestamptz not null default now(),
+  unique (user_id, cat_key, month)
+);
+
+create index if not exists idx_category_limits_user
+  on public.category_limits (user_id, cat_key, month);
+
+-- ─────────────────────────────────────────────
 -- ROW LEVEL SECURITY
 -- ─────────────────────────────────────────────
 alter table public.profiles        enable row level security;
@@ -111,6 +128,7 @@ alter table public.cards           enable row level security;
 alter table public.transactions    enable row level security;
 alter table public.goals           enable row level security;
 alter table public.user_categories enable row level security;
+alter table public.category_limits enable row level security;
 
 create policy "profiles: próprio usuário"     on public.profiles
   for all using (auth.uid() = id);
@@ -123,6 +141,8 @@ create policy "transactions: próprio usuário" on public.transactions
 create policy "goals: próprio usuário"        on public.goals
   for all using (auth.uid() = user_id);
 create policy "user_categories: próprio usuário" on public.user_categories
+  for all using (auth.uid() = user_id);
+create policy "category_limits: próprio usuário" on public.category_limits
   for all using (auth.uid() = user_id);
 
 -- ─────────────────────────────────────────────
