@@ -1024,12 +1024,41 @@
           return year + '-' + String(i + 1).padStart(2, '0');
         });
       }
+
+      // Se vamos salvar um novo padrao (scope='default') e o mes atual ja
+      // tiver um override proprio, esse override continua valendo por
+      // prioridade (byMonth > default). Guardamos o valor antes de salvar
+      // para, depois, oferecer remove-lo e aplicar o novo padrao tambem
+      // ao mes atual.
+      var currentOverride = (scope === 'default'
+        && store.categoryLimits[catKey]
+        && store.categoryLimits[catKey].byMonth
+        && store.categoryLimits[catKey].byMonth[selectedMonth] != null)
+        ? store.categoryLimits[catKey].byMonth[selectedMonth]
+        : null;
+
       Promise.resolve(setCategoryLimit(catKey, value, scope, months))
         .then(function () {
           if (scope === 'this') toast.success('Limite definido para ' + lbl.long);
           else if (scope === 'default') toast.success('Limite padrao salvo');
           else toast.success('Limite aplicado a ' + (months || []).length + ' meses');
           setLimitSheet(null);
+
+          if (currentOverride != null) {
+            confirm({
+              title: 'Atualizar ' + lbl.long + '?',
+              message: lbl.long + ' tem um valor especifico de '
+                + window.fmtBRL(currentOverride).replace(',00', '')
+                + '. Remover esse valor para usar o novo padrao ('
+                + window.fmtBRL(value).replace(',00', '') + ') neste mes tambem?',
+              confirmLabel: 'Usar novo padrao'
+            }).then(function (ok) {
+              if (!ok) return;
+              Promise.resolve(removeCategoryLimit(catKey, 'this'))
+                .then(function () { toast.success('Mes atual atualizado para o padrao'); })
+                .catch(function () { toast.error('Erro ao atualizar mes atual'); });
+            });
+          }
         })
         .catch(function () { toast.error('Erro ao salvar limite'); });
     }
