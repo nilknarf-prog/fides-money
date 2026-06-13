@@ -127,8 +127,8 @@ alter table public.accounts        enable row level security;
 alter table public.cards           enable row level security;
 alter table public.transactions    enable row level security;
 alter table public.goals           enable row level security;
-alter table public.user_categories  enable row level security;
-alter table public.category_limits  enable row level security;
+alter table public.user_categories enable row level security;
+alter table public.category_limits enable row level security;
 
 create policy "profiles: próprio usuário"     on public.profiles
   for all using (auth.uid() = id);
