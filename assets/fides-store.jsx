@@ -341,15 +341,9 @@ function FidesProvider({ children }) {
         const row = txToRow(merged, userId, cards);
         const { error } = await window.fidesDb.from('transactions').insert(row);
         if (error) throw error;
-        // Update account balance for account transactions
-        if (row.account_id && merged.val !== 0) {
-          const { data: acct } = await window.fidesDb
-            .from('accounts').select('balance').eq('id', row.account_id).single();
-          if (acct) {
-            await window.fidesDb.from('accounts')
-              .update({ balance: Number(acct.balance) + Number(merged.val) })
-              .eq('id', row.account_id);
-          }
+        // Saldo derivado: recalcula a partir das transacoes 'cleared' (fonte unica)
+        if (row.account_id) {
+          await window.fidesDb.rpc('recalc_account_balance', { p_account_id: row.account_id });
         }
         // Update card used for card transactions
         if (row.card_id && merged.val < 0) {
@@ -398,6 +392,8 @@ function FidesProvider({ children }) {
   const updateTransaction = React.useCallback(async (id, patch) => {
     if (mode === 'live' && userId) {
       try {
+        const { data: __prevTx } = await window.fidesDb
+          .from('transactions').select('account_id').eq('id', id).single();
         const dbPatch = {};
         if (patch.status !== undefined) dbPatch.status      = STATUS_TO_DB[patch.status] || patch.status;
         if (patch.desc   !== undefined) dbPatch.description = patch.desc;
@@ -417,6 +413,12 @@ function FidesProvider({ children }) {
         }
         const { error } = await window.fidesDb.from('transactions').update(dbPatch).eq('id', id);
         if (error) throw error;
+        const __affected = new Set();
+        if (__prevTx && __prevTx.account_id) __affected.add(__prevTx.account_id);
+        if (dbPatch.account_id) __affected.add(dbPatch.account_id);
+        for (const __acctId of __affected) {
+          await window.fidesDb.rpc('recalc_account_balance', { p_account_id: __acctId });
+        }
         await refreshData(userId);
       } catch (err) {
         console.error('[Fides] updateTransaction:', err.message);
@@ -507,7 +509,8 @@ function FidesProvider({ children }) {
           name:    acct.name || '',
           type:    acct.type || 'checking',
           tag:     acct.tag  || '',
-          balance: Number(acct.balance) || 0,
+          balance:         Number(acct.balance) || 0,
+          opening_balance: Number(acct.balance) || 0,
           color:   acct.color || '#00C37B',
           bank:    acct.bank || acct.name || '',
         });
@@ -527,8 +530,14 @@ function FidesProvider({ children }) {
   const updateAccount = React.useCallback(async (id, patch) => {
     if (mode === 'live' && userId) {
       try {
-        const { error } = await window.fidesDb.from('accounts').update(patch).eq('id', id);
-        if (error) throw error;
+        const { balance: __targetBal, ...__rest } = patch;
+        if (Object.keys(__rest).length) {
+          const { error } = await window.fidesDb.from('accounts').update(__rest).eq('id', id);
+          if (error) throw error;
+        }
+        if (__targetBal !== undefined && __targetBal !== null) {
+          await window.fidesDb.rpc('set_account_balance', { p_account_id: id, p_target: Number(__targetBal) });
+        }
         await refreshData(userId);
       } catch (err) {
         console.error('[Fides] updateAccount:', err.message);
