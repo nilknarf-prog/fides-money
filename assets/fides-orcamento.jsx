@@ -284,7 +284,8 @@
     var ctx = props.ctx;
     var collapsed = props.collapsed;
     var gm = GROUP_META[g.id] || { label: g.label, tint: 'var(--ink)', target: 0 };
-    var pct = g.limit ? g.spent / g.limit : 0;
+    var gSpent = (g.spentLimited != null ? g.spentLimited : g.spent);
+    var pct = g.limit ? gSpent / g.limit : 0;
     var pctColor = pct >= 1 ? 'var(--bad)'
                  : pct >= 0.8 ? 'var(--warn)'
                  : gm.tint;
@@ -311,7 +312,7 @@
             )
           ),
           React.createElement('div', { className: 'pln-group-sub' },
-            React.createElement('span', { className: 'pln-num' }, fmtVal(g.spent)),
+            React.createElement('span', { className: 'pln-num' }, fmtVal(gSpent)),
             ' de ',
             React.createElement('span', { className: 'pln-num' }, fmtVal(g.limit)),
             ' · ',
@@ -890,10 +891,12 @@
 
     var worstGroup = null;
     var worstPct = 1;
+    var worstOver = 0;
     groups.forEach(function(g) {
       if (g.limit > 0) {
-        var pct = g.spent / g.limit;
-        if (pct > worstPct) { worstPct = pct; worstGroup = g; }
+        var gSpent = (g.spentLimited != null ? g.spentLimited : g.spent);
+        var pct = gSpent / g.limit;
+        if (pct > worstPct) { worstPct = pct; worstGroup = g; worstOver = gSpent - g.limit; }
       }
     });
 
@@ -904,9 +907,9 @@
       cards.push({
         tone: 'bad', ico: '🥧',
         title: 'Aderência 50/30/20',
-        amt: worstGroup.spent - worstGroup.limit,
+        amt: worstOver,
         text: worstGroup.label + ' está em ' + Math.round(worstPct * 100)
-          + '% da meta — ' + fmtVal(worstGroup.spent - worstGroup.limit)
+          + '% da meta — ' + fmtVal(worstOver)
           + ' acima do planejado.'
       });
     }
@@ -933,13 +936,13 @@
     }
 
     if (overCats.length > 0 && cards.length < 4) {
-      var smallest = overCats[overCats.length - 1];
+      var biggest = overCats[0];
       cards.push({
         tone: 'ok', ico: '✦',
         title: 'Ação sugerida',
-        amt: smallest.over,
-        text: 'Cortar ' + fmtVal(smallest.over) + ' em ' + smallest.name
-          + ' elimina o menor estouro do mês.'
+        amt: biggest.over,
+        text: 'Reduzir ' + fmtVal(biggest.over) + ' em ' + biggest.name
+          + ' é o que mais devolve seu orçamento à meta.'
       });
     }
 
@@ -1111,11 +1114,14 @@
         });
         var limit = cats.reduce(function (s, c) { return s + (c.limit || 0); }, 0);
         var spent = cats.reduce(function (s, c) { return s + c.spent; }, 0);
+        var spentLimited = cats.reduce(function (s, c) {
+          return s + (c.limit > 0 ? c.spent : 0);
+        }, 0);
         return {
           id: id,
           label: (GROUP_META[id] || {}).label || id,
           cats: cats, withLimit: withLimit, noLimit: noLimit,
-          limit: limit, spent: spent
+          limit: limit, spent: spent, spentLimited: spentLimited
         };
       });
     }, [adjustedUsage]);
