@@ -46,8 +46,9 @@
     return parseFloat(s) || 0;
   }
   function plnStatus(pct) {
-    if (pct >= 1)   return { cls: 'bad',  label: 'Estourou' };
-    if (pct >= 0.8) return { cls: 'warn', label: 'Atencao'  };
+    if (pct > 1)    return { cls: 'bad',   label: 'Estourou'   };
+    if (pct === 1)  return { cls: 'nolim', label: 'No limite'  };
+    if (pct >= 0.8) return { cls: 'warn',  label: 'Atencao'    };
     return { cls: 'ok', label: 'Em dia' };
   }
 
@@ -106,18 +107,7 @@
       });
     });
 
-    var overCats = allCats.filter(function(c) { return c.spent >= c.limit; });
-
-    var warnCats = [];
-    if (isCurrentMonth && dayElapsed >= 7) {
-      warnCats = allCats.filter(function(c) {
-        if (c.spent >= c.limit) return false;
-        var proj = c.spent * (daysInMonth / dayElapsed);
-        var projPct = proj / c.limit;
-        var threshold = dayElapsed < 15 ? 1.30 : 1.05;
-        return projPct > threshold;
-      });
-    }
+    var overCats = allCats.filter(function(c) { return c.spent > c.limit; });
 
     var sobra = (totals.planned || 0) - (totals.realized || 0);
 
@@ -156,20 +146,6 @@
               ),
               React.createElement('br', null),
               overCats.map(function(c) { return c.name; }).join(' · ')
-            )
-          )
-        : null,
-      warnCats.length > 0
-        ? React.createElement('div', { className: 'pln-resumo-alert pln-resumo-alert--warn' },
-            React.createElement('span', { className: 'pln-resumo-alert-ico' }, '📈'),
-            React.createElement('span', { className: 'pln-resumo-alert-txt' },
-              React.createElement('strong', null,
-                warnCats.length === 1
-                  ? '1 categoria no ritmo de estourar'
-                  : warnCats.length + ' no ritmo de estourar'
-              ),
-              React.createElement('br', null),
-              warnCats.map(function(c) { return c.name; }).join(' · ')
             )
           )
         : null
