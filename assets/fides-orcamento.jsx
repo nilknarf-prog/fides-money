@@ -845,6 +845,183 @@
     );
   }
 
+  // ─── computeInsights ──────────────────────────────────────
+  function computeInsights(groups, totals, prevTxs) {
+    var hasHistory = !!(prevTxs && prevTxs.length > 0);
+
+    var overCats = [];
+    groups.forEach(function(g) {
+      g.cats.forEach(function(c) {
+        if (c.limit > 0 && c.spent > c.limit) {
+          overCats.push({
+            name: c.label, cat_key: c.cat_key,
+            spent: c.spent, limit: c.limit, over: c.spent - c.limit
+          });
+        }
+      });
+    });
+    overCats.sort(function(a, b) { return b.over - a.over; });
+
+    var prevSpent = {};
+    if (hasHistory) {
+      prevTxs.forEach(function(t) {
+        if (t.isTransfer || t.val >= 0 || t.status !== 'pago') return;
+        prevSpent[t.cat] = (prevSpent[t.cat] || 0) + Math.abs(t.val);
+      });
+    }
+
+    var topTrend = null;
+    if (hasHistory) {
+      var trends = [];
+      groups.forEach(function(g) {
+        g.cats.forEach(function(c) {
+          var prev = prevSpent[c.cat_key] || 0;
+          if (prev >= 50 && c.spent > prev) {
+            trends.push({
+              name: c.label, current: c.spent, prev: prev,
+              delta: (c.spent - prev) / prev
+            });
+          }
+        });
+      });
+      trends.sort(function(a, b) { return b.delta - a.delta; });
+      if (trends.length > 0 && trends[0].delta >= 0.20) topTrend = trends[0];
+    }
+
+    var worstGroup = null;
+    var worstPct = 1;
+    groups.forEach(function(g) {
+      if (g.limit > 0) {
+        var pct = g.spent / g.limit;
+        if (pct > worstPct) { worstPct = pct; worstGroup = g; }
+      }
+    });
+
+    var sobra = (totals.planned || 0) - (totals.realized || 0);
+    var cards = [];
+
+    if (worstGroup) {
+      cards.push({
+        tone: 'bad', ico: '🥧',
+        title: 'Aderência 50/30/20',
+        amt: worstGroup.spent - worstGroup.limit,
+        text: worstGroup.label + ' está em ' + Math.round(worstPct * 100)
+          + '% da meta — ' + fmtVal(worstGroup.spent - worstGroup.limit)
+          + ' acima do planejado.'
+      });
+    }
+
+    if (overCats.length > 0) {
+      var top = overCats[0];
+      cards.push({
+        tone: 'bad', ico: '📈',
+        title: 'Maior vazamento',
+        amt: top.over,
+        text: top.name + ' é seu maior estouro: ' + fmtVal(top.over)
+          + ' acima do limite de ' + fmtVal(top.limit) + '.'
+      });
+    }
+
+    if (topTrend && cards.length < 4) {
+      cards.push({
+        tone: 'warn', ico: '📊',
+        title: 'Tendência de alta',
+        amt: topTrend.current - topTrend.prev,
+        text: topTrend.name + ' subiu ~' + Math.round(topTrend.delta * 100)
+          + '% em relação ao mês passado.'
+      });
+    }
+
+    if (overCats.length > 0 && cards.length < 4) {
+      var smallest = overCats[overCats.length - 1];
+      cards.push({
+        tone: 'ok', ico: '✦',
+        title: 'Ação sugerida',
+        amt: smallest.over,
+        text: 'Cortar ' + fmtVal(smallest.over) + ' em ' + smallest.name
+          + ' elimina o menor estouro do mês.'
+      });
+    }
+
+    if (sobra > 0 && cards.length < 4) {
+      cards.push({
+        tone: 'ok', ico: '✓',
+        title: overCats.length === 0 ? 'Bom controle' : 'Saldo positivo',
+        amt: sobra,
+        text: overCats.length === 0
+          ? 'Sobra de ' + fmtVal(sobra) + ' este mês com todas as categorias dentro do limite.'
+          : 'Apesar dos estouros, sobra de ' + fmtVal(sobra) + ' no mês — bom controle geral.'
+      });
+    }
+
+    return { cards: cards.slice(0, 4), hasHistory: hasHistory };
+  }
+
+  // ─── PlnMesInsights ───────────────────────────────────────
+  function PlnMesInsights(props) {
+    var groups  = props.groups  || [];
+    var totals  = props.totals  || {};
+    var prevTxs = props.prevTxs || [];
+
+    var stAI = React.useState(false);
+    var aiLoading = stAI[0]; var setAiLoading = stAI[1];
+
+    var result   = computeInsights(groups, totals, prevTxs);
+    var cards    = result.cards;
+    var hasHistory = result.hasHistory;
+
+    if (!cards.length) return null;
+
+    function handleAiClick() {
+      if (aiLoading) return;
+      setAiLoading(true);
+      setTimeout(function() { setAiLoading(false); }, 2200);
+    }
+
+    return React.createElement('div', { className: 'pln-mes-insights' },
+      React.createElement('div', { className: 'pln-mi-head' },
+        React.createElement('span', { className: 'pln-mi-title-ico' }, '💡'),
+        React.createElement('span', { className: 'pln-mi-title' }, 'Insights do mês')
+      ),
+      React.createElement('div', { className: 'pln-mi-cards' },
+        cards.map(function(card, i) {
+          return React.createElement('div', {
+            key: i, className: 'pln-mi-card pln-mi-card--' + card.tone
+          },
+            React.createElement('span', { className: 'pln-mi-icon' }, card.ico),
+            React.createElement('div', { className: 'pln-mi-body' },
+              React.createElement('div', { className: 'pln-mi-hd' },
+                React.createElement('span', { className: 'pln-mi-title-sm' }, card.title),
+                card.amt != null
+                  ? React.createElement('span', { className: 'pln-mi-amt' },
+                      fmtVal(Math.abs(card.amt)))
+                  : null
+              ),
+              React.createElement('p', { className: 'pln-mi-text' }, card.text)
+            )
+          );
+        })
+      ),
+      React.createElement('div', { className: 'pln-mi-footer' },
+        !hasHistory
+          ? React.createElement('p', { className: 'pln-mi-hint' },
+              'Insights de tendência aparecem quando houver histórico do mês anterior.')
+          : null,
+        React.createElement('button', {
+          type: 'button',
+          className: 'pln-mi-ai-btn',
+          disabled: aiLoading,
+          onClick: handleAiClick
+        },
+          aiLoading
+            ? React.createElement('span', { className: 'pln-mi-spin' })
+            : React.createElement('span', null, '🤖'),
+          React.createElement('span', null, aiLoading ? 'Analisando…' : 'Análise da IA')
+        )
+      )
+    );
+  }
+
   // ─── Main component ───────────────────────────────────────
   function FidesOrcamento() {
     var store = window.useFides();
@@ -1220,6 +1397,11 @@
                 collapsed: !!collapsedGroups[g.id],
                 onToggleCollapse: function () { toggleGroup(g.id); }
               });
+            }),
+            React.createElement(PlnMesInsights, {
+              groups: groups,
+              totals: totals,
+              prevTxs: store.prevMonthTransactions || []
             })
           ),
       limitSheet
