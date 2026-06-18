@@ -882,22 +882,28 @@
       });
     }
 
+    // Tendência só é real com base e alta materiais em R$ — % sobre base
+    // pequena ("+835% sobre R$ 53") engana. O número que importa é o R$.
+    var TREND_MIN_BASE = 100;   // gasto mínimo no mês anterior
+    var TREND_MIN_RISE = 100;   // alta mínima em R$ vs mês anterior
     var topTrend = null;
     if (hasHistory) {
       var trends = [];
       groups.forEach(function(g) {
         g.cats.forEach(function(c) {
           var prev = prevSpent[c.cat_key] || 0;
-          if (prev >= 50 && c.spent > prev) {
+          var rise = c.spent - prev;
+          if (prev >= TREND_MIN_BASE && rise >= TREND_MIN_RISE) {
             trends.push({
               name: c.label, current: c.spent, prev: prev,
-              delta: (c.spent - prev) / prev
+              rise: rise, delta: rise / prev
             });
           }
         });
       });
-      trends.sort(function(a, b) { return b.delta - a.delta; });
-      if (trends.length > 0 && trends[0].delta >= 0.20) topTrend = trends[0];
+      // Ordena pela maior alta em R$ (não pela maior %).
+      trends.sort(function(a, b) { return b.rise - a.rise; });
+      if (trends.length > 0) topTrend = trends[0];
     }
 
     var worstGroup = null;
@@ -940,9 +946,9 @@
       cards.push({
         tone: 'warn', ico: '📊',
         title: 'Tendência de alta',
-        amt: topTrend.current - topTrend.prev,
-        text: topTrend.name + ' subiu ~' + Math.round(topTrend.delta * 100)
-          + '% em relação ao mês passado.'
+        amt: topTrend.rise,
+        text: topTrend.name + ' subiu ' + fmtVal(topTrend.rise) + ' (~'
+          + Math.round(topTrend.delta * 100) + '%) em relação ao mês passado.'
       });
     }
 
