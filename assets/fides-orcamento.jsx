@@ -850,18 +850,29 @@
   function computeInsights(groups, totals, prevTxs) {
     var hasHistory = !!(prevTxs && prevTxs.length > 0);
 
+    // Prioridade de corte por grupo: estilo de vida é o mais cortável,
+    // essencial é o que menos se deve cortar. Menor índice = cortar primeiro.
+    var CUT_PRIORITY = { estilo: 0, divida: 1, essencial: 2 };
+
     var overCats = [];
     groups.forEach(function(g) {
       g.cats.forEach(function(c) {
         if (c.limit > 0 && c.spent > c.limit) {
           overCats.push({
-            name: c.label, cat_key: c.cat_key,
+            name: c.label, cat_key: c.cat_key, grp: g.id,
             spent: c.spent, limit: c.limit, over: c.spent - c.limit
           });
         }
       });
     });
-    overCats.sort(function(a, b) { return b.over - a.over; });
+    // Ordena por maior R$ (usado no card "Maior vazamento", que é factual).
+    var overByAmount = overCats.slice().sort(function(a, b) { return b.over - a.over; });
+    // Ordena por prioridade de corte, depois por R$ (usado na "Ação sugerida").
+    var overByCutPriority = overCats.slice().sort(function(a, b) {
+      var pa = CUT_PRIORITY[a.grp] != null ? CUT_PRIORITY[a.grp] : 99;
+      var pb = CUT_PRIORITY[b.grp] != null ? CUT_PRIORITY[b.grp] : 99;
+      return (pa - pb) || (b.over - a.over);
+    });
 
     var prevSpent = {};
     if (hasHistory) {
@@ -914,8 +925,8 @@
       });
     }
 
-    if (overCats.length > 0) {
-      var top = overCats[0];
+    if (overByAmount.length > 0) {
+      var top = overByAmount[0];
       cards.push({
         tone: 'bad', ico: '📈',
         title: 'Maior vazamento',
@@ -935,14 +946,14 @@
       });
     }
 
-    if (overCats.length > 0 && cards.length < 4) {
-      var biggest = overCats[0];
+    if (overByCutPriority.length > 0 && cards.length < 4) {
+      var target = overByCutPriority[0];
       cards.push({
         tone: 'ok', ico: '✦',
         title: 'Ação sugerida',
-        amt: biggest.over,
-        text: 'Reduzir ' + fmtVal(biggest.over) + ' em ' + biggest.name
-          + ' é o que mais devolve seu orçamento à meta.'
+        amt: target.over,
+        text: 'Reduzir ' + fmtVal(target.over) + ' em ' + target.name
+          + ' é o corte mais saudável para voltar à meta.'
       });
     }
 
