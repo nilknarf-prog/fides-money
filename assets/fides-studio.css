@@ -714,7 +714,7 @@
 
 /* Lote 4D — chip de aviso de receita */
 .pln-revenue-hint {
-  background: var(--surface-alt, #f5f0eb);
+  background: var(--card-soft);
   border-radius: 8px;
   padding: 10px 14px;
   margin-bottom: 12px;
@@ -722,7 +722,7 @@
 
 .pln-revenue-hint p {
   font-size: 0.8rem;
-  color: var(--text-secondary, #6b5e53);
+  color: var(--muted);
   margin: 0;
   line-height: 1.4;
 }
@@ -743,7 +743,7 @@
 .prf-back {
   background: none;
   border: none;
-  color: var(--clr-primary, #6c63ff);
+  color: var(--accent);
   font-size: 0.9rem;
   padding: 0.5rem 0.25rem;
   cursor: pointer;
@@ -761,7 +761,7 @@
   display: flex;
   flex-direction: column;
   gap: 1.25rem;
-  background: var(--clr-surface, #fff);
+  background: var(--card);
   border-radius: 1rem;
   padding: 1.5rem 1.25rem;
 }
@@ -772,7 +772,7 @@
   width: 72px;
   height: 72px;
   border-radius: 50%;
-  background: var(--clr-primary, #6c63ff);
+  background: var(--accent);
   margin: 0 auto 0.5rem;
 }
 .prf-avatar-initials {
@@ -786,7 +786,7 @@
   margin-top: 0.25rem;
   display: block;
 }
-.prf-hint--err { color: var(--clr-danger, #e53e3e); }
+.prf-hint--err { color: var(--bad); }
 .prf-msg {
   font-size: 0.85rem;
   margin: 0;
@@ -794,12 +794,12 @@
   border-radius: 0.5rem;
 }
 .prf-msg--ok {
-  background: var(--clr-success-bg, #f0fff4);
-  color: var(--clr-success, #276749);
+  background: var(--ok-soft);
+  color: var(--ok);
 }
 .prf-msg--erro {
-  background: var(--clr-danger-bg, #fff5f5);
-  color: var(--clr-danger, #e53e3e);
+  background: var(--bad-soft);
+  color: var(--bad);
 }
 .prf-save-btn {
   width: 100%;
