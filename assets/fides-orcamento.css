@@ -670,7 +670,11 @@
     display: flex; flex-direction: column; gap: 18px;
     min-width: 0;
   }
-  .pln-rail { grid-column: 1; }
+  .pln-rail {
+    grid-column: 1;
+    position: sticky; top: 150px;
+    align-self: start;
+  }
   .pln-main { grid-column: 2; }
   .pln-rail .pln-resumo, .pln-main .pln-rule-card { margin-bottom: 0; }
   .pln-rail .pln-mes-insights { margin-top: 0; }
@@ -852,7 +856,7 @@
 }
 .pln-resumo-alert--warn {
   background: var(--warn-bg, #fbf1e5);
-  color: var(--warn, #c67d3c);
+  color: var(--warn, #B45309);
 }
 
 /* ── Lote 6B: SuggestPreviewSheet ─────────────────────────── */
