@@ -113,6 +113,13 @@
   display: flex; flex-direction: column; gap: 18px;
 }
 
+/* Wrappers transparentes no mobile: ordem do fluxo preservada via order */
+.pln-rail, .pln-main { display: contents; }
+.pln-resumo       { order: 1; }
+.pln-rule-card    { order: 2; }
+.pln-group        { order: 3; }
+.pln-mes-insights { order: 4; }
+
 /* ─── Insights aggregate card ───────────────────────────────── */
 .pln-insights {
   background: var(--card);
@@ -659,16 +666,14 @@
     display: grid; grid-template-columns: 360px 1fr; gap: 26px;
     align-items: start;
   }
-  .pln-insights {
-    grid-column: 1; grid-row: 1 / span 99;
-    position: sticky; top: 150px;
-    align-self: start;
-    display: block;
+  .pln-rail, .pln-main {
+    display: flex; flex-direction: column; gap: 18px;
+    min-width: 0;
   }
-  .pln-ins-totals { grid-template-columns: 1fr; border-left: 0; border-top: 1px solid var(--border); }
-  .pln-ins-tot + .pln-ins-tot { border-top: 1px solid var(--border); }
-  .pln-dist { background: var(--card-soft); }
-  .pln-group { grid-column: 2; }
+  .pln-rail { grid-column: 1; }
+  .pln-main { grid-column: 2; }
+  .pln-rail .pln-resumo, .pln-main .pln-rule-card { margin-bottom: 0; }
+  .pln-rail .pln-mes-insights { margin-top: 0; }
   .pln-group-cats { grid-template-columns: repeat(2, 1fr); }
 }
 

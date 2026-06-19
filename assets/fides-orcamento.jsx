@@ -1406,26 +1406,30 @@
             onApplyRule: function () { toast.info('Em breve — proxima versao'); }
           })
         : React.createElement('div', { className: 'pln-body' },
-            React.createElement(PlnResumo, {
-              groups: groups,
-              totals: totals,
-              dayElapsed: dayElapsed,
-              daysInMonth: daysInMonth,
-              isCurrentMonth: isCurrentMonth
-            }),
-            React.createElement(RuleInfoCard, null),
-            groups.map(function (g) {
-              return React.createElement(PlnGroupSection, {
-                key: g.id, g: g, ctx: ctx,
-                collapsed: !!collapsedGroups[g.id],
-                onToggleCollapse: function () { toggleGroup(g.id); }
-              });
-            }),
-            React.createElement(PlnMesInsights, {
-              groups: groups,
-              totals: totals,
-              prevTxs: store.prevMonthTransactions || []
-            })
+            React.createElement('div', { className: 'pln-rail' },
+              React.createElement(PlnResumo, {
+                groups: groups,
+                totals: totals,
+                dayElapsed: dayElapsed,
+                daysInMonth: daysInMonth,
+                isCurrentMonth: isCurrentMonth
+              }),
+              React.createElement(PlnMesInsights, {
+                groups: groups,
+                totals: totals,
+                prevTxs: store.prevMonthTransactions || []
+              })
+            ),
+            React.createElement('div', { className: 'pln-main' },
+              React.createElement(RuleInfoCard, null),
+              groups.map(function (g) {
+                return React.createElement(PlnGroupSection, {
+                  key: g.id, g: g, ctx: ctx,
+                  collapsed: !!collapsedGroups[g.id],
+                  onToggleCollapse: function () { toggleGroup(g.id); }
+                });
+              })
+            )
           ),
       limitSheet
         ? React.createElement(LimitSheet, {
