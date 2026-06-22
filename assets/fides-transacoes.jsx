@@ -162,6 +162,14 @@ function Transacoes({ variant, onAdd }) {
   const { monthTransactions, transactions, categories, selectedMonth, setSelectedMonth, monthLabel, addTransaction, updateTransaction, deleteTransaction, accounts, cards } = useFides();
   const [sortBy, setSortBy] = React.useState('data');         // data | categoria | conta | valor
   const [sortOrder, setSortOrder] = React.useState('desc');    // desc | asc
+  const [collapsedGroups, setCollapsedGroups] = React.useState(new Set());
+  const toggleGroup = React.useCallback(function(name) {
+    setCollapsedGroups(function(prev) {
+      var next = new Set(prev);
+      if (next.has(name)) { next.delete(name); } else { next.add(name); }
+      return next;
+    });
+  }, []);
   const [filterType, setFilterType] = React.useState('todas'); // todas | receitas | despesas | pendentes
   const [search, setSearch] = React.useState('');
   const [selectedIds, setSelectedIds] = React.useState(new Set()); // Set<tx._id>
@@ -738,27 +746,41 @@ function Transacoes({ variant, onAdd }) {
           )}
 
           <div className="fds-tx-v2-cards">
-            {grouped.map(function(item, idx) {
-              if (item.type === 'header') {
-                var groupTotal = item.txs.reduce(function(s, t) { return s + t.val; }, 0);
-                return (
-                  <div key={'g-' + item.groupName + '-' + idx} className="fds-tx-v2-group">
-                    <div className="fds-tx-v2-group-left">
-                      <span className="fds-tx-v2-group-name">{item.groupName}</span>
-                      <span className="fds-tx-v2-group-count">
-                        {item.txs.length} transaç{item.txs.length === 1 ? 'ão' : 'ões'}
-                      </span>
+            {(function() {
+              var _curGroup = null;
+              return grouped.map(function(item, idx) {
+                if (item.type === 'header') {
+                  _curGroup = item.groupName;
+                  var groupTotal = item.txs.reduce(function(s, t) { return s + t.val; }, 0);
+                  var isCollapsed = collapsedGroups.has(item.groupName);
+                  return (
+                    <div key={'g-' + item.groupName + '-' + idx}
+                         className="fds-tx-v2-group"
+                         onClick={function() { toggleGroup(item.groupName); }}
+                         style={{ cursor: 'pointer', userSelect: 'none' }}>
+                      <div className="fds-tx-v2-group-left">
+                        <span className="fds-tx-v2-group-name">{item.groupName}</span>
+                        <span className="fds-tx-v2-group-count">
+                          {item.txs.length} transaç{item.txs.length === 1 ? 'ão' : 'ões'}
+                        </span>
+                      </div>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                        <div className="fds-tx-v2-group-total"
+                             style={{ color: groupTotal >= 0 ? 'var(--ok)' : 'var(--bad)' }}>
+                          {fmtBRL(groupTotal)}
+                        </div>
+                        <span style={{ display: 'flex', alignItems: 'center', color: 'var(--muted)', transition: 'transform 0.18s', transform: isCollapsed ? 'rotate(-90deg)' : 'rotate(0deg)' }}>
+                          <Icon.Down size={14}/>
+                        </span>
+                      </div>
                     </div>
-                    <div className="fds-tx-v2-group-total"
-                         style={{ color: groupTotal >= 0 ? 'var(--ok)' : 'var(--bad)' }}>
-                      {fmtBRL(groupTotal)}
-                    </div>
-                  </div>
-                );
-              }
+                  );
+                }
 
-              var t = item.data;
-              var c = categories[t.cat] || { label: t.cat, tint: 'var(--muted-2)', emoji: '🏷️' };
+                if (_curGroup !== null && collapsedGroups.has(_curGroup)) return null;
+
+                var t = item.data;
+                var c = categories[t.cat] || { label: t.cat, tint: 'var(--muted-2)', emoji: '🏷️' };
               var acctInfo = acctNameOf(t.acct, safeAccounts, safeCards);
               var isSelected = selectedIds.has(t._id);
               var neg = t.val < 0;
@@ -850,7 +872,8 @@ function Transacoes({ variant, onAdd }) {
                   </button>
                 </div>
               );
-            })}
+              });
+            })()}
           </div>
 
           {hasAnyFilter && filtered.length < baseList.length && (
@@ -1211,6 +1234,15 @@ function NovaTransacaoModal({ open, onClose, onSave, variant }) {
   const handleSave = async (keepOpen = false) => {
     if (!canSave) return;
     if (kind === 'transferencia') {
+      const originAcct = accounts.find(a => a.id === acct);
+      if (originAcct && originAcct.balance <= 0) {
+        const absVal = Math.abs(originAcct.balance).toLocaleString('pt-BR', { minimumFractionDigits: 2 });
+        const saldoLabel = originAcct.balance < 0 ? `−R$ ${absVal}` : `R$ 0,00`;
+        const confirmed = window.confirm(
+          `A conta "${originAcct.name}" está com saldo ${saldoLabel}.\n\nEsta transferência deixará o saldo ainda mais negativo. Deseja continuar mesmo assim?`
+        );
+        if (!confirmed) return;
+      }
       const p = String(date).split('/');
       const iso = (p[0] && p[1])
         ? `${p[2] || new Date().getFullYear()}-${p[1].padStart(2,'0')}-${p[0].padStart(2,'0')}`
@@ -1562,22 +1594,38 @@ function NovaTransacaoModal({ open, onClose, onSave, variant }) {
               Preview
               {parcelas > 1 && <span className="fds-mini-tag soft" style={{ marginLeft: 8 }}>1/{parcelas}</span>}
             </div>
-            <div className="fds-preview-row">
-              <CategoryAvatar cat={cat} size={36}/>
-              <div className="fds-recent-meta">
-                <div className="fds-recent-desc">{desc || 'Sua transação aparecerá aqui'}</div>
-                <div className="fds-recent-sub">
-                  {shortDate(date)} <span className="fds-bullet">·</span> {categories[cat]?.label || cat}
-                  {parcelas > 1 && <span className="fds-mini-tag soft">{parcelas}× parcelada</span>}
-                  {!paid && <span className="fds-mini-tag warn">pendente</span>}
+            {kind === 'transferencia' ? (
+              <div className="fds-preview-row">
+                <span style={{ width:36,height:36,borderRadius:10,background:'color-mix(in oklab,var(--info) 15%,transparent)',border:'1px solid color-mix(in oklab,var(--info) 30%,transparent)',display:'inline-flex',alignItems:'center',justifyContent:'center',fontSize:18,lineHeight:1,flex:'none' }}>↔</span>
+                <div className="fds-recent-meta">
+                  <div className="fds-recent-desc">{desc || 'Transferência entre contas'}</div>
+                  <div className="fds-recent-sub">
+                    {shortDate(date)}
+                    {acct && toAcct
+                      ? <span> · {accounts.find(a => a.id === acct)?.name || '?'} → {accounts.find(a => a.id === toAcct)?.name || '?'}</span>
+                      : <span style={{ color: 'var(--warn)' }}> · selecione as contas acima</span>}
+                  </div>
+                </div>
+                <div className="fds-recent-amt">{val ? 'R$ ' + val : 'R$ 0,00'}</div>
+              </div>
+            ) : (
+              <div className="fds-preview-row">
+                <CategoryAvatar cat={cat} size={36}/>
+                <div className="fds-recent-meta">
+                  <div className="fds-recent-desc">{desc || 'Sua transação aparecerá aqui'}</div>
+                  <div className="fds-recent-sub">
+                    {shortDate(date)} <span className="fds-bullet">·</span> {categories[cat]?.label || cat}
+                    {parcelas > 1 && <span className="fds-mini-tag soft">{parcelas}× parcelada</span>}
+                    {!paid && <span className="fds-mini-tag warn">pendente</span>}
+                  </div>
+                </div>
+                <div className={`fds-recent-amt ${kind==='receita'?'pos':kind==='despesa'?'neg':''}`}>
+                  {kind === 'receita' ? '+' : kind === 'despesa' ? '−' : ''}R$&nbsp;{parcelas > 1 && parseVal(val) > 0
+                    ? (parseVal(val) / parcelas).toLocaleString('pt-BR',{minimumFractionDigits:2})
+                    : (val || '0,00')}
                 </div>
               </div>
-              <div className={`fds-recent-amt ${kind==='receita'?'pos':kind==='despesa'?'neg':''}`}>
-                {kind === 'receita' ? '+' : kind === 'despesa' ? '−' : ''}R$&nbsp;{parcelas > 1 && parseVal(val) > 0
-                  ? (parseVal(val) / parcelas).toLocaleString('pt-BR',{minimumFractionDigits:2})
-                  : (val || '0,00')}
-              </div>
-            </div>
+            )}
           </div>
         </div>
 
