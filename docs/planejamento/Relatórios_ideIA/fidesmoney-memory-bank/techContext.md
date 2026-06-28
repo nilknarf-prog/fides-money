@@ -1,0 +1,1 @@
+O projeto está em fase de lançamento para amigos e família. O fundador é não-técnico. Existe um caminho planejado para importação de extratos, integração via WhatsApp e versão comercial, indicando evolução futura.

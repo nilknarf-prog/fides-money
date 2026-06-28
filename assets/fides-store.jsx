@@ -82,6 +82,7 @@ function normalizeCard(row) {
     due: String(row.due_day),
     color: row.color || '#1A1A2E',
     bank: row.bank || '',
+    expected_invoice: row.expected_invoice || {},
   };
 }
 
@@ -597,6 +598,7 @@ function FidesProvider({ children }) {
         if (patch.limit         !== undefined) { dbPatch.card_limit  = patch.limit;         delete dbPatch.limit; }
         if (patch.diaVencimento !== undefined) { dbPatch.due_day     = patch.diaVencimento; delete dbPatch.diaVencimento; }
         if (patch.diaFechamento !== undefined) { dbPatch.closing_day = patch.diaFechamento; delete dbPatch.diaFechamento; }
+        if (patch.expected_invoice !== undefined) { dbPatch.expected_invoice = patch.expected_invoice; }
         const { error } = await window.fidesDb.from('cards').update(dbPatch).eq('id', id);
         if (error) throw error;
         await refreshData(userId);
@@ -1112,6 +1114,46 @@ function FidesProvider({ children }) {
     return map;
   }, [transactions, cards, mode]);
 
+  const faturasDoCartao = React.useCallback((cardId) => {
+    const cardList = mode === 'live' ? cards : CARDS;
+    const card = cardList.find(c => c.id === cardId);
+    if (!card) return [];
+
+    const faturas = Object.values(faturasPorCartao).filter(f => f.cardId === cardId);
+    
+    const hoje = new Date();
+    hoje.setHours(0, 0, 0, 0);
+
+    const mapped = faturas.map(fat => {
+      const [yy, mm] = fat.mesFatura.split('-');
+      const ano = parseInt(yy, 10);
+      const mes = parseInt(mm, 10) - 1; // 0-based index
+
+      const diaF = card.diaFechamento || 5;
+      const diaV = card.diaVencimento || card.due || 10;
+      
+      let mesF = mes;
+      if (diaF > diaV) {
+        mesF = mes - 1;
+      }
+
+      const dtFechamento = new Date(ano, mesF, diaF);
+      const dtVencimento = new Date(ano, mes, diaV);
+
+      let status = 'aberta';
+      if (hoje > dtVencimento) {
+        status = 'vencida';
+      } else if (hoje > dtFechamento || hoje.getTime() === dtFechamento.getTime()) {
+        status = 'fechada';
+      }
+
+      return { ...fat, dtFechamento, dtVencimento, status };
+    });
+
+    mapped.sort((a, b) => a.mesFatura.localeCompare(b.mesFatura));
+    return mapped;
+  }, [faturasPorCartao, cards, mode]);
+
   // ─── Computed flags ───────────────────────────────────────────
 
   const isLoading = mode === 'loading';
@@ -1150,7 +1192,7 @@ function FidesProvider({ children }) {
     selectedMonth, setSelectedMonth, prevMonth, monthLabel,
     // Derived
     monthTransactions, prevMonthTransactions, virtualRecurringRevenue,
-    spendByCategory, budgetGroups, faturasPorCartao, faturaAbertaPorCartao,
+    spendByCategory, budgetGroups, faturasPorCartao, faturaAbertaPorCartao, faturasDoCartao,
     // UI toggles
     categoryModalOpen,
     assistantOpen,

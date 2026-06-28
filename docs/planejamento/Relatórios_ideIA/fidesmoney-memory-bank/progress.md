@@ -1,0 +1,1 @@
+O projeto está em fase de lançamento para amigos e família (em-desenvolvimento), o que significa que o MVP está sendo testado e refinado com um pequeno grupo de usuários.

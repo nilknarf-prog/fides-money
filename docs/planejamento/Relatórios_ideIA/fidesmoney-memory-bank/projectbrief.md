@@ -1,0 +1,1 @@
+FidesMoney é um aplicativo brasileiro de finanças pessoais focado em registro manual de transações para aumentar a consciência financeira, planejamento com a regra 50·30·20, e acompanhamento de metas, com um assistente de IA.

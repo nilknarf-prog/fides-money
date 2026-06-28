@@ -175,11 +175,34 @@ function ConfirmDeleteModal({ open, title, desc, onConfirm, onCancel }) {
 }
 
 function PagarFaturaModal({ modal, accounts = [], onClose, onConfirm }) {
-  const { categories } = useFides();
-  const [selected, setSelected] = React.useState(() =>
-    new Set(modal.txs.map(t => t._id))
-  );
+  const { categories, cards, updateCard } = useFides();
+  const [idxFatura, setIdxFatura] = React.useState(() => {
+    const defaultIdx = modal.faturas.findIndex(f => f.status === 'vencida' || f.status === 'fechada');
+    return defaultIdx !== -1 ? defaultIdx : 0;
+  });
+
+  const activeFatura = modal.faturas[idxFatura];
+  const txs = activeFatura.txs;
+
+  const card = cards.find(c => c.id === modal.cardId);
+  const dbRealValue = card?.expected_invoice?.[activeFatura.mesFatura] || '';
+  const [realValue, setRealValue] = React.useState(dbRealValue);
+
+  const [selected, setSelected] = React.useState(() => new Set(txs.map(t => t._id)));
   const [selectedAccount, setSelectedAccount] = React.useState(accounts[0]?.id || '');
+
+  React.useEffect(() => {
+    setSelected(new Set(txs.map(t => t._id)));
+    setRealValue(card?.expected_invoice?.[activeFatura.mesFatura] || '');
+  }, [idxFatura, txs, activeFatura.mesFatura, card]);
+
+  const handleRealValueBlur = () => {
+    if (!card) return;
+    if (realValue !== (card.expected_invoice?.[activeFatura.mesFatura] || '')) {
+      const patch = { ...(card.expected_invoice || {}), [activeFatura.mesFatura]: realValue };
+      updateCard(card.id, { expected_invoice: patch });
+    }
+  };
 
   const toggle = (id) => setSelected(prev => {
     const next = new Set(prev);
@@ -188,18 +211,18 @@ function PagarFaturaModal({ modal, accounts = [], onClose, onConfirm }) {
   });
 
   const toggleAll = () => {
-    if (selected.size === modal.txs.length) {
+    if (selected.size === txs.length) {
       setSelected(new Set());
     } else {
-      setSelected(new Set(modal.txs.map(t => t._id)));
+      setSelected(new Set(txs.map(t => t._id)));
     }
   };
 
-  const totalSelecionado = modal.txs
+  const totalSelecionado = txs
     .filter(t => selected.has(t._id))
     .reduce((sum, t) => sum + Math.abs(t.val), 0);
 
-  const allSelected = selected.size === modal.txs.length;
+  const allSelected = selected.size === txs.length;
   const noneSelected = selected.size === 0;
 
   const selectedAcct      = accounts.find(a => a.id === selectedAccount);
@@ -214,21 +237,38 @@ function PagarFaturaModal({ modal, accounts = [], onClose, onConfirm }) {
 
         <div className="fds-modal-head">
           <div>
-            <div className="fds-modal-eyebrow">Pagar fatura</div>
-            <div className="fds-modal-title">{modal.cardName}</div>
+            <div className="fds-modal-eyebrow" style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+              {modal.cardName}
+              <span className={`pfm-status-chip status-${activeFatura.status}`}>{activeFatura.status}</span>
+            </div>
+            <div className="fds-modal-title" style={{ display: 'flex', alignItems: 'center', gap: 8, marginTop: 4 }}>
+              <button className="fds-icon-btn pfm-nav-btn" onClick={() => setIdxFatura(idx => Math.max(0, idx - 1))} disabled={idxFatura === 0} style={{ minHeight: 44, touchAction: 'manipulation' }}>
+                <Icon.ChevronLeft size={20} />
+              </button>
+              <span style={{ fontSize: '1.25rem' }}>{new Date(activeFatura.mesFatura + '-01T00:00:00').toLocaleDateString('pt-BR', { month: 'long', timeZone: 'UTC' }).replace(/^\w/, c => c.toUpperCase())} · vence {activeFatura.dtVencimento.toLocaleDateString('pt-BR', {day:'2-digit', month:'2-digit'})}</span>
+              <button className="fds-icon-btn pfm-nav-btn" onClick={() => setIdxFatura(idx => Math.min(modal.faturas.length - 1, idx + 1))} disabled={idxFatura === modal.faturas.length - 1} style={{ minHeight: 44, touchAction: 'manipulation' }}>
+                <Icon.ChevronRight size={20} />
+              </button>
+            </div>
           </div>
           <button className="fds-icon-btn" onClick={onClose}
-                  style={{ touchAction: 'manipulation', WebkitTapHighlightColor: 'transparent' }}>
+                  style={{ touchAction: 'manipulation', WebkitTapHighlightColor: 'transparent', alignSelf: 'flex-start' }}>
             <Icon.X size={16}/>
           </button>
         </div>
 
         <div className="fds-modal-body" style={{ padding: '0 0 4px' }}>
 
+          {activeFatura.status === 'aberta' && (
+            <div className="pfm-banner-aberta">
+              Ainda não fechou — ainda pode receber lançamentos.
+            </div>
+          )}
+
           {/* Linha selecionar todos */}
           <div className="pfm-select-all">
             <button className="pfm-check-btn" onClick={toggleAll}
-                    style={{ touchAction: 'manipulation', WebkitTapHighlightColor: 'transparent' }}>
+                    style={{ touchAction: 'manipulation', WebkitTapHighlightColor: 'transparent', minHeight: 44 }}>
               <span className={`pfm-checkbox ${allSelected ? 'checked' : ''}`}>
                 {allSelected && <Icon.Check size={11}/>}
               </span>
@@ -236,19 +276,20 @@ function PagarFaturaModal({ modal, accounts = [], onClose, onConfirm }) {
                 {allSelected ? 'Desmarcar todos' : 'Selecionar todos'}
               </span>
             </button>
-            <span className="pfm-count">{selected.size} de {modal.txs.length}</span>
+            <span className="pfm-count">{selected.size} de {txs.length}</span>
           </div>
 
           {/* Lista de transações */}
           <div className="pfm-list">
-            {modal.txs.map(t => {
+            {txs.map(t => {
               const cat = categories[t.cat] || { label: t.cat, emoji: '🏷️', tint: '#888' };
               const isSelected = selected.has(t._id);
               return (
                 <button key={t._id}
                         className={`pfm-item ${isSelected ? 'selected' : ''}`}
                         onClick={() => toggle(t._id)}
-                        style={{ touchAction: 'manipulation', WebkitTapHighlightColor: 'transparent' }}>
+                        onPointerUp={() => {}}
+                        style={{ touchAction: 'manipulation', WebkitTapHighlightColor: 'transparent', minHeight: 44 }}>
                   <span className={`pfm-checkbox ${isSelected ? 'checked' : ''}`}>
                     {isSelected && <Icon.Check size={11}/>}
                   </span>
@@ -261,6 +302,26 @@ function PagarFaturaModal({ modal, accounts = [], onClose, onConfirm }) {
                 </button>
               );
             })}
+          </div>
+
+          {/* Sincronia de valor (T5) */}
+          <div style={{ padding: '12px 16px', borderBottom: '1px solid var(--border)' }}>
+            <label className="fds-field">
+              <span style={{ display: 'flex', justifyContent: 'space-between' }}>
+                Valor real da fatura (banco)
+                {realValue && activeFatura.total !== Number(realValue) && (
+                  <span style={{ color: 'var(--bad)', fontWeight: 600 }}>
+                    Diferença: {fmtBRL(Math.abs(activeFatura.total - Number(realValue)))}
+                  </span>
+                )}
+              </span>
+              <input type="number" step="0.01" className="fds-input" 
+                     placeholder="Ex: 1500.00"
+                     value={realValue}
+                     onChange={e => setRealValue(e.target.value)}
+                     onBlur={handleRealValueBlur}
+                     style={{ touchAction: 'manipulation', minHeight: 44, fontSize: 16 }} />
+            </label>
           </div>
 
           {/* Débitar da conta */}
@@ -361,7 +422,7 @@ function ColorPicker({ value, onChange }) {
 function ContasStudio({ onAdd }) {
   const {
     transactions, categories, payCartaoFatura, updateTransaction,
-    faturaAbertaPorCartao, selectedMonth, monthLabel,
+    faturaAbertaPorCartao, faturasDoCartao, selectedMonth, monthLabel,
     accounts, cards,
     addAccount, addCard, updateAccount, deleteAccount, updateCard, deleteCard,
   } = useFides();
@@ -813,14 +874,22 @@ function ContasStudio({ onAdd }) {
         ) : cards.map(c => {
           const pct = c.used / c.limit;
           const over = pct > 0.85;
-          const faturaAberta = faturaAbertaPorCartao[c.id];
-          const faturaTxs   = faturaAberta?.txs   || [];
-          const faturaValor = faturaAberta?.total || 0;
+          const faturas = faturasDoCartao(c.id);
+          const faturaDestaque = faturas.find(f => f.status === 'vencida' || f.status === 'fechada') || faturas[0];
+          const faturaValor = faturaDestaque?.total || 0;
+          
           const handlePay = () => {
-            if (faturaTxs.length > 0) {
-              setPayModal({ cardId: c.id, cardName: c.name, txs: faturaTxs });
+            if (faturas.length > 0) {
+              setPayModal({ cardId: c.id, cardName: c.name, faturas });
             }
           };
+
+          const statusBadge = faturaDestaque?.status === 'vencida'
+            ? <span style={{ color: '#EF4444', fontWeight: 600 }}>Vencida</span>
+            : faturaDestaque?.status === 'fechada'
+            ? <span style={{ color: '#F59E0B', fontWeight: 600 }}>Fechada</span>
+            : 'Aberta';
+
           return (
             <div className="ctn-card" key={c.id}>
               <div className="ctn-card-visual" style={{
@@ -838,8 +907,8 @@ function ContasStudio({ onAdd }) {
                     <DotsMenu
                       align="left"
                       items={[
-                        ...(faturaTxs.length > 0 ? [
-                          { id: 'pay', label: 'Pagar fatura', icon: 'Check', onClick: handlePay },
+                        ...(faturas.length > 0 ? [
+                          { id: 'pay', label: 'Pagar faturas', icon: 'Check', onClick: handlePay },
                         ] : []),
                         { id: 'edit',   label: 'Editar cartão', icon: 'Edit',  onClick: () => { setEditCartao(c); setEditCartaoColor(c.color || '#1A1A2E'); setPvEditFechamento(String(c.diaFechamento || '')); setPvEditDue(String(c.diaVencimento || c.due || '')); } },
                         { id: 'delete', label: 'Excluir cartão',icon: 'Trash', danger: true, onClick: () => setDeleteTarget({ type: 'cartao', id: c.id, name: c.name }) },
@@ -859,15 +928,27 @@ function ContasStudio({ onAdd }) {
               <div className="ctn-card-info">
                 <div className="ctn-card-fatura">
                   <div className="ctn-card-fatura-l">
-                    <div className="ctn-stat-lbl">Fatura em aberto</div>
+                    <div className="ctn-stat-lbl">
+                      {faturaDestaque ? `Fatura de ${faturaDestaque.mesFatura.split('-')[1]}` : 'Fatura em aberto'}
+                      {faturas.length > 1 && ` (+${faturas.length - 1} pendentes)`}
+                    </div>
                     <div className="ctn-card-fatura-val">{fmtBRL(faturaValor)}</div>
                     <div className="ctn-card-fatura-meta">
-                      {faturaTxs.length > 0
-                        ? `${faturaTxs.length} ${faturaTxs.length === 1 ? 'lançamento' : 'lançamentos'} · melhor compra: dia ${c.diaFechamento} · vence dia ${c.due}`
+                      {faturaDestaque
+                        ? <span>
+                            Status: {statusBadge} · 
+                            Fecha {faturaDestaque.dtFechamento.toLocaleDateString('pt-BR', {day:'2-digit', month:'2-digit'})} · 
+                            Vence {faturaDestaque.dtVencimento.toLocaleDateString('pt-BR', {day:'2-digit', month:'2-digit'})}
+                          </span>
                         : `Em dia · melhor compra: dia ${c.diaFechamento}`}
                     </div>
+                    {(faturaDestaque?.status === 'fechada' || faturaDestaque?.status === 'vencida') && (
+                      <div className="ctn-card-fatura-aviso" style={{ color: faturaDestaque.status === 'vencida' ? '#EF4444' : '#F59E0B', fontSize: '0.75rem', marginTop: 4 }}>
+                        {faturaDestaque.status === 'vencida' ? 'O vencimento já passou!' : `Fatura fechada. Vence dia ${faturaDestaque.dtVencimento.getDate()}.`}
+                      </div>
+                    )}
                   </div>
-                  {faturaTxs.length > 0 ? (
+                  {faturas.length > 0 ? (
                     <button className="fds-btn-primary" onClick={handlePay}>
                       <Icon.Check size={13}/> Pagar
                     </button>

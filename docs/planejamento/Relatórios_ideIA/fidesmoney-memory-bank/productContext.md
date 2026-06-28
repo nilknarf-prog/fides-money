@@ -1,0 +1,1 @@
+O app se diferencia por ser nativo para iPhone, focar em números honestos sem projeções enganosas, e ter uma abordagem que valoriza o input manual como ferramenta de consciência. O público-alvo são pessoas de 20 a 45 anos interessadas em organizar a vida financeira. O problema principal é a dificuldade em organizar finanças.

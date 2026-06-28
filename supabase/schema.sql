@@ -42,6 +42,7 @@ create table if not exists public.cards (
   used            numeric(12,2) not null default 0,
   due_day         int not null default 10,
   closing_day     int not null default 3,
+  expected_invoice jsonb not null default '{}'::jsonb,
   color           text not null default '#1A1A2E',
   bank            text not null default '',
   created_at      timestamptz not null default now()

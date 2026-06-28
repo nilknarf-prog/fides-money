@@ -1,0 +1,1 @@
+As funcionalidades incluem cadastro de contas/cartões, lançamentos de transações (despesas, receitas, transferências com status pago/pendente), planejamento por categorias (50·30·20), acompanhamento de metas financeiras e um assistente com IA para dados do usuário. Não há conexão bancária direta.

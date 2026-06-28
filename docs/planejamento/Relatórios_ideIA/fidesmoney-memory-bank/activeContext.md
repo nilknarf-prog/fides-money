@@ -1,0 +1,1 @@
+O diferencial competitivo reside no foco em insights sobre as finanças, além do registro, e a construção nativa para iOS. A monetização inicial é preço único de acesso, com futuro mensal, visando um público que busca controle e privacidade.

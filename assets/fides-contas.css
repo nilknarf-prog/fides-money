@@ -519,3 +519,56 @@
   font-family: var(--font-mono);
   color: var(--ink);
 }
+
+/* T4 - CSS do seletor/status/banner */
+.pfm-banner-aberta {
+  background: var(--accent-soft);
+  color: var(--accent);
+  padding: 8px 12px;
+  border-radius: 6px;
+  font-size: 12px;
+  margin: 0 16px 12px;
+  text-align: center;
+  font-weight: 500;
+}
+
+.pfm-status-chip {
+  font-size: 10px;
+  text-transform: uppercase;
+  font-weight: 700;
+  padding: 2px 6px;
+  border-radius: 4px;
+  letter-spacing: 0.05em;
+}
+.pfm-status-chip.status-aberta {
+  background: var(--surface-2);
+  color: var(--ink-2);
+}
+.pfm-status-chip.status-fechada {
+  background: #F59E0B22;
+  color: #F59E0B;
+}
+.pfm-status-chip.status-vencida {
+  background: #EF444422;
+  color: #EF4444;
+}
+
+.pfm-nav-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  border-radius: 6px;
+  background: var(--surface-1);
+  color: var(--ink-2);
+  transition: all 0.2s;
+}
+.pfm-nav-btn:hover:not(:disabled) {
+  background: var(--surface-2);
+  color: var(--ink);
+}
+.pfm-nav-btn:disabled {
+  opacity: 0.3;
+  cursor: not-allowed;
+}
