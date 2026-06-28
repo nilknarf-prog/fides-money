@@ -877,6 +877,7 @@ function ContasStudio({ onAdd }) {
           const faturas = faturasDoCartao(c.id);
           const faturaDestaque = faturas.find(f => f.status === 'vencida' || f.status === 'fechada') || faturas[0];
           const faturaValor = faturaDestaque?.total || 0;
+          const faturaTxs = faturaDestaque?.txs || [];
           
           const handlePay = () => {
             if (faturas.length > 0) {
