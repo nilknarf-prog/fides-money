@@ -422,7 +422,7 @@ function ColorPicker({ value, onChange }) {
 function ContasStudio({ onAdd }) {
   const {
     transactions, categories, payCartaoFatura, updateTransaction,
-    faturaAbertaPorCartao, faturasDoCartao, selectedMonth, monthLabel,
+    faturaAbertaPorCartao, faturasDoCartao, faturasDoCartaoCompleto, selectedMonth, monthLabel,
     accounts, cards,
     addAccount, addCard, updateAccount, deleteAccount, updateCard, deleteCard,
   } = useFides();
@@ -874,14 +874,20 @@ function ContasStudio({ onAdd }) {
         ) : cards.map(c => {
           const pct = c.used / c.limit;
           const over = pct > 0.85;
-          const faturas = faturasDoCartao(c.id);
-          const faturaDestaque = faturas.find(f => f.status === 'vencida' || f.status === 'fechada') || faturas[0];
+          // Faturas pagáveis (não-quitadas) → vão para o modal de pagamento.
+          const faturasPagaveis = faturasDoCartao(c.id);
+          // Faturas completas (inclui pagas) → exibição, escopada ao mês selecionado.
+          const faturasMes = faturasDoCartaoCompleto(c.id);
+          const faturaDestaque = faturasMes.find(f => f.mesFatura === selectedMonth) || null;
           const faturaValor = faturaDestaque?.total || 0;
           const faturaTxs = faturaDestaque?.txs || [];
-          
+          const faturaPaga = !!faturaDestaque?.paga;
+          // Faturas em aberto em OUTROS meses → dica para trocar o seletor de mês.
+          const outrasAbertas = faturasPagaveis.filter(f => f.mesFatura !== selectedMonth).length;
+
           const handlePay = () => {
-            if (faturas.length > 0) {
-              setPayModal({ cardId: c.id, cardName: c.name, faturas });
+            if (faturasPagaveis.length > 0) {
+              setPayModal({ cardId: c.id, cardName: c.name, faturas: faturasPagaveis });
             }
           };
 
@@ -889,6 +895,8 @@ function ContasStudio({ onAdd }) {
             ? <span style={{ color: '#EF4444', fontWeight: 600 }}>Vencida</span>
             : faturaDestaque?.status === 'fechada'
             ? <span style={{ color: '#F59E0B', fontWeight: 600 }}>Fechada</span>
+            : faturaDestaque?.status === 'paga'
+            ? <span style={{ color: '#10B981', fontWeight: 600 }}>Paga</span>
             : 'Aberta';
 
           return (
@@ -908,7 +916,7 @@ function ContasStudio({ onAdd }) {
                     <DotsMenu
                       align="left"
                       items={[
-                        ...(faturas.length > 0 ? [
+                        ...(faturasPagaveis.length > 0 ? [
                           { id: 'pay', label: 'Pagar faturas', icon: 'Check', onClick: handlePay },
                         ] : []),
                         { id: 'edit',   label: 'Editar cartão', icon: 'Edit',  onClick: () => { setEditCartao(c); setEditCartaoColor(c.color || '#1A1A2E'); setPvEditFechamento(String(c.diaFechamento || '')); setPvEditDue(String(c.diaVencimento || c.due || '')); } },
@@ -930,32 +938,40 @@ function ContasStudio({ onAdd }) {
                 <div className="ctn-card-fatura">
                   <div className="ctn-card-fatura-l">
                     <div className="ctn-stat-lbl">
-                      {faturaDestaque ? `Fatura de ${faturaDestaque.mesFatura.split('-')[1]}` : 'Fatura em aberto'}
-                      {faturas.length > 1 && ` (+${faturas.length - 1} pendentes)`}
+                      {faturaDestaque
+                        ? `Fatura de ${new Date(faturaDestaque.mesFatura + '-01T00:00:00').toLocaleDateString('pt-BR', { month: 'long', timeZone: 'UTC' })}`
+                        : 'Sem fatura neste mês'}
+                      {outrasAbertas > 0 && (
+                        <span style={{ opacity: 0.6, fontWeight: 400 }}> · +{outrasAbertas} em aberto em outros meses</span>
+                      )}
                     </div>
-                    <div className="ctn-card-fatura-val">{fmtBRL(faturaValor)}</div>
+                    <div className="ctn-card-fatura-val">{faturaDestaque ? fmtBRL(faturaValor) : '—'}</div>
                     <div className="ctn-card-fatura-meta">
                       {faturaDestaque
                         ? <span>
-                            Status: {statusBadge} · 
-                            Fecha {faturaDestaque.dtFechamento.toLocaleDateString('pt-BR', {day:'2-digit', month:'2-digit'})} · 
-                            Vence {faturaDestaque.dtVencimento.toLocaleDateString('pt-BR', {day:'2-digit', month:'2-digit'})}
+                            Status: {statusBadge}
+                            {!faturaPaga && <> · Fecha {faturaDestaque.dtFechamento.toLocaleDateString('pt-BR', {day:'2-digit', month:'2-digit'})} · Vence {faturaDestaque.dtVencimento.toLocaleDateString('pt-BR', {day:'2-digit', month:'2-digit'})}</>}
                           </span>
-                        : `Em dia · melhor compra: dia ${c.diaFechamento}`}
+                        : `Em dia neste mês · melhor compra: dia ${c.diaFechamento}`}
                     </div>
+                    {faturaPaga && (
+                      <div className="ctn-card-fatura-aviso" style={{ color: '#10B981', fontSize: '0.75rem', marginTop: 4 }}>
+                        Fatura paga.
+                      </div>
+                    )}
                     {(faturaDestaque?.status === 'fechada' || faturaDestaque?.status === 'vencida') && (
                       <div className="ctn-card-fatura-aviso" style={{ color: faturaDestaque.status === 'vencida' ? '#EF4444' : '#F59E0B', fontSize: '0.75rem', marginTop: 4 }}>
                         {faturaDestaque.status === 'vencida' ? 'O vencimento já passou!' : `Fatura fechada. Vence dia ${faturaDestaque.dtVencimento.getDate()}.`}
                       </div>
                     )}
                   </div>
-                  {faturas.length > 0 ? (
+                  {faturaDestaque && !faturaPaga ? (
                     <button className="fds-btn-primary" onClick={handlePay}>
                       <Icon.Check size={13}/> Pagar
                     </button>
                   ) : (
                     <span className="fds-status" style={{ padding: '7px 12px' }}>
-                      Em dia
+                      {faturaPaga ? 'Paga' : 'Em dia'}
                     </span>
                   )}
                 </div>

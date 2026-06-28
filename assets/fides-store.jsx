@@ -1154,6 +1154,78 @@ function FidesProvider({ children }) {
     return mapped;
   }, [faturasPorCartao, cards, mode]);
 
+  // faturasPorCartaoCompleto: igual a faturasPorCartao, mas inclui txs JÁ quitadas
+  // (settled). Permite o card de Contas exibir uma fatura paga do mês selecionado
+  // ("Fatura paga · R$ X") sem reabri-la para pagamento.
+  const faturasPorCartaoCompleto = React.useMemo(() => {
+    const map = {};
+    const cardList  = mode === 'live' ? cards : CARDS;
+    const cardIdSet = new Set(cardList.map(c => c.id));
+    transactions.forEach(t => {
+      if (!cardIdSet.has(t.acct)) return;
+      const card = cardList.find(c => c.id === t.acct);
+      const yr   = parseInt((t.mes || `${new Date().getFullYear()}-01`).split('-')[0], 10);
+      const fat  = mesFaturaFor(t.d, card, yr);
+      if (!fat) return;
+      const key = `${t.acct}|${fat}`;
+      if (!map[key]) map[key] = { cardId: t.acct, mesFatura: fat, total: 0, totalAberto: 0, txs: [], txsAbertas: [] };
+      const isSettled = mode === 'live' ? t.settled : (t.status === 'pago');
+      map[key].total += Math.abs(t.val);
+      map[key].txs.push(t);
+      if (!isSettled) {
+        map[key].totalAberto += Math.abs(t.val);
+        map[key].txsAbertas.push(t);
+      }
+    });
+    return map;
+  }, [transactions, cards, mode]);
+
+  // faturasDoCartaoCompleto: mesma forma de faturasDoCartao, porém inclui faturas
+  // pagas (status 'paga' quando não restam txs em aberto). USO: exibição no card,
+  // escopada ao mês selecionado. NÃO usar para pagar (txs já quitadas dentro).
+  const faturasDoCartaoCompleto = React.useCallback((cardId) => {
+    const cardList = mode === 'live' ? cards : CARDS;
+    const card = cardList.find(c => c.id === cardId);
+    if (!card) return [];
+
+    const faturas = Object.values(faturasPorCartaoCompleto).filter(f => f.cardId === cardId);
+
+    const hoje = new Date();
+    hoje.setHours(0, 0, 0, 0);
+
+    const mapped = faturas.map(fat => {
+      const [yy, mm] = fat.mesFatura.split('-');
+      const ano = parseInt(yy, 10);
+      const mes = parseInt(mm, 10) - 1; // 0-based index
+
+      const diaF = parseInt(card.diaFechamento, 10) || 5;
+      const diaV = parseInt(card.diaVencimento, 10) || parseInt(card.due, 10) || 10;
+
+      let mesF = mes;
+      if (diaF > diaV) {
+        mesF = mes - 1;
+      }
+
+      const dtFechamento = new Date(ano, mesF, diaF);
+      const dtVencimento = new Date(ano, mes, diaV);
+
+      const paga = fat.txsAbertas.length === 0;
+      let status = 'aberta';
+      if (paga) {
+        status = 'paga';
+      } else if (hoje > dtVencimento) {
+        status = 'vencida';
+      } else if (hoje > dtFechamento || hoje.getTime() === dtFechamento.getTime()) {
+        status = 'fechada';
+      }
+
+      return { ...fat, dtFechamento, dtVencimento, status, paga };
+    });
+
+    mapped.sort((a, b) => a.mesFatura.localeCompare(b.mesFatura));
+    return mapped;
+  }, [faturasPorCartaoCompleto, cards, mode]);
+
   // ─── Computed flags ───────────────────────────────────────────
 
   const isLoading = mode === 'loading';
@@ -1192,7 +1264,7 @@ function FidesProvider({ children }) {
     selectedMonth, setSelectedMonth, prevMonth, monthLabel,
     // Derived
     monthTransactions, prevMonthTransactions, virtualRecurringRevenue,
-    spendByCategory, budgetGroups, faturasPorCartao, faturaAbertaPorCartao, faturasDoCartao,
+    spendByCategory, budgetGroups, faturasPorCartao, faturaAbertaPorCartao, faturasDoCartao, faturasDoCartaoCompleto,
     // UI toggles
     categoryModalOpen,
     assistantOpen,
@@ -1238,6 +1310,8 @@ function useFides() {
     budgetGroups: BUDGET_GROUPS,
     faturasPorCartao: {},
     faturaAbertaPorCartao: {},
+    faturasDoCartao: () => [],
+    faturasDoCartaoCompleto: () => [],
     virtualRecurringRevenue: [],
     openCategoryModal: () => {}, closeCategoryModal: () => {},
     openAssistant: () => {}, closeAssistant: () => {},
