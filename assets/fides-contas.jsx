@@ -243,11 +243,11 @@ function PagarFaturaModal({ modal, accounts = [], onClose, onConfirm }) {
             </div>
             <div className="fds-modal-title" style={{ display: 'flex', alignItems: 'center', gap: 8, marginTop: 4 }}>
               <button className="fds-icon-btn pfm-nav-btn" onClick={() => setIdxFatura(idx => Math.max(0, idx - 1))} disabled={idxFatura === 0} style={{ minHeight: 44, touchAction: 'manipulation' }}>
-                <Icon.ChevronLeft size={20} />
+                <Icon.Left size={20} />
               </button>
               <span style={{ fontSize: '1.25rem' }}>{new Date(activeFatura.mesFatura + '-01T00:00:00').toLocaleDateString('pt-BR', { month: 'long', timeZone: 'UTC' }).replace(/^\w/, c => c.toUpperCase())} · vence {activeFatura.dtVencimento.toLocaleDateString('pt-BR', {day:'2-digit', month:'2-digit'})}</span>
               <button className="fds-icon-btn pfm-nav-btn" onClick={() => setIdxFatura(idx => Math.min(modal.faturas.length - 1, idx + 1))} disabled={idxFatura === modal.faturas.length - 1} style={{ minHeight: 44, touchAction: 'manipulation' }}>
-                <Icon.ChevronRight size={20} />
+                <Icon.Right size={20} />
               </button>
             </div>
           </div>

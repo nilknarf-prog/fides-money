@@ -1129,8 +1129,8 @@ function FidesProvider({ children }) {
       const ano = parseInt(yy, 10);
       const mes = parseInt(mm, 10) - 1; // 0-based index
 
-      const diaF = card.diaFechamento || 5;
-      const diaV = card.diaVencimento || card.due || 10;
+      const diaF = parseInt(card.diaFechamento, 10) || 5;
+      const diaV = parseInt(card.diaVencimento, 10) || parseInt(card.due, 10) || 10;
       
       let mesF = mes;
       if (diaF > diaV) {
