@@ -82,7 +82,16 @@
 
 ## PARTE 3.5 — PRÓXIMO (🔴 Fase 01 · Veracidade do Dashboard) — **FASE ATIVA**
 
-> Detalhe completo a definir em `phases/01-veracidade-do-dashboard/SPEC.md` (rodar `/gsd-spec-phase 1`).
+> Detalhe completo em `phases/01-veracidade-do-dashboard/` (`SPEC.md`, `CONTEXT.md`, `RESEARCH.md`, `PATTERNS.md`, `PLAN.md`).
+
+**Goal:** o `DashboardStudio` reflete a verdade financeira em 3 pontos hoje quebrados — card 50·30·20 lê limites reais (`categoryLimits`), cada fatia do donut é identificável (categoria + valor + %), e o número de fechamento do hero vira saldo projetado real (incorpora `accounts.balance`), sem esconder fluxo mensal negativo (P1).
+
+**Requirements:** R1 (budgetGroups · limites reais), R2 (tooltip de fatia do donut), R3 (saldo projetado no hero)
+
+**Plans:** 3 plans (waves 1→2→3, sequenciais por compartilharem `fides-studio.jsx`)
+- [ ] 01-01-PLAN.md — R1: `budgetGroups` lê `categoryLimits` + estado "sem limite" no card
+- [ ] 01-02-PLAN.md — R2: tooltip de fatia no `Donut` (centro reusado) + dismiss mobile
+- [ ] 01-03-PLAN.md — R3: `saldoProjetado` no hero + fluxo negativo visível (P1)
 
 **Tema:** o `DashboardStudio` exibe números que não refletem a verdade financeira do usuário. 3 correções:
 
