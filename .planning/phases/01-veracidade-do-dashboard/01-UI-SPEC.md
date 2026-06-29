@@ -51,9 +51,6 @@ scale observed in `fides-studio.css` and enforced for all additions in this phas
 | 3xl | 64px | Page-level vertical rhythm |
 
 Exceptions for this phase:
-- Donut center content: the existing `.fds-donut-center` uses `margin-top: 2px` between label
-  and value — preserve exactly; do not add new margin when adding the third line (%) for active
-  slice. Match the `margin-top: 2px` rhythm already established.
 - Touch targets: any interactive element on the donut SVG (`<path>`) must satisfy a minimum
   44px tap target on mobile. The donut is 184px diameter with 24px thickness ring — each arc
   path spans a chord wide enough to satisfy this at ≥3 categories; executor must verify with
@@ -70,9 +67,8 @@ does not introduce new type roles. Existing roles used by affected components:
 |------|------|--------|-------------|---------|---------------------|
 | Donut label | 10.5px | 600 | 1.2 | `.fds-donut-label` | Category name + "%" line in active slice; "Total" in default state |
 | Donut value | 18px | 600 | 1.1 | `.fds-donut-value` | R$valor in active slice (compact BRL) |
-| UI base | 13.5px | 400/500 | 1.5 | `--fs-ui` | Budget card text, "Sem limite" state text |
+| UI base | 13.5px | 400 | 1.5 | `--fs-ui` | Budget card text, "Sem limite" state text |
 | Hero headline | 40px | 400 italic (Manrope) | 1.2 | `--fs-hero` + `.stu-hero-amt` | saldoProjetado number in hero |
-| Body | 15px | 400 | 1.5 | `--fs-body` | Hero lede, fluxo negativo warning copy |
 
 Rules for this phase:
 - Active slice display in donut center: three stacked lines using existing `.fds-donut-label`
@@ -140,6 +136,11 @@ Components touched by this phase (no new components created):
 **Cursor:** `cursor: pointer` on all paths (added via style prop).
 
 ### 2. Donut center — `assets/fides-studio.jsx:828-830` and `assets/fides-dashboard.jsx:250-252`
+
+**Preservation constraint:** `.fds-donut-center` has a pre-existing `margin-top: 2px` applied
+between the label and value lines in the existing CSS. Do not change this value. When adding
+the third line (percentage) for the active slice state, do not introduce a new margin — let the
+third line inherit the same `margin-top: 2px` rhythm already established by the class.
 
 **Change (studio only):** `fids-studio.jsx` wires `activeSlice` state from `Donut.onActiveSlice`
 callback and renders conditional center content.
