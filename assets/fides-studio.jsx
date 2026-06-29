@@ -649,18 +649,24 @@ function DashboardStudio({ onAdd, onNav }) {
   const receitaTotal   = receitas + receitaVirtual;
   const despesas  = flow.filter(t => t.val < 0 && t.status === 'pago').reduce((s,t) => s + Math.abs(t.val), 0);
   const pendentes = flow.filter(t => t.val < 0 && t.status === 'pendente').reduce((s,t) => s + Math.abs(t.val), 0);
-  const saldoFinal = receitaTotal - despesas - pendentes;
+  const fluxoMensal = receitaTotal - despesas - pendentes;
   const pendCount = monthTransactions.filter(t => t.status === 'pendente').length;
+
+  // Saldo projetado real: saldo das contas + pendentes a receber − pendentes a pagar
+  const saldoContas = accounts.reduce((s, a) => s + (a.balance || 0), 0);
+  const receitasPendentes = flow.filter(t => t.val > 0 && t.status === 'pendente').reduce((s, t) => s + t.val, 0);
+  const despesasPendentes = flow.filter(t => t.val < 0 && t.status === 'pendente').reduce((s, t) => s + Math.abs(t.val), 0);
+  const saldoProjetado = saldoContas + receitasPendentes - despesasPendentes;
 
   // Comparativo com mês anterior
   const prevReceitas = flowPrev.filter(t => t.val > 0).reduce((s,t) => s + t.val, 0);
   const prevDespesas = flowPrev.filter(t => t.val < 0).reduce((s,t) => s + Math.abs(t.val), 0);
   const prevSaldo = prevReceitas - prevDespesas;
-  const deltaSaldo = saldoFinal - prevSaldo;
+  const deltaSaldo = fluxoMensal - prevSaldo;
   const deltaReceitas = receitas - prevReceitas;
   const deltaDespesas = (despesas + pendentes) - prevDespesas;
 
-  const { int, dec } = splitBRL(Math.abs(saldoFinal));
+  const { int, dec } = splitBRL(Math.abs(saldoProjetado));
   const top5 = spendByCategory.slice(0, 5);
   const totalSpend = spendByCategory.reduce((s,d) => s + d.val, 0);
 
@@ -686,6 +692,20 @@ function DashboardStudio({ onAdd, onNav }) {
 
   // Modo do gráfico de fluxo
   const [flowMode, setFlowMode] = React.useState('fluxo');
+
+  // Donut: fatia ativa (tooltip no centro)
+  const [activeSlice, setActiveSlice] = React.useState(null);
+  const donutWrapRef = React.useRef(null);
+  React.useEffect(() => {
+    if (!activeSlice) return;
+    const handler = (e) => {
+      if (donutWrapRef.current && !donutWrapRef.current.contains(e.target)) {
+        setActiveSlice(null);
+      }
+    };
+    document.addEventListener('pointerdown', handler);
+    return () => document.removeEventListener('pointerdown', handler);
+  }, [activeSlice]);
 
   // Salários do mês — destacar quando há vários (caso do usuário)
   const salarios = monthTransactions.filter(t => t.cat === 'salario');
@@ -722,18 +742,19 @@ function DashboardStudio({ onAdd, onNav }) {
       <EditorialHero
         eyebrow={<><span className="fds-pulse-dot"/> {monthTransactions.length} lançamentos · {lbl.long}</>}
         headline={<>
-          {saldoFinal >= 0 ? 'Você terminará' : 'Você fechará'} {lbl.long.split(' de ')[0]} com{' '}
-          <span className="stu-hero-amt" style={{ color: saldoFinal < 0 ? 'var(--bad)' : 'var(--accent)' }}>
-            <span className="cur">{saldoFinal < 0 ? '−R$' : 'R$'}</span>
+          {saldoProjetado >= 0 ? 'Você terminará' : 'Você fechará'} {lbl.long.split(' de ')[0]} com{' '}
+          <span className="stu-hero-amt" style={{ color: saldoProjetado < 0 ? 'var(--bad)' : 'var(--accent)' }}>
+            <span className="cur">{saldoProjetado < 0 ? '−R$' : 'R$'}</span>
             <span className="int">{int}</span>
             <span className="dec">,{dec}</span>
           </span>{' '}
-          {saldoFinal >= 0 ? 'livre' : 'no vermelho'}.
+          {saldoProjetado >= 0 ? 'livre' : 'no vermelho'}.
         </>}
         lede={<>
           Chegam <strong className="stu-num">{fmtBRL(receitaTotal, { compact: true })}</strong> em receitas. {salarioInfo}
           {' '}Saem <strong className="stu-num">{fmtBRL(despesas + pendentes, { compact: true })}</strong> em despesas previstas, sendo{' '}
           <em>{fmtBRL(pendentes)} ainda em aberto</em>.
+          {fluxoMensal < 0 && saldoProjetado >= 0 && <>{' '}Apesar do saldo positivo, o fluxo do mês é negativo (<strong className="stu-num" style={{ color: 'var(--bad)' }}>−{fmtBRL(Math.abs(fluxoMensal))}</strong>).</>}
           {prevReceitas > 0 && <> {prevLbl.long.split(' de ')[0]} fechou em <strong className="stu-num">{fmtBRL(prevSaldo, { compact: true })}</strong> — você está{' '}
             <span className="stu-pos">{deltaSaldo >= 0 ? '+' : '−'}{fmtBRL(Math.abs(deltaSaldo), { compact: true })}</span> em relação ao mês passado.</>}
         </>}
@@ -823,11 +844,17 @@ function DashboardStudio({ onAdd, onNav }) {
       <div className="stu-2col">
         <div className="stu-card stu-cats">
           <div className="stu-cats-body">
-            <div className="fds-donut-wrap">
-              <Donut data={spendByCategory} size={184} thickness={24} glow/>
+            <div className="fds-donut-wrap" ref={donutWrapRef}>
+              <Donut data={spendByCategory} size={184} thickness={24} glow onActiveSlice={setActiveSlice}/>
               <div className="fds-donut-center">
-                <div className="fds-donut-label">Total</div>
-                <div className="fds-donut-value">{fmtBRL(totalSpend, { compact: true })}</div>
+                {activeSlice ? <>
+                  <div className="fds-donut-label">{activeSlice.label}</div>
+                  <div className="fds-donut-value">{fmtBRL(activeSlice.val, { compact: true })}</div>
+                  <div className="fds-donut-label">{Math.round((activeSlice.val / totalSpend) * 100)}%</div>
+                </> : <>
+                  <div className="fds-donut-label">Total</div>
+                  <div className="fds-donut-value">{fmtBRL(totalSpend, { compact: true })}</div>
+                </>}
               </div>
             </div>
             <div className="fds-cats-list">
@@ -852,8 +879,9 @@ function DashboardStudio({ onAdd, onNav }) {
           </div>
           <div className="stu-budget-list">
             {budgetGroups.map(g => {
-              const pct = g.limit ? g.spent / g.limit : 0;
-              const over = pct > 1;
+              const hasLimit = g.limit != null;
+              const pct = hasLimit ? g.spent / g.limit : null;
+              const over = hasLimit && pct > 1;
               const tint = g.id === 'essencial' ? 'var(--ok)' : g.id === 'estilo' ? 'var(--info)' : 'var(--bad)';
               return (
                 <div className="stu-budget-row" key={g.id}>
@@ -861,14 +889,14 @@ function DashboardStudio({ onAdd, onNav }) {
                     <span className="fds-cat-dot" style={{ background: tint }}/>
                     <span className="stu-budget-lbl">{g.label}</span>
                     <span className="stu-budget-target">{Math.round(g.target*100)}%</span>
-                    <span className={`fds-budget-pct ${over ? 'over' : pct > 0.85 ? 'near' : 'ok'}`}>
-                      {Math.round(pct*100)}%
+                    <span className={`fds-budget-pct ${hasLimit ? (over ? 'over' : pct > 0.85 ? 'near' : 'ok') : ''}`}>
+                      {hasLimit ? `${Math.round(pct*100)}%` : 'Sem limite'}
                     </span>
                   </div>
-                  <ProgressBar value={pct} tint={tint} glow/>
+                  <ProgressBar value={pct != null ? pct : 0} tint={tint} glow/>
                   <div className="stu-budget-meta">
                     <span><strong>{fmtBRL(g.spent)}</strong></span>
-                    <span className="fds-muted">limite {fmtBRL(g.limit)}</span>
+                    <span className="fds-muted">{hasLimit ? `limite ${fmtBRL(g.limit)}` : 'sem limite definido'}</span>
                   </div>
                 </div>
               );

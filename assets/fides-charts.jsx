@@ -113,7 +113,8 @@ function Sparkline({ values, height = 36, width = 110, accent = '#B45309', glow 
 }
 
 // ─── Donut — Gastos por categoria ─────────────────────────────
-function Donut({ data, size = 200, thickness = 22, gap = 0.012, accent = '#B45309', glow = false }) {
+function Donut({ data, size = 200, thickness = 22, gap = 0.012, accent = '#B45309', glow = false, onActiveSlice }) {
+  const [activeIdx, setActiveIdx] = React.useState(null);
   const total = data.reduce((s, d) => s + d.val, 0);
   const R = size / 2 - 4;
   const r = R - thickness;
@@ -133,6 +134,13 @@ function Donut({ data, size = 200, thickness = 22, gap = 0.012, accent = '#B4530
     const d_ = `M ${x0} ${y0} A ${R} ${R} 0 ${large} 1 ${x1} ${y1} L ${xi1} ${yi1} A ${r} ${r} 0 ${large} 0 ${xi0} ${yi0} Z`;
     return { d: d_, tint: d.tint, label: d.label, val: d.val };
   });
+  const handleEnter = (i) => { setActiveIdx(i); onActiveSlice?.(arcs[i]); };
+  const handleLeave = () => { setActiveIdx(null); onActiveSlice?.(null); };
+  const handleTap = (i, e) => {
+    e.stopPropagation();
+    if (i === activeIdx) { setActiveIdx(null); onActiveSlice?.(null); }
+    else { setActiveIdx(i); onActiveSlice?.(arcs[i]); }
+  };
   return (
     <svg width={size} height={size} viewBox={`0 0 ${size} ${size}`} style={{ display: 'block', overflow: 'visible' }}>
       <defs>
@@ -144,7 +152,12 @@ function Donut({ data, size = 200, thickness = 22, gap = 0.012, accent = '#B4530
         )}
       </defs>
       <g filter={glow ? `url(#donut-${uid})` : undefined}>
-        {arcs.map((a, i) => <path key={i} d={a.d} fill={a.tint}/>)}
+        {arcs.map((a, i) => <path key={i} d={a.d} fill={a.tint}
+          onMouseEnter={() => handleEnter(i)}
+          onMouseLeave={handleLeave}
+          onPointerDown={(e) => handleTap(i, e)}
+          style={{ cursor: 'pointer', opacity: activeIdx != null && activeIdx !== i ? 0.55 : 1, transition: 'opacity 0.15s' }}
+        />)}
       </g>
     </svg>
   );

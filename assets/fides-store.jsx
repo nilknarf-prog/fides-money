@@ -1057,26 +1057,32 @@ function FidesProvider({ children }) {
 
   const budgetGroups = React.useMemo(() => {
     // BUDGET_GROUPS é usado APENAS para label/target do grupo (50·30·20).
-    // O limite por categoria vem exclusivamente de plannedOverrides — nunca do mock.
+    // O limite por categoria vem de categoryLimits (regra byMonth→default→null, mesma de categoryUsage).
     return ['essencial', 'estilo', 'divida'].map(groupId => {
       const def = BUDGET_GROUPS.find(g => g.id === groupId);
       const cats = Object.entries(categories)
         .filter(([, c]) => c.group === groupId)
         .map(([id, c]) => {
-          const limit = plannedOverrides[id] ?? 0;
+          const lim = categoryLimits[id];
+          const limit = lim
+            ? (lim.byMonth && lim.byMonth[selectedMonth] != null
+                ? lim.byMonth[selectedMonth]
+                : (lim.default != null ? lim.default : null))
+            : null;
           const spent = monthTransactions
             .filter(t => t.cat === id && t.val < 0 && !t.isTransfer)
             .reduce((s, t) => s + Math.abs(t.val), 0);
           return { cat: id, limit, spent, _custom: c.custom === true };
         })
         // Visível só se: categoria custom, limite definido pelo usuário, ou houve gasto.
-        .filter(c => c._custom || plannedOverrides[c.cat] != null || c.spent > 0)
+        .filter(c => c._custom || c.limit != null || c.spent > 0)
         .map(({ _custom, ...c }) => c);
-      const limit = cats.reduce((s, c) => s + c.limit, 0);
+      const groupLimit = cats.every(c => c.limit == null) ? null : cats.reduce((s, c) => s + (c.limit || 0), 0);
       const spent = cats.reduce((s, c) => s + c.spent, 0);
-      return { id: groupId, label: def?.label || groupId, target: groupTargets[groupId] || 0, limit, spent, cats };
+      const pct = groupLimit != null ? Math.round((spent / groupLimit) * 100) : null;
+      return { id: groupId, label: def?.label || groupId, target: groupTargets[groupId] || 0, limit: groupLimit, spent, pct, cats };
     });
-  }, [monthTransactions, categories, plannedOverrides, groupTargets]);
+  }, [monthTransactions, categories, categoryLimits, selectedMonth, groupTargets]);
 
   // faturasPorCartao: mode-aware so live card UUIDs resolve correctly
   const faturasPorCartao = React.useMemo(() => {
