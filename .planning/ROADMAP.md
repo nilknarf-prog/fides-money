@@ -105,6 +105,20 @@
 
 ---
 
+## PARTE 3.6 — PRÓXIMO (🔴 Fase 02 · Fixes de Experiência)
+
+> Fase alocada para corrigir atritos de usabilidade reportados pós-lançamento.
+
+**Problemas reportados:**
+1. **Ordenação por Data inconsistente:** Na página de Transações, ao filtrar/ordenar por "Data", lançamentos de um mesmo dia não estão respeitando a ordem cronológica (a transação mais recente do dia aparece depois da mais antiga).
+2. **Perda de estado (Permanência):** O app "carrega de novo" (recarrega/perde estado) ao mudar de aba no Chrome por 1 segundo e voltar.
+
+**Escopo planejado:**
+- **R1:** Adicionar critério de desempate secundário (ex: `created_at` DESC ou reverse array index) na função de sort da página de Transações para o filtro "Data".
+- **R2:** Investigar o ciclo de vida do app (eventos de auth, unmount de componentes pai, memory management do Chrome) para descobrir o root cause do recarregamento de estado, e implementar persistência ou evitar re-renders desnecessários.
+
+---
+
 ## PARTE 4 — BACKLOG (⏳ M5 · Expansão)
 
 | # | Item | Estimativa | Dependência |

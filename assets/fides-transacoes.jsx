@@ -248,6 +248,11 @@ function Transacoes({ variant, onAdd }) {
     if (sortBy === 'data') {
       copy.sort(function(a, b) {
         var diff = txDateToNum(a.d) - txDateToNum(b.d);
+        if (diff === 0) {
+          var ca = a.createdAt || '';
+          var cb = b.createdAt || '';
+          return ca.localeCompare(cb) * dir;
+        }
         return diff * dir;
       });
     } else if (sortBy === 'categoria') {

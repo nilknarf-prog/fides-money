@@ -55,6 +55,7 @@ function normalizeTx(row) {
     settled: !!row.settled,
     paidAt: row.paid_at || null,
     isTransfer: !!row.is_transfer,
+    createdAt: row.created_at || new Date().toISOString(),
   };
 }
 
@@ -298,27 +299,29 @@ function FidesProvider({ children }) {
       if (!mounted) return;
       const user = session?.user || null;
       if (user) {
-        setUserId(user.id);
-        setMode('live');
-        setUserEmail(user.email || '');
-        setTransactions([]); setAccounts([]); setCards([]); setGoals([]);
-        refreshData(user.id);
-        (async () => {
-          try {
-            const { data: profile } = await window.fidesDb.from('profiles').select('name, group_targets').eq('id', user.id).single();
-            if (mounted) {
-              setUserName(profile?.name || '');
-              if (profile?.group_targets && typeof profile.group_targets === 'object') {
-                setGroupTargetsState({
-                  essencial: Number(profile.group_targets.essencial) || 0.50,
-                  estilo:    Number(profile.group_targets.estilo)    || 0.30,
-                  divida:    Number(profile.group_targets.divida)    || 0.20,
-                });
+        if (event === 'INITIAL_SESSION' || event === 'SIGNED_IN') {
+          setUserId(user.id);
+          setMode('live');
+          setUserEmail(user.email || '');
+          setTransactions([]); setAccounts([]); setCards([]); setGoals([]);
+          refreshData(user.id);
+          (async () => {
+            try {
+              const { data: profile } = await window.fidesDb.from('profiles').select('name, group_targets').eq('id', user.id).single();
+              if (mounted) {
+                setUserName(profile?.name || '');
+                if (profile?.group_targets && typeof profile.group_targets === 'object') {
+                  setGroupTargetsState({
+                    essencial: Number(profile.group_targets.essencial) || 0.50,
+                    estilo:    Number(profile.group_targets.estilo)    || 0.30,
+                    divida:    Number(profile.group_targets.divida)    || 0.20,
+                  });
+                }
               }
-            }
-          } catch (_) {}
-        })();
-        console.log('[Fides] Store: modo live — userId:', user.id);
+            } catch (_) {}
+          })();
+          console.log('[Fides] Store: modo live — userId:', user.id);
+        }
       } else {
         setUserId(null);
         setMode('mock');
