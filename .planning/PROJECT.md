@@ -84,9 +84,43 @@ design-canvas.jsx   tweaks-panel.jsx   Fides-app.html
 |---|---|
 | **M1 — Fundação** (infra Supabase, auth, store live/mock, saldo derivado) | ✅ Concluído (v2–v16) |
 | **M2 — Núcleo de produto** (Transações, Planejamento+Insights, Contas, fatura selecionável) | ✅ Concluído (v6–v18) |
-| **M3 — Polish pré-lançamento** (dead code, design polish, perfil mobile, motion, IA real) | 🔄 Em andamento |
-| **M4 — Ciclo de fatura confiável** (faturas por mês, seletor, avisos, sincronia com fatura real) | 🟡 **Próximo — fase ativa** |
+| **M3 — Polish pré-lançamento** (dead code, design polish, perfil mobile, motion, IA real) | 🔄 **Milestone ativo (v1.0 GSD)** |
+| **M4 — Ciclo de fatura confiável** (faturas por mês, seletor, avisos, sincronia com fatura real) | ✅ Concluído (`ade84f7`) |
 | **M5 — Expansão** (CRUD Metas, Dívidas/Família, import CSV/OFX, busca ⌘K, WRITE assistente, WhatsApp) | ⏳ Backlog |
 | **M6 — Comercial** (landing, FAQ, pricing, monetização) | ⏳ Roadmap longo |
 
 > Detalhe de cada fase em `ROADMAP.md`. Fase ativa detalhada em `phases/fatura-ciclo/`.
+
+---
+
+## Current Milestone: v1.0 Polish pré-lançamento
+
+**Goal:** Finalizar a camada de qualidade visual e técnica do Fides Money antes de ampliar a base F&F — removendo débitos de código morto, alinhando identidade visual, habilitando acesso mobile ao perfil, adicionando micro-interações e conectando a IA real.
+
+**Target features:**
+- P1: Remover `fides-diario.*` (dead code jsx+css+`<link>`)
+- P2: Design polish — roxo off-brand, `--warn` divergente, auditoria CSS
+- P3: Acesso ao Perfil no mobile (engrenagem clicável)
+- P4: Micro-interações CSS (`emilkowalski-motion`) em modais/cards
+- P5: Gemini real no botão "Análise da IA" (hoje stub 2,2s)
+
+---
+
+## Evolution
+
+Este documento evolui nas transições de fase e marcos de milestone.
+
+**Após cada transição de fase** (via `/gsd-transition`):
+1. Requisitos invalidados? → Mover para Out of Scope com razão
+2. Requisitos validados? → Mover para Validated com referência de fase
+3. Novos requisitos surgiram? → Adicionar em Active
+4. Decisões a registrar? → Adicionar em Key Decisions
+5. "What This Is" ainda preciso? → Atualizar se drifted
+
+**Após cada milestone** (via `/gsd-complete-milestone`):
+1. Revisão completa de todas as seções
+2. Core Value check — ainda a prioridade certa?
+3. Auditoria Out of Scope — razões ainda válidas?
+4. Atualizar Context com estado atual
+
+*Última atualização: 2026-06-29 — Milestone v1.0 iniciado*
