@@ -121,7 +121,7 @@
 
 ### Phases
 
-- [ ] **Phase 03: Limpeza + Tokens** — Dead code removido e identidade visual alinhada aos tokens de marca
+- [x] **Phase 03: Limpeza + Tokens** — Dead code removido e identidade visual alinhada aos tokens de marca (completed 2026-06-30)
 - [ ] **Phase 04: UX Mobile + Motion** — Perfil acessível no mobile e micro-interações CSS em modais/cards
 - [ ] **Phase 05: IA Real** — Botão "Análise da IA" conectado ao Gemini real com loading state funcional
 
@@ -143,14 +143,14 @@
   4. O token `--warn` tem o mesmo valor em `fides.css`, `fides-studio.css` e `fides-orcamento.css` (verificável com grep)
   5. `fides.css`, `fides-studio.css` e `fides-orcamento.css` não contêm regras duplicadas ou propriedades sem referência no DOM (verificável por diff do audit)
 
-**Plans**: 1/2 plans executed
+**Plans**: 2/2 plans complete
 **Wave 1**
 
 - [x] 03-01-PLAN.md — CLEAN-01 (verificação) + DESIGN-01/02/03: avatares roxo→verde de marca, perfil on-brand, token `--warn` consistente
 
 **Wave 2** *(blocked on Wave 1 completion)*
 
-- [ ] 03-02-PLAN.md — DESIGN-04: auditoria conservadora dos 3 CSS (duplicatas, órfãos, tokens fantasma)
+- [x] 03-02-PLAN.md — DESIGN-04: auditoria conservadora dos 3 CSS (duplicatas, órfãos, tokens fantasma)
 
 **Achados do planejamento**: `fides-diario.*` já removido no commit `d4db34f` (CLEAN-01 vira verificação de estado). `.prf-view`/`.prf-avatar` já usam `var(--accent)` (DESIGN-02 conforme; apenas audita). Roxo real (`#6366F1→#8B5CF6`) vive em DOIS avatares: `.fds-avatar` (fides.css) e `.fds-sb-slim-avatar` (fides-studio.css). Única divergência de `--warn`: `#D97706` no bloco legado `.fds-app[data-variant="v3"]`.
 **UI hint**: yes
