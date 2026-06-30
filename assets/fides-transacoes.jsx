@@ -1118,6 +1118,7 @@ function EditTxModal({ tx, onClose }) {
 function NovaTransacaoModal({ open, onClose, onSave, variant }) {
   const { categories, openCategoryModal, accounts, cards, transferFunds, addTransaction, addTransactions } = useFides();
   const toast = window.FidesUI.useToast();
+  const { rendered, closing, requestClose } = window.FidesUI.useModalClose(open, onClose);
   const today = new Date();
   const todayStr = `${String(today.getDate()).padStart(2,'0')}/${String(today.getMonth()+1).padStart(2,'0')}/${today.getFullYear()}`;
 
@@ -1161,7 +1162,7 @@ function NovaTransacaoModal({ open, onClose, onSave, variant }) {
     }
   }, [kind]);
 
-  if (!open) return null;
+  if (!rendered) return null;
   const accentByKind = kind === 'despesa' ? 'var(--bad)' : kind === 'receita' ? 'var(--ok)' : 'var(--info)';
 
   // Parse "1.234,56" or "1234.56" or "1234,56" into number
@@ -1255,7 +1256,7 @@ function NovaTransacaoModal({ open, onClose, onSave, variant }) {
       const ok = await transferFunds({ from: acct, to: toAcct, val: parseVal(val), date: iso, desc: desc.trim() });
       if (ok) {
         toast.success('Transferencia lancada');
-        if (keepOpen) { resetForm(); } else { onClose?.(); }
+        if (keepOpen) { resetForm(); } else { requestClose(); }
       }
       return;
     }
@@ -1271,14 +1272,14 @@ function NovaTransacaoModal({ open, onClose, onSave, variant }) {
   };
 
   return (
-    <div className="fds-modal-backdrop" onClick={onClose}>
-      <div className="fds-modal" onClick={(e) => e.stopPropagation()}>
+    <div className={"fds-modal-backdrop" + (closing ? " is-closing" : "")} onClick={requestClose}>
+      <div className={"fds-modal" + (closing ? " is-closing" : "")} onClick={(e) => e.stopPropagation()}>
         <header className="fds-modal-head">
           <div>
             <div className="fds-modal-eyebrow">Lançar</div>
             <h2 className="fds-modal-title">Nova transação</h2>
           </div>
-          <button className="fds-icon-btn" onClick={onClose}><Icon.X size={16}/></button>
+          <button className="fds-icon-btn" onClick={requestClose}><Icon.X size={16}/></button>
         </header>
 
         {/* Type segmented */}
@@ -1635,7 +1636,7 @@ function NovaTransacaoModal({ open, onClose, onSave, variant }) {
         </div>
 
         <footer className="fds-modal-foot">
-          <button className="fds-btn-ghost" onClick={onClose}>Cancelar</button>
+          <button className="fds-btn-ghost" onClick={requestClose}>Cancelar</button>
           <div className="fds-modal-foot-actions">
             <button className="fds-btn-secondary" onClick={() => handleSave(true)} disabled={!canSave}>Salvar e novo</button>
             <button className="fds-btn-primary" onClick={() => handleSave(false)} disabled={!canSave}>
