@@ -309,7 +309,7 @@ function SidebarSlim({ active, onNav, onGear }) {
 }
 
 // ─── Editorial masthead ───────────────────────────────────────
-function StudioMasthead({ onAdd }) {
+function StudioMasthead({ onAdd, onGear, active }) {
   const { selectedMonth, setSelectedMonth, prevMonth, monthLabel, openAssistant, monthTransactions, mode } = useFides();
 
   async function handleLogout() {
@@ -547,6 +547,18 @@ function StudioMasthead({ onAdd }) {
             </svg>
           </button>
         )}
+        <button
+          className={`fds-icon-btn stu-mast-gear${active === 'perfil' ? ' on' : ''}`}
+          onClick={onGear}
+          title="Perfil"
+          style={{
+            touchAction: 'manipulation',
+            WebkitTapHighlightColor: 'transparent',
+            minHeight: 44, minWidth: 44,
+          }}
+        >
+          <Icon.Settings size={16}/>
+        </button>
       </div>
     </header>
   );
