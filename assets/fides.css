@@ -1019,6 +1019,32 @@ input[type="checkbox"], input[type="radio"] {
 }
 @keyframes fds-slideUp { from { transform: translateY(12px); opacity: 0 } to { transform: translateY(0); opacity: 1 } }
 
+/* --- Saída de modal (Wave 2 conecta via hook useModalClose + classe is-closing) --- */
+@keyframes fds-fadeOut { from { opacity: 1 } to { opacity: 0 } }
+@keyframes fds-slideDown { from { transform: translateY(0); opacity: 1 } to { transform: translateY(12px); opacity: 0 } }
+
+.fds-modal-backdrop.is-closing {
+  animation: fds-fadeOut 0.18s ease forwards;
+}
+.fds-modal {
+  will-change: transform, opacity;
+}
+.fds-modal.is-closing {
+  animation: fds-slideDown 0.18s cubic-bezier(.2,.7,.2,1) forwards;
+  pointer-events: none;
+  will-change: transform, opacity;
+}
+
+/* --- Gate: sem motion (MOTION-PERF / D-05) --- */
+@media (prefers-reduced-motion: reduce) {
+  .fds-modal-backdrop,
+  .fds-modal,
+  .fds-modal-backdrop.is-closing,
+  .fds-modal.is-closing {
+    animation: none !important;
+  }
+}
+
 .fds-modal-head {
   display: flex; align-items: flex-start; justify-content: space-between;
   padding: 18px 20px 0;
