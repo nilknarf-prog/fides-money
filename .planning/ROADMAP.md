@@ -170,12 +170,12 @@
   3. Ao tocar/hover em um card de categoria ou conta, há micro-feedback visual (ex.: escala, brilho, sombra) implementado puramente em CSS
   4. As animações não causam jank em iPhone SE (400px) — nenhum `transform` ou `opacity` transition acima de 300ms sem `will-change` ou GPU hint
 
-**Plans**: 1/4 plans executed
+**Plans**: 2/4 plans executed
 
 **Wave 1**
 
 - [x] 04-01-PLAN.md — MOTION-01/PERF: hook `useModalClose` (fides-ui.jsx) + keyframes de saída + gate reduced-motion (fides.css)
-- [ ] 04-03-PLAN.md — MOBILE-01: engrenagem clicável no masthead (≤768px) + foot gear desktop + estado `lastView`/toggle
+- [x] 04-03-PLAN.md — MOBILE-01: engrenagem clicável no masthead (≤768px) + foot gear desktop + estado `lastView`/toggle
 
 **Wave 2** *(blocked on Wave 1)*
 
@@ -208,7 +208,7 @@
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
 | 03 - Limpeza + Tokens | 0/2 | Not started | - |
-| 04 - UX Mobile + Motion | 1/4 | In Progress|  |
+| 04 - UX Mobile + Motion | 2/4 | In Progress|  |
 | 05 - IA Real | 0/TBD | Not started | - |
 
 ---

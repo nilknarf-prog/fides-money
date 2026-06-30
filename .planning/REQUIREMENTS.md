@@ -19,7 +19,7 @@
 
 ### MOBILE — Acesso ao perfil mobile (P3)
 
-- [ ] **MOBILE-01**: Usuário acessa `PerfilView` via ícone de engrenagem clicável em 400×512px iOS Safari
+- [x] **MOBILE-01**: Usuário acessa `PerfilView` via ícone de engrenagem clicável em 400×512px iOS Safari
 
 ### MOTION — Micro-interações (P4)
 
@@ -71,7 +71,7 @@
 | DESIGN-02 | Phase 03 | Complete |
 | DESIGN-03 | Phase 03 | Complete |
 | DESIGN-04 | Phase 03 | Complete |
-| MOBILE-01 | Phase 04 | Pending |
+| MOBILE-01 | Phase 04 | Complete |
 | MOTION-01 | Phase 04 | Complete |
 | MOTION-02 | Phase 04 | Pending |
 | AI-01 | Phase 05 | Pending |
