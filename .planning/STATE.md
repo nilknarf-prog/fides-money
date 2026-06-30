@@ -5,7 +5,7 @@ milestone_name: Polish pré-lançamento
 current_phase: 03
 current_phase_name: limpeza-tokens
 status: executing
-last_updated: "2026-06-30T03:26:08.402Z"
+last_updated: "2026-06-30T03:44:54.182Z"
 last_activity: 2026-06-30
 last_activity_desc: Phase 03 execution started
 progress:
@@ -42,6 +42,7 @@ Run `/gsd-plan-phase 03` to create the plan for Phase 03 (Limpeza + Tokens).
 | Phase | Plan | Duration | Notes |
 |-------|------|----------|-------|
 | Phase 03 P01 | 112 | 3 tasks | 2 files |
+| Phase 03 P01 | 208 | 4 tasks | 2 files |
 
 ## Decisions
 
