@@ -1,0 +1,87 @@
+# Requirements: Fides Money
+
+**Defined:** 2026-06-29
+**Milestone:** v1.0 — Polish pré-lançamento
+**Core Value:** Finanças pessoais por registro manual (fricção intencional → consciência); nunca número que impressiona mas engana.
+
+## v1 Requirements
+
+### CLEAN — Limpeza de código (P1)
+
+- [ ] **CLEAN-01**: `fides-diario.jsx` e `fides-diario.css` removidos do repositório e `<link>` correspondente removido de `index.html`
+
+### DESIGN — Visual polish (P2)
+
+- [ ] **DESIGN-01**: Avatar (`.fds-avatar`) usa token de cor de marca — sem roxo hardcoded
+- [ ] **DESIGN-02**: View de perfil (`.prf-view`) usa token de cor de marca — sem roxo hardcoded
+- [ ] **DESIGN-03**: Token `--warn` consistente entre todos os arquivos CSS (`fides.css`, `fides-studio.css`, `fides-orcamento.css`)
+- [ ] **DESIGN-04**: `fides.css`, `fides-studio.css` e `fides-orcamento.css` auditados — propriedades mortas e divergentes removidas
+
+### MOBILE — Acesso ao perfil mobile (P3)
+
+- [ ] **MOBILE-01**: Usuário acessa `PerfilView` via ícone de engrenagem clicável em 400×512px iOS Safari
+
+### MOTION — Micro-interações (P4)
+
+- [ ] **MOTION-01**: Modais exibem transição de entrada/saída suave via CSS keyframes (sem JS adicional)
+- [ ] **MOTION-02**: Cards de categoria e conta têm micro-interação em tap/hover (CSS, não JS)
+
+### AI — Integração IA real (P5)
+
+- [ ] **AI-01**: Botão "Análise da IA" em `fides-orcamento.jsx` chama `api/assistant.js` real (não stub de 2,2s)
+- [ ] **AI-02**: UI exibe loading state e resposta da IA sem travamento do thread principal
+
+## v2 Requirements (M5 Expansão — deferred)
+
+### META — Metas
+
+- **META-01**: Usuário cria meta com nome, valor-alvo e prazo
+- **META-02**: Usuário acompanha progresso da meta
+- **META-03**: Usuário edita e exclui metas
+
+### IMPORT — Importação de dados
+
+- **IMPORT-01**: Usuário importa transações via CSV
+- **IMPORT-02**: Usuário importa transações via OFX
+
+### UX
+
+- **UX-01**: Usuário busca transações via ⌘K / campo de busca
+- **UX-02**: Modal de Nova Transação exibe preview de limite da categoria selecionada
+
+## Out of Scope
+
+| Feature | Reason |
+|---------|--------|
+| Migração Babel → Vite/Next | Débito arquitetural raiz — milestone próprio (B11) |
+| Pipeline CI/CD staging/production | Aguarda B11; separado do polish |
+| Assistente WRITE (escrita de transações pela IA) | Aguarda fundação 100% estável (B8) |
+| Telas Dívidas / Família | M5+ — design próprio necessário |
+| Investimento ≠ despesa | Mudança de modelo de dados — M5+ |
+| Projeção via média histórica | Requer 3+ meses de dados |
+| WhatsApp / Meta Cloud API | Pós validação de WRITE estável |
+| Monetização / landing / comercial | M6 |
+
+## Traceability
+
+| Requirement | Phase | Status |
+|-------------|-------|--------|
+| CLEAN-01 | — | Pending |
+| DESIGN-01 | — | Pending |
+| DESIGN-02 | — | Pending |
+| DESIGN-03 | — | Pending |
+| DESIGN-04 | — | Pending |
+| MOBILE-01 | — | Pending |
+| MOTION-01 | — | Pending |
+| MOTION-02 | — | Pending |
+| AI-01 | — | Pending |
+| AI-02 | — | Pending |
+
+**Coverage:**
+- v1 requirements: 10 total
+- Mapped to phases: 0 (roadmap pending)
+- Unmapped: 10 ⚠️
+
+---
+*Requirements defined: 2026-06-29*
+*Last updated: 2026-06-29 — milestone v1.0 initialization*
