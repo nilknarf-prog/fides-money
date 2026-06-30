@@ -291,6 +291,14 @@
 }
 .stu-mast-add:hover { background: var(--ink-2); transform: translateY(-0.5px); }
 
+/* stu-mast-gear: mobile-only gear button in masthead — hidden on desktop */
+.stu-mast-gear { display: none; }
+.stu-mast-gear.on {
+  color: var(--accent);
+  background: color-mix(in oklab, var(--accent) 10%, transparent);
+  border-color: color-mix(in oklab, var(--accent) 30%, transparent);
+}
+
 /* ─── Page ─── */
 .stu-page { padding: 28px 36px 48px; gap: 12px; }
 
