@@ -139,7 +139,10 @@
   3. A view de perfil (`.prf-view`) exibe cor de marca consistente com o resto da UI — sem roxo hardcoded
   4. O token `--warn` tem o mesmo valor em `fides.css`, `fides-studio.css` e `fides-orcamento.css` (verificável com grep)
   5. `fides.css`, `fides-studio.css` e `fides-orcamento.css` não contêm regras duplicadas ou propriedades sem referência no DOM (verificável por diff do audit)
-**Plans**: TBD
+**Plans**: 2 plans (wave 1 → wave 2, sequenciais por compartilharem `fides.css`/`fides-studio.css`)
+- [ ] 03-01-PLAN.md — CLEAN-01 (verificação) + DESIGN-01/02/03: avatares roxo→verde de marca, perfil on-brand, token `--warn` consistente
+- [ ] 03-02-PLAN.md — DESIGN-04: auditoria conservadora dos 3 CSS (duplicatas, órfãos, tokens fantasma)
+**Achados do planejamento**: `fides-diario.*` já removido no commit `d4db34f` (CLEAN-01 vira verificação de estado). `.prf-view`/`.prf-avatar` já usam `var(--accent)` (DESIGN-02 conforme; apenas audita). Roxo real (`#6366F1→#8B5CF6`) vive em DOIS avatares: `.fds-avatar` (fides.css) e `.fds-sb-slim-avatar` (fides-studio.css). Única divergência de `--warn`: `#D97706` no bloco legado `.fds-app[data-variant="v3"]`.
 **UI hint**: yes
 
 ---
@@ -179,7 +182,7 @@
 
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
-| 03 - Limpeza + Tokens | 0/TBD | Not started | - |
+| 03 - Limpeza + Tokens | 0/2 | Not started | - |
 | 04 - UX Mobile + Motion | 0/TBD | Not started | - |
 | 05 - IA Real | 0/TBD | Not started | - |
 
