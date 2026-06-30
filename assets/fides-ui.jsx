@@ -227,12 +227,69 @@
     return { confirm: confirm, ConfirmHost: ConfirmHost };
   }
 
+  // ===== Hook useModalClose =====
+  // Uso:
+  //   var mc = useModalClose(open, onClose);
+  //   if (!mc.rendered) return null;
+  //   // aplicar mc.closing como classe 'is-closing' nos elementos do modal
+  //   // substituir chamadas de fechar por mc.requestClose()
+  var CLOSE_MS = 180;
+
+  function useModalClose(open, onClose) {
+    var ref0 = React.useState(!!open);
+    var rendered = ref0[0]; var setRendered = ref0[1];
+
+    var ref1 = React.useState(false);
+    var closing = ref1[0]; var setClosing = ref1[1];
+
+    var timerRef = React.useRef(null);
+
+    var requestClose = React.useCallback(function () {
+      var prefersReduced = window.matchMedia &&
+        window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+      if (prefersReduced) {
+        // Sem animação — desmontar e chamar onClose imediatamente
+        if (timerRef.current) { clearTimeout(timerRef.current); timerRef.current = null; }
+        setClosing(false);
+        setRendered(false);
+        if (onClose) onClose();
+      } else {
+        // Janela de animação de saída
+        setClosing(true);
+        timerRef.current = setTimeout(function () {
+          timerRef.current = null;
+          setClosing(false);
+          setRendered(false);
+          if (onClose) onClose();
+        }, CLOSE_MS);
+      }
+    }, [onClose]);
+
+    React.useEffect(function () {
+      if (open) {
+        // Re-open: cancelar closing em andamento e remontar limpo
+        if (timerRef.current) { clearTimeout(timerRef.current); timerRef.current = null; }
+        setClosing(false);
+        setRendered(true);
+      }
+      // Quando open vira false: não desmontar direto;
+      // o fechamento é orquestrado por requestClose() chamado pelo botão de fechar.
+      return function () {
+        clearTimeout(timerRef.current);
+      };
+    }, [open]);
+
+    return { rendered: rendered, closing: closing, requestClose: requestClose };
+  }
+
   // ===== Expor no window =====
   window.FidesUI = {
     ToastViewport: ToastViewport,
     ConfirmDialog: ConfirmDialog,
     useToast: useToast,
     useConfirm: useConfirm,
+    useModalClose: useModalClose,
     toast: toast
   };
 })();
