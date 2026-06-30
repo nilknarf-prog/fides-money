@@ -66,22 +66,22 @@
 
 | Requirement | Phase | Status |
 |-------------|-------|--------|
-| CLEAN-01 | — | Pending |
-| DESIGN-01 | — | Pending |
-| DESIGN-02 | — | Pending |
-| DESIGN-03 | — | Pending |
-| DESIGN-04 | — | Pending |
-| MOBILE-01 | — | Pending |
-| MOTION-01 | — | Pending |
-| MOTION-02 | — | Pending |
-| AI-01 | — | Pending |
-| AI-02 | — | Pending |
+| CLEAN-01 | Phase 03 | Pending |
+| DESIGN-01 | Phase 03 | Pending |
+| DESIGN-02 | Phase 03 | Pending |
+| DESIGN-03 | Phase 03 | Pending |
+| DESIGN-04 | Phase 03 | Pending |
+| MOBILE-01 | Phase 04 | Pending |
+| MOTION-01 | Phase 04 | Pending |
+| MOTION-02 | Phase 04 | Pending |
+| AI-01 | Phase 05 | Pending |
+| AI-02 | Phase 05 | Pending |
 
 **Coverage:**
 - v1 requirements: 10 total
-- Mapped to phases: 0 (roadmap pending)
-- Unmapped: 10 ⚠️
+- Mapped to phases: 10/10 ✓
+- Unmapped: 0
 
 ---
 *Requirements defined: 2026-06-29*
-*Last updated: 2026-06-29 — milestone v1.0 initialization*
+*Last updated: 2026-06-29 — roadmap phases 03–05 mapped (M3 v1.0)*

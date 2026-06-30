@@ -80,7 +80,7 @@
 
 ---
 
-## PARTE 3.5 — PRÓXIMO (🔴 Fase 01 · Veracidade do Dashboard) — **FASE ATIVA**
+## PARTE 3.5 — Fase 01 · Veracidade do Dashboard — ✅ (commit `e3783f3`, verificado)
 
 > Detalhe completo em `phases/01-veracidade-do-dashboard/` (`SPEC.md`, `CONTEXT.md`, `RESEARCH.md`, `PATTERNS.md`, `PLAN.md`).
 
@@ -89,9 +89,9 @@
 **Requirements:** R1 (budgetGroups · limites reais), R2 (tooltip de fatia do donut), R3 (saldo projetado no hero)
 
 **Plans:** 3 plans (waves 1→2→3, sequenciais por compartilharem `fides-studio.jsx`)
-- [ ] 01-01-PLAN.md — R1: `budgetGroups` lê `categoryLimits` + estado "sem limite" no card
-- [ ] 01-02-PLAN.md — R2: tooltip de fatia no `Donut` (centro reusado) + dismiss mobile
-- [ ] 01-03-PLAN.md — R3: `saldoProjetado` no hero + fluxo negativo visível (P1)
+- [x] 01-01-PLAN.md — R1: `budgetGroups` lê `categoryLimits` + estado "sem limite" no card
+- [x] 01-02-PLAN.md — R2: tooltip de fatia no `Donut` (centro reusado) + dismiss mobile
+- [x] 01-03-PLAN.md — R3: `saldoProjetado` no hero + fluxo negativo visível (P1)
 
 **Tema:** o `DashboardStudio` exibe números que não refletem a verdade financeira do usuário. 3 correções:
 
@@ -105,17 +105,83 @@
 
 ---
 
-## PARTE 3.6 — PRÓXIMO (🔴 Fase 02 · Fixes de Experiência)
+## PARTE 3.6 — Fase 02 · Fixes de Experiência — ✅ (commit `3549395`, verificado)
 
-> Fase alocada para corrigir atritos de usabilidade reportados pós-lançamento.
+> Detalhe completo em `phases/02-fixes-experiencia/02-01-PLAN.md`.
 
-**Problemas reportados:**
-1. **Ordenação por Data inconsistente:** Na página de Transações, ao filtrar/ordenar por "Data", lançamentos de um mesmo dia não estão respeitando a ordem cronológica (a transação mais recente do dia aparece depois da mais antiga).
-2. **Perda de estado (Permanência):** O app "carrega de novo" (recarrega/perde estado) ao mudar de aba no Chrome por 1 segundo e voltar.
+**Entregue:**
+- [x] Sort por Data com desempate `createdAt` DESC — transação mais nova do dia aparece em cima
+- [x] `onAuthStateChange` não re-fetch em `TOKEN_REFRESHED` — sem piscar ao voltar de aba
 
-**Escopo planejado:**
-- **R1:** Adicionar critério de desempate secundário (ex: `created_at` DESC ou reverse array index) na função de sort da página de Transações para o filtro "Data".
-- **R2:** Investigar o ciclo de vida do app (eventos de auth, unmount de componentes pai, memory management do Chrome) para descobrir o root cause do recarregamento de estado, e implementar persistência ou evitar re-renders desnecessários.
+---
+
+## PARTE 3.7 — M3 v1.0 Polish pré-lançamento
+
+### Phases
+
+- [ ] **Phase 03: Limpeza + Tokens** — Dead code removido e identidade visual alinhada aos tokens de marca
+- [ ] **Phase 04: UX Mobile + Motion** — Perfil acessível no mobile e micro-interações CSS em modais/cards
+- [ ] **Phase 05: IA Real** — Botão "Análise da IA" conectado ao Gemini real com loading state funcional
+
+### Phase Details
+
+---
+
+### Phase 03: Limpeza + Tokens
+
+**Goal**: O repositório não contém código morto e toda a UI usa exclusivamente tokens CSS de marca — sem valores hardcoded de cor fora dos tokens.
+**Depends on**: Fase 02 (concluída)
+**Requirements**: CLEAN-01, DESIGN-01, DESIGN-02, DESIGN-03, DESIGN-04
+**Key files**: `index.html`, `fides-diario.jsx`, `fides-diario.css`, `fides.css`, `fides-studio.css`, `fides-orcamento.css`, `tokens.css`
+**Success Criteria** (what must be TRUE):
+  1. Os arquivos `fides-diario.jsx` e `fides-diario.css` não existem no repositório e nenhuma `<link>` ou `import` os referencia em `index.html`
+  2. O avatar do usuário (`.fds-avatar`) exibe a cor correta de marca em qualquer tema — sem roxo hardcoded visível no DevTools
+  3. A view de perfil (`.prf-view`) exibe cor de marca consistente com o resto da UI — sem roxo hardcoded
+  4. O token `--warn` tem o mesmo valor em `fides.css`, `fides-studio.css` e `fides-orcamento.css` (verificável com grep)
+  5. `fides.css`, `fides-studio.css` e `fides-orcamento.css` não contêm regras duplicadas ou propriedades sem referência no DOM (verificável por diff do audit)
+**Plans**: TBD
+**UI hint**: yes
+
+---
+
+### Phase 04: UX Mobile + Motion
+
+**Goal**: O usuário acessa o perfil pelo mobile via engrenagem e percebe transições suaves ao abrir/fechar modais e interagir com cards — tudo via CSS, sem JS adicional.
+**Depends on**: Phase 03
+**Requirements**: MOBILE-01, MOTION-01, MOTION-02
+**Key files**: `fides-studio.jsx`, `fides-studio.css`, CSS de modais (fides.css / fides-studio.css), CSS de cards
+**Success Criteria** (what must be TRUE):
+  1. Em viewport 400×512px (iOS Safari), tocar o ícone de engrenagem abre a `PerfilView` — o ícone é visível e clicável sem zoom ou scroll horizontal
+  2. Ao abrir qualquer modal, o conteúdo entra com animação de fade/slide suave; ao fechar, sai com transição de saída visível (não corte abrupto)
+  3. Ao tocar/hover em um card de categoria ou conta, há micro-feedback visual (ex.: escala, brilho, sombra) implementado puramente em CSS
+  4. As animações não causam jank em iPhone SE (400px) — nenhum `transform` ou `opacity` transition acima de 300ms sem `will-change` ou GPU hint
+**Plans**: TBD
+**UI hint**: yes
+
+---
+
+### Phase 05: IA Real
+
+**Goal**: O botão "Análise da IA" chama o Gemini 2.5 Flash-Lite real e exibe a resposta na UI com loading state, sem travar o thread principal.
+**Depends on**: Phase 03
+**Requirements**: AI-01, AI-02
+**Key files**: `fides-orcamento.jsx`, `api/assistant.js`
+**Success Criteria** (what must be TRUE):
+  1. Ao clicar "Análise da IA", a UI exibe imediatamente um indicador de loading (spinner ou skeleton) — o botão não fica silencioso
+  2. Após resposta do Gemini (tipicamente 2–8s), o texto da análise aparece na área designada da UI sem recarregar a página
+  3. Se a chamada falhar (rede, erro 5xx), a UI exibe mensagem de erro amigável — não trava nem fica em loading infinito
+  4. O arquivo `api/assistant.js` usa `commonjs` (`require`/`module.exports`) — nenhum `import`/`export` ESM introduzido
+**Plans**: TBD
+
+---
+
+### Progress Table
+
+| Phase | Plans Complete | Status | Completed |
+|-------|----------------|--------|-----------|
+| 03 - Limpeza + Tokens | 0/TBD | Not started | - |
+| 04 - UX Mobile + Motion | 0/TBD | Not started | - |
+| 05 - IA Real | 0/TBD | Not started | - |
 
 ---
 
@@ -162,6 +228,6 @@
 |---|---|---|---|
 | `faturaAbertaPorCartao` mistura faturas | v6 | **Alto** — UX de pagamento incorreta | Fase M4 (ativa) |
 | Ambiguidade fechamento vs vencimento na rotulagem | v11 | Médio — confunde usuário | Fase M4 (decisão aberta) |
-| `fides-diario.*` dead code | v15 | Baixo — peso morto | P1 |
+| `fides-diario.*` dead code | v15 | Baixo — peso morto | Phase 03 |
 | `supabase/schema.sql` desatualizado (MCP é a verdade) | v9 | Médio — drift | B10 |
-| Roxo off-brand hardcoded | v15 | Baixo — identidade | P2 |
+| Roxo off-brand hardcoded | v15 | Baixo — identidade | Phase 03 |
