@@ -8,13 +8,13 @@
 
 ### CLEAN — Limpeza de código (P1)
 
-- [ ] **CLEAN-01**: `fides-diario.jsx` e `fides-diario.css` removidos do repositório e `<link>` correspondente removido de `index.html`
+- [x] **CLEAN-01**: `fides-diario.jsx` e `fides-diario.css` removidos do repositório e `<link>` correspondente removido de `index.html`
 
 ### DESIGN — Visual polish (P2)
 
-- [ ] **DESIGN-01**: Avatar (`.fds-avatar`) usa token de cor de marca — sem roxo hardcoded
-- [ ] **DESIGN-02**: View de perfil (`.prf-view`) usa token de cor de marca — sem roxo hardcoded
-- [ ] **DESIGN-03**: Token `--warn` consistente entre todos os arquivos CSS (`fides.css`, `fides-studio.css`, `fides-orcamento.css`)
+- [x] **DESIGN-01**: Avatar (`.fds-avatar`) usa token de cor de marca — sem roxo hardcoded
+- [x] **DESIGN-02**: View de perfil (`.prf-view`) usa token de cor de marca — sem roxo hardcoded
+- [x] **DESIGN-03**: Token `--warn` consistente entre todos os arquivos CSS (`fides.css`, `fides-studio.css`, `fides-orcamento.css`)
 - [ ] **DESIGN-04**: `fides.css`, `fides-studio.css` e `fides-orcamento.css` auditados — propriedades mortas e divergentes removidas
 
 ### MOBILE — Acesso ao perfil mobile (P3)
@@ -66,10 +66,10 @@
 
 | Requirement | Phase | Status |
 |-------------|-------|--------|
-| CLEAN-01 | Phase 03 | Pending |
-| DESIGN-01 | Phase 03 | Pending |
-| DESIGN-02 | Phase 03 | Pending |
-| DESIGN-03 | Phase 03 | Pending |
+| CLEAN-01 | Phase 03 | Complete |
+| DESIGN-01 | Phase 03 | Complete |
+| DESIGN-02 | Phase 03 | Complete |
+| DESIGN-03 | Phase 03 | Complete |
 | DESIGN-04 | Phase 03 | Pending |
 | MOBILE-01 | Phase 04 | Pending |
 | MOTION-01 | Phase 04 | Pending |
@@ -78,6 +78,7 @@
 | AI-02 | Phase 05 | Pending |
 
 **Coverage:**
+
 - v1 requirements: 10 total
 - Mapped to phases: 10/10 ✓
 - Unmapped: 0

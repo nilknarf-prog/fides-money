@@ -143,10 +143,10 @@
   4. O token `--warn` tem o mesmo valor em `fides.css`, `fides-studio.css` e `fides-orcamento.css` (verificável com grep)
   5. `fides.css`, `fides-studio.css` e `fides-orcamento.css` não contêm regras duplicadas ou propriedades sem referência no DOM (verificável por diff do audit)
 
-**Plans**: 2 plans (wave 1 → wave 2, sequenciais por compartilharem `fides.css`/`fides-studio.css`)
+**Plans**: 1/2 plans executed
 **Wave 1**
 
-- [ ] 03-01-PLAN.md — CLEAN-01 (verificação) + DESIGN-01/02/03: avatares roxo→verde de marca, perfil on-brand, token `--warn` consistente
+- [x] 03-01-PLAN.md — CLEAN-01 (verificação) + DESIGN-01/02/03: avatares roxo→verde de marca, perfil on-brand, token `--warn` consistente
 
 **Wave 2** *(blocked on Wave 1 completion)*
 
