@@ -39,17 +39,26 @@ function FidesStudioGuard({ initialPage }) {
 
 function FidesStudioShell({ initialPage = 'dashboard' }) {
   const [active, setActive] = React.useState(initialPage);
+  const [lastView, setLastView] = React.useState('dashboard');
   const [modalOpen, setModalOpen] = React.useState(false);
   const { addTransaction, addTransactions, categoryModalOpen, closeCategoryModal } = useFides();
 
   React.useEffect(() => { setActive(initialPage); }, [initialPage]);
 
+  const goPerfil = React.useCallback(() => {
+    setActive(a => {
+      if (a === 'perfil') return lastView || 'dashboard';
+      setLastView(a);
+      return 'perfil';
+    });
+  }, [lastView]);
+
   return (
     <div className="fds-app fds-studio" data-variant="studio">
       <div className="fds-shell">
-        <SidebarSlim active={active} onNav={setActive}/>
+        <SidebarSlim active={active} onNav={setActive} onGear={goPerfil}/>
         <main className="fds-main">
-          <StudioMasthead onAdd={() => setModalOpen(true)}/>
+          <StudioMasthead onAdd={() => setModalOpen(true)} onGear={goPerfil} active={active}/>
           {active === 'dashboard'  && <DashboardStudio onAdd={() => setModalOpen(true)} onNav={setActive}/>}
           {active === 'transacoes' && <TransacoesStudio onAdd={() => setModalOpen(true)}/>}
           {active === 'orcamento'  && <OrcamentoStudio onAdd={() => setModalOpen(true)}/>}
@@ -261,7 +270,7 @@ function StudioLogo({ size = 30 }) {
   );
 }
 // ─── Slim icon-only sidebar ───────────────────────────────────
-function SidebarSlim({ active, onNav }) {
+function SidebarSlim({ active, onNav, onGear }) {
   const { userName, firstName } = useFides();
   const displayName = firstName || userName || 'Usuário';
   const initials = displayName.split(' ').filter(Boolean).map(w => w[0]).slice(0, 2).join('').toUpperCase() || 'U';
@@ -287,7 +296,7 @@ function SidebarSlim({ active, onNav }) {
         })}
       </nav>
       <div className="fds-sb-slim-foot">
-        <button className="fds-sb-slim-item" title="Configurações">
+        <button className="fds-sb-slim-item" title="Configurações" onClick={onGear}>
           <Icon.Settings size={18}/>
           <span className="fds-sb-slim-tip">Configurações</span>
         </button>
