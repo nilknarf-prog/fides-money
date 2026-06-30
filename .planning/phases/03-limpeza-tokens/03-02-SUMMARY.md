@@ -2,7 +2,7 @@
 phase: 03-limpeza-tokens
 plan: "02"
 subsystem: frontend-css
-status: checkpoint-pending
+status: complete
 tags: [design-tokens, css-cleanup, audit, dead-code]
 dependency_graph:
   requires: [03-01]
@@ -32,9 +32,9 @@ metrics:
 
 Auditoria conservadora dirigida por evidencia de `fides.css`, `fides-studio.css` e `fides-orcamento.css`: token fantasma `--warn-bg` resolvido para `var(--warn-soft)`; zero duplicatas verdadeiras encontradas (todas eram overrides responsivos); orfaos identificados mas mantidos por precaucao (construcao dinamica ou interleaving com codigo vivo).
 
-## Status: CHECKPOINT-PENDING
+## Status: COMPLETE
 
-Tasks 1-2 concluidas. Task 3 e checkpoint:human-verify (regressao visual) — AGUARDANDO verificacao humana. Plano NAO marcado como complete ate aprovacao do checkpoint.
+Todas as 3 tasks concluidas. Task 3 (checkpoint:human-verify) APROVADO via verificacao humana: zero regressao visual em todas as paginas e em 400×512px; alerta `.pln-resumo-alert--warn` confirmado com fundo ambar de marca (`--warn-soft` #FEF0D6).
 
 ## Tasks Completed
 
@@ -42,7 +42,7 @@ Tasks 1-2 concluidas. Task 3 e checkpoint:human-verify (regressao visual) — AG
 |------|------|--------|--------|
 | 1 | Mapear seletores vivos vs orfaos e tokens fantasma (auditoria) | — (sem edicao) | Done (evidencia abaixo) |
 | 2 | Remover duplicatas/orfaos e resolver tokens fantasma | b89c682 | Done |
-| 3 | Checkpoint — verificar ausencia de regressao visual | — | AGUARDANDO HUMANO |
+| 3 | Checkpoint — verificar ausencia de regressao visual | — | Approved (verificacao humana) |
 
 ---
 
@@ -128,7 +128,7 @@ Nenhuma outra edicao. Nenhuma duplicata removida (nao havia redundante). Nenhum 
 | Chaves `{`/`}` balanceadas nos 3 arquivos | PASS (OK-BRACES-BALANCED) |
 | `--warn-soft` definido em tokens.css | PASS (#FEF0D6, L43) |
 | Nenhuma classe com className vivo em JSX removida | PASS (nenhuma classe removida) |
-| Task 3 checkpoint visual | PENDING (humano) |
+| Task 3 checkpoint visual | APPROVED (humano: zero regressao em todas paginas + 400×512px; alerta --warn ambar OK) |
 
 ## Deviations from Plan
 

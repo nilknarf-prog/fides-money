@@ -15,7 +15,7 @@
 - [x] **DESIGN-01**: Avatar (`.fds-avatar`) usa token de cor de marca — sem roxo hardcoded
 - [x] **DESIGN-02**: View de perfil (`.prf-view`) usa token de cor de marca — sem roxo hardcoded
 - [x] **DESIGN-03**: Token `--warn` consistente entre todos os arquivos CSS (`fides.css`, `fides-studio.css`, `fides-orcamento.css`)
-- [ ] **DESIGN-04**: `fides.css`, `fides-studio.css` e `fides-orcamento.css` auditados — propriedades mortas e divergentes removidas
+- [x] **DESIGN-04**: `fides.css`, `fides-studio.css` e `fides-orcamento.css` auditados — propriedades mortas e divergentes removidas
 
 ### MOBILE — Acesso ao perfil mobile (P3)
 
@@ -70,7 +70,7 @@
 | DESIGN-01 | Phase 03 | Complete |
 | DESIGN-02 | Phase 03 | Complete |
 | DESIGN-03 | Phase 03 | Complete |
-| DESIGN-04 | Phase 03 | Pending |
+| DESIGN-04 | Phase 03 | Complete |
 | MOBILE-01 | Phase 04 | Pending |
 | MOTION-01 | Phase 04 | Pending |
 | MOTION-02 | Phase 04 | Pending |

@@ -5,8 +5,8 @@ milestone_name: Polish pré-lançamento
 current_phase: 03
 current_phase_name: limpeza-tokens
 status: verifying
-stopped_at: Checkpoint Task 3 (human-verify) em 03-02 — aguardando aprovacao visual
-last_updated: "2026-06-30T03:56:43.964Z"
+stopped_at: 03-02 complete — checkpoint Task 3 aprovado; DESIGN-04 fechado
+last_updated: "2026-06-30T13:33:42.123Z"
 last_activity: 2026-06-30
 last_activity_desc: Phase 03 execution started
 progress:
@@ -44,16 +44,16 @@ Run `/gsd-plan-phase 03` to create the plan for Phase 03 (Limpeza + Tokens).
 |-------|------|----------|-------|
 | Phase 03 P01 | 112 | 3 tasks | 2 files |
 | Phase 03 P01 | 208 | 4 tasks | 2 files |
-| Phase 03 P02 | audit | 3 tasks (T1-2 done, T3 checkpoint) | 1 file |
+| Phase 03 P02 | audit | 3 tasks (T3 checkpoint aprovado) | 1 file |
 
 ## Decisions
 
 - [Phase ?]: DESIGN-02: .prf-avatar já usava var(--accent) — auditado e confirmado on-brand sem edição
 - [Phase ?]: CLEAN-01: fides-diario.* removido pelo commit d4db34f — estado verificado sem ação adicional
-- [Phase ?]: DESIGN-04 (parcial): token fantasma --warn-bg resolvido para var(--warn-soft); auditoria conservadora nao removeu orfaos (dinamicos/interleaved com .fds-tx-kpi vivo) nem duplicatas (todas overrides @container). Checkpoint visual pendente.
+- [Phase ?]: DESIGN-04: token fantasma --warn-bg resolvido para var(--warn-soft); auditoria conservadora nao removeu orfaos (dinamicos/interleaved com .fds-tx-kpi vivo) nem duplicatas (todas overrides @container). Checkpoint visual aprovado — DESIGN-04 complete.
 
 ## Session
 
-**Last session:** 2026-06-30T03:56:43.951Z
-**Stopped at:** Checkpoint Task 3 (human-verify) em 03-02 — aguardando aprovacao visual
+**Last session:** 2026-06-30T13:33:42.104Z
+**Stopped at:** 03-02 complete — checkpoint Task 3 aprovado; DESIGN-04 fechado
 **Resume file:** None
