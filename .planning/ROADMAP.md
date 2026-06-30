@@ -89,6 +89,7 @@
 **Requirements:** R1 (budgetGroups · limites reais), R2 (tooltip de fatia do donut), R3 (saldo projetado no hero)
 
 **Plans:** 3 plans (waves 1→2→3, sequenciais por compartilharem `fides-studio.jsx`)
+
 - [x] 01-01-PLAN.md — R1: `budgetGroups` lê `categoryLimits` + estado "sem limite" no card
 - [x] 01-02-PLAN.md — R2: tooltip de fatia no `Donut` (centro reusado) + dismiss mobile
 - [x] 01-03-PLAN.md — R3: `saldoProjetado` no hero + fluxo negativo visível (P1)
@@ -110,6 +111,7 @@
 > Detalhe completo em `phases/02-fixes-experiencia/02-01-PLAN.md`.
 
 **Entregue:**
+
 - [x] Sort por Data com desempate `createdAt` DESC — transação mais nova do dia aparece em cima
 - [x] `onAuthStateChange` não re-fetch em `TOKEN_REFRESHED` — sem piscar ao voltar de aba
 
@@ -134,14 +136,22 @@
 **Requirements**: CLEAN-01, DESIGN-01, DESIGN-02, DESIGN-03, DESIGN-04
 **Key files**: `index.html`, `fides-diario.jsx`, `fides-diario.css`, `fides.css`, `fides-studio.css`, `fides-orcamento.css`, `tokens.css`
 **Success Criteria** (what must be TRUE):
+
   1. Os arquivos `fides-diario.jsx` e `fides-diario.css` não existem no repositório e nenhuma `<link>` ou `import` os referencia em `index.html`
   2. O avatar do usuário (`.fds-avatar`) exibe a cor correta de marca em qualquer tema — sem roxo hardcoded visível no DevTools
   3. A view de perfil (`.prf-view`) exibe cor de marca consistente com o resto da UI — sem roxo hardcoded
   4. O token `--warn` tem o mesmo valor em `fides.css`, `fides-studio.css` e `fides-orcamento.css` (verificável com grep)
   5. `fides.css`, `fides-studio.css` e `fides-orcamento.css` não contêm regras duplicadas ou propriedades sem referência no DOM (verificável por diff do audit)
+
 **Plans**: 2 plans (wave 1 → wave 2, sequenciais por compartilharem `fides.css`/`fides-studio.css`)
+**Wave 1**
+
 - [ ] 03-01-PLAN.md — CLEAN-01 (verificação) + DESIGN-01/02/03: avatares roxo→verde de marca, perfil on-brand, token `--warn` consistente
+
+**Wave 2** *(blocked on Wave 1 completion)*
+
 - [ ] 03-02-PLAN.md — DESIGN-04: auditoria conservadora dos 3 CSS (duplicatas, órfãos, tokens fantasma)
+
 **Achados do planejamento**: `fides-diario.*` já removido no commit `d4db34f` (CLEAN-01 vira verificação de estado). `.prf-view`/`.prf-avatar` já usam `var(--accent)` (DESIGN-02 conforme; apenas audita). Roxo real (`#6366F1→#8B5CF6`) vive em DOIS avatares: `.fds-avatar` (fides.css) e `.fds-sb-slim-avatar` (fides-studio.css). Única divergência de `--warn`: `#D97706` no bloco legado `.fds-app[data-variant="v3"]`.
 **UI hint**: yes
 
@@ -154,10 +164,12 @@
 **Requirements**: MOBILE-01, MOTION-01, MOTION-02
 **Key files**: `fides-studio.jsx`, `fides-studio.css`, CSS de modais (fides.css / fides-studio.css), CSS de cards
 **Success Criteria** (what must be TRUE):
+
   1. Em viewport 400×512px (iOS Safari), tocar o ícone de engrenagem abre a `PerfilView` — o ícone é visível e clicável sem zoom ou scroll horizontal
   2. Ao abrir qualquer modal, o conteúdo entra com animação de fade/slide suave; ao fechar, sai com transição de saída visível (não corte abrupto)
   3. Ao tocar/hover em um card de categoria ou conta, há micro-feedback visual (ex.: escala, brilho, sombra) implementado puramente em CSS
   4. As animações não causam jank em iPhone SE (400px) — nenhum `transform` ou `opacity` transition acima de 300ms sem `will-change` ou GPU hint
+
 **Plans**: TBD
 **UI hint**: yes
 
@@ -170,10 +182,12 @@
 **Requirements**: AI-01, AI-02
 **Key files**: `fides-orcamento.jsx`, `api/assistant.js`
 **Success Criteria** (what must be TRUE):
+
   1. Ao clicar "Análise da IA", a UI exibe imediatamente um indicador de loading (spinner ou skeleton) — o botão não fica silencioso
   2. Após resposta do Gemini (tipicamente 2–8s), o texto da análise aparece na área designada da UI sem recarregar a página
   3. Se a chamada falhar (rede, erro 5xx), a UI exibe mensagem de erro amigável — não trava nem fica em loading infinito
   4. O arquivo `api/assistant.js` usa `commonjs` (`require`/`module.exports`) — nenhum `import`/`export` ESM introduzido
+
 **Plans**: TBD
 
 ---
