@@ -98,7 +98,7 @@ input[type="checkbox"], input[type="radio"] {
   --ok-soft:    #DCFCE7;
   --bad:        #DC2626;
   --bad-soft:   #FEE2E2;
-  --warn:       #D97706;
+  --warn:       #B45309;
   --warn-soft:  #FEF3C7;
 
   --hero-family: var(--font-sans);
