@@ -37,7 +37,7 @@ input[type="checkbox"], input[type="radio"] {
   --bad:        #B91C1C;
   --bad-soft:   #FEE2E2;
   --warn:       #B45309;
-  --warn-soft:  #FEF3C7;
+  --warn-soft:  #FEF0D6;
   --info:       #1D4ED8;
   --info-soft:  #DBEAFE;
 
@@ -99,7 +99,7 @@ input[type="checkbox"], input[type="radio"] {
   --bad:        #DC2626;
   --bad-soft:   #FEE2E2;
   --warn:       #B45309;
-  --warn-soft:  #FEF3C7;
+  --warn-soft:  #FEF0D6;
 
   --hero-family: var(--font-sans);
   --hero-style:  normal;
