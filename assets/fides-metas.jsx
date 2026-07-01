@@ -86,8 +86,10 @@ function MetDotsMenu({ items }) {
 }
 
 // ─── Modal: Aportar ───────────────────────────────────────────
-function AportarModal({ meta, onConfirm, onClose }) {
+function AportarModal({ open, meta, onConfirm, onClose }) {
   const [valor, setValor] = React.useState('');
+  const { rendered, closing, requestClose } = window.FidesUI.useModalClose(open, onClose);
+  if (!rendered) return null;
   if (!meta) return null;
   const v = parseFloat(valor) || 0;
   const novoAtual = meta.atual + v;
@@ -96,8 +98,8 @@ function AportarModal({ meta, onConfirm, onClose }) {
   const novosMeses = meta.contribuicao > 0 ? Math.ceil(faltamDepois / meta.contribuicao) : Infinity;
 
   return (
-    <div className="fds-modal-backdrop" onClick={onClose}>
-      <div className="fds-modal" style={{ maxWidth: 420 }} onClick={e => e.stopPropagation()}>
+    <div className={"fds-modal-backdrop" + (closing ? " is-closing" : "")} onClick={requestClose}>
+      <div className={"fds-modal" + (closing ? " is-closing" : "")} style={{ maxWidth: 420 }} onClick={e => e.stopPropagation()}>
         <div className="fds-modal-head">
           <div>
             <div className="fds-modal-eyebrow">Aporte</div>
@@ -105,7 +107,7 @@ function AportarModal({ meta, onConfirm, onClose }) {
               <span style={{ marginRight: 8 }}>{meta.emoji}</span>{meta.nome}
             </div>
           </div>
-          <button className="fds-icon-btn" onClick={onClose}><Icon.X size={16}/></button>
+          <button className="fds-icon-btn" onClick={requestClose}><Icon.X size={16}/></button>
         </div>
         <div className="fds-modal-body" style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
           <label className="fds-field">
@@ -163,11 +165,11 @@ function AportarModal({ meta, onConfirm, onClose }) {
           )}
         </div>
         <div className="fds-modal-foot" style={{ display: 'flex', justifyContent: 'flex-end', gap: 8 }}>
-          <button className="fds-btn-ghost" onClick={onClose}>Cancelar</button>
+          <button className="fds-btn-ghost" onClick={requestClose}>Cancelar</button>
           <button
             className="fds-btn-primary"
             disabled={v <= 0}
-            onClick={() => v > 0 && onConfirm(v)}
+            onClick={() => { if (v > 0) { onConfirm(v); requestClose(); } }}
             style={{ background: v > 0 ? meta.tint : undefined, opacity: v <= 0 ? 0.5 : 1 }}
           >
             <Icon.Check size={13}/> Confirmar aporte
@@ -179,19 +181,21 @@ function AportarModal({ meta, onConfirm, onClose }) {
 }
 
 // ─── Modal: Ajustar plano (edição completa da meta) ───────────
-function AjustarPlanoModal({ meta, onConfirm, onClose }) {
+function AjustarPlanoModal({ open, meta, onConfirm, onClose }) {
+  const { rendered, closing, requestClose } = window.FidesUI.useModalClose(open, onClose);
+  if (!rendered) return null;
   if (!meta) return null;
   const TINTS = ['#2D5A3D','#2C5282','#B45309','#7C3AED','#0F766E','#9B2C2C','#0891B2','#BE185D'];
 
   return (
-    <div className="fds-modal-backdrop" onClick={onClose}>
-      <div className="fds-modal" style={{ maxWidth: 460 }} onClick={e => e.stopPropagation()}>
+    <div className={"fds-modal-backdrop" + (closing ? " is-closing" : "")} onClick={requestClose}>
+      <div className={"fds-modal" + (closing ? " is-closing" : "")} style={{ maxWidth: 460 }} onClick={e => e.stopPropagation()}>
         <div className="fds-modal-head">
           <div>
             <div className="fds-modal-eyebrow">Editar</div>
             <div className="fds-modal-title">{meta.emoji} {meta.nome}</div>
           </div>
-          <button className="fds-icon-btn" onClick={onClose}><Icon.X size={16}/></button>
+          <button className="fds-icon-btn" onClick={requestClose}><Icon.X size={16}/></button>
         </div>
         <form
           className="fds-modal-body"
@@ -207,6 +211,7 @@ function AjustarPlanoModal({ meta, onConfirm, onClose }) {
               contribuicao: parseFloat(fd.get('contribuicao')) || meta.contribuicao,
               tint:         fd.get('tint')        || meta.tint,
             });
+            requestClose();
           }}
           style={{ display: 'flex', flexDirection: 'column', gap: 14 }}
         >
@@ -252,7 +257,7 @@ function AjustarPlanoModal({ meta, onConfirm, onClose }) {
             </div>
           </div>
           <div className="fds-modal-foot" style={{ display: 'flex', justifyContent: 'flex-end', gap: 8, padding: '12px 0 0' }}>
-            <button type="button" className="fds-btn-ghost" onClick={onClose}>Cancelar</button>
+            <button type="button" className="fds-btn-ghost" onClick={requestClose}>Cancelar</button>
             <button type="submit" className="fds-btn-primary"><Icon.Check size={13}/> Salvar alterações</button>
           </div>
         </form>
@@ -263,16 +268,18 @@ function AjustarPlanoModal({ meta, onConfirm, onClose }) {
 
 // ─── Modal: Confirmar exclusão ────────────────────────────────
 function MetConfirmDeleteModal({ open, nome, onConfirm, onCancel }) {
-  if (!open) return null;
+  const { rendered, closing, requestClose } = window.FidesUI.useModalClose(open, onCancel);
+  if (!rendered) return null;
+  const handleConfirm = () => { onConfirm(); requestClose(); };
   return (
-    <div className="fds-modal-backdrop" onClick={onCancel}>
-      <div className="fds-modal" style={{ maxWidth: 400 }} onClick={e => e.stopPropagation()}>
+    <div className={"fds-modal-backdrop" + (closing ? " is-closing" : "")} onClick={requestClose}>
+      <div className={"fds-modal" + (closing ? " is-closing" : "")} style={{ maxWidth: 400 }} onClick={e => e.stopPropagation()}>
         <div className="fds-modal-head">
           <div className="fds-modal-title" style={{ color: 'var(--bad)' }}>
             <MetIcon.Trash size={16} style={{ marginRight: 8, verticalAlign: 'middle' }}/>
             Excluir meta
           </div>
-          <button className="fds-icon-btn" onClick={onCancel}><Icon.X size={16}/></button>
+          <button className="fds-icon-btn" onClick={requestClose}><Icon.X size={16}/></button>
         </div>
         <div className="fds-modal-body">
           <p style={{ fontSize: 14, color: 'var(--ink-3)', lineHeight: 1.6, margin: 0 }}>
@@ -280,8 +287,8 @@ function MetConfirmDeleteModal({ open, nome, onConfirm, onCancel }) {
           </p>
         </div>
         <div className="fds-modal-foot" style={{ display: 'flex', justifyContent: 'flex-end', gap: 8 }}>
-          <button className="fds-btn-ghost" onClick={onCancel}>Cancelar</button>
-          <button className="fds-btn-primary" style={{ background: 'var(--bad)' }} onClick={onConfirm}>
+          <button className="fds-btn-ghost" onClick={requestClose}>Cancelar</button>
+          <button className="fds-btn-primary" style={{ background: 'var(--bad)' }} onClick={handleConfirm}>
             <MetIcon.Trash size={13}/> Excluir
           </button>
         </div>
@@ -522,22 +529,24 @@ function AplicarPanel({ open, totalContas, onClose }) {
 }
 
 // ─── Modal: Configurar distribuição de sobra ──────────────────
-function ConfigurarModal({ sobra, metas, onConfirm, onClose }) {
+function ConfigurarModal({ open, sobra, metas, onConfirm, onClose }) {
   const [dist, setDist] = React.useState(() =>
     Object.fromEntries(metas.map(m => [m.id, '']))
   );
+  const { rendered, closing, requestClose } = window.FidesUI.useModalClose(open, onClose);
+  if (!rendered) return null;
   const totalDistribuido = Object.values(dist).reduce((s, v) => s + (parseFloat(v) || 0), 0);
   const restante = sobra - totalDistribuido;
 
   return (
-    <div className="fds-modal-backdrop" onClick={onClose}>
-      <div className="fds-modal" style={{ maxWidth: 460 }} onClick={e => e.stopPropagation()}>
+    <div className={"fds-modal-backdrop" + (closing ? " is-closing" : "")} onClick={requestClose}>
+      <div className={"fds-modal" + (closing ? " is-closing" : "")} style={{ maxWidth: 460 }} onClick={e => e.stopPropagation()}>
         <div className="fds-modal-head">
           <div>
             <div className="fds-modal-eyebrow">Distribuir sobra</div>
             <div className="fds-modal-title">Aumentar aportes</div>
           </div>
-          <button className="fds-icon-btn" onClick={onClose}><Icon.X size={16}/></button>
+          <button className="fds-icon-btn" onClick={requestClose}><Icon.X size={16}/></button>
         </div>
         <div className="fds-modal-body" style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
           <div className="met-config-sobra">
@@ -577,11 +586,11 @@ function ConfigurarModal({ sobra, metas, onConfirm, onClose }) {
           )}
         </div>
         <div className="fds-modal-foot" style={{ justifyContent: 'flex-end', gap: 8 }}>
-          <button className="fds-btn-ghost" onClick={onClose}>Cancelar</button>
+          <button className="fds-btn-ghost" onClick={requestClose}>Cancelar</button>
           <button
             className="fds-btn-primary"
             disabled={restante < 0 || totalDistribuido === 0}
-            onClick={() => restante >= 0 && totalDistribuido > 0 && onConfirm(dist)}
+            onClick={() => { if (restante >= 0 && totalDistribuido > 0) { onConfirm(dist); requestClose(); } }}
             style={{ opacity: restante < 0 || totalDistribuido === 0 ? 0.5 : 1 }}
           >
             <Icon.Check size={13}/> Aplicar distribuição
