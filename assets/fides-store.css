@@ -211,8 +211,16 @@
   border-radius: 10px;
   position: relative;
   transition: all 0.15s;
+  will-change: transform;
 }
 .fds-studio .cat-card:hover { border-color: var(--border-strong); }
+@media (hover: hover) {
+  .fds-studio .cat-card:hover { transform: translateY(-1px); box-shadow: 0 1px 0 rgba(15,26,20,.04), 0 6px 16px -10px rgba(45,90,61,.16); }
+}
+.fds-studio .cat-card:active { transform: scale(0.98); }
+@media (prefers-reduced-motion: reduce) {
+  .fds-studio .cat-card, .fds-studio .cat-card:hover, .fds-studio .cat-card:active { transform: none !important; transition: none !important; }
+}
 .fds-studio .cat-card-meta { flex: 1; min-width: 0; }
 .fds-studio .cat-card-name {
   font-size: 13.5px; font-weight: 550;
