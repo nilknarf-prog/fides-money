@@ -5,8 +5,8 @@ milestone_name: Polish pré-lançamento
 current_phase: 05
 current_phase_name: IA Real
 status: verifying
-stopped_at: Completed 04-02-PLAN.md (MOTION-01 modal wiring)
-last_updated: "2026-07-01T01:30:34.606Z"
+stopped_at: Phase 05 UI-SPEC approved
+last_updated: "2026-07-01T02:03:52.664Z"
 last_activity: 2026-07-01
 last_activity_desc: Phase 04 complete, transitioned to Phase 05
 progress:
@@ -62,6 +62,6 @@ Run `/gsd-plan-phase 03` to create the plan for Phase 03 (Limpeza + Tokens).
 
 ## Session
 
-**Last session:** 2026-07-01T01:22:35.696Z
-**Stopped at:** Completed 04-02-PLAN.md (MOTION-01 modal wiring)
-**Resume file:** None
+**Last session:** 2026-07-01T02:03:52.609Z
+**Stopped at:** Phase 05 UI-SPEC approved
+**Resume file:** .planning/phases/05-ia-real/05-UI-SPEC.md
