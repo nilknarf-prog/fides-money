@@ -708,7 +708,7 @@ function EmBreveModal({ open, onClose }) {
 
 // ─── MetasStudio ──────────────────────────────────────────────
 function MetasStudio({ onAdd, onNav }) {
-  const { transactions, monthTransactions, selectedMonth, monthLabel, isEmpty, goals, accounts } = useFides();
+  const { transactions, monthTransactions, selectedMonth, monthLabel, isEmpty, goals, accounts, addGoal, updateGoal, deleteGoal } = useFides();
   const today = new Date();
 
   if (isEmpty) return (
@@ -733,6 +733,9 @@ function MetasStudio({ onAdd, onNav }) {
   const [simularDivida, setSimularDivida] = React.useState(null);
   const [revisarOpen,   setRevisarOpen]   = React.useState(false);
   const [aplicarOpen,   setAplicarOpen]   = React.useState(false);
+  const [criarOpen,     setCriarOpen]     = React.useState(false);
+  const [editTarget,    setEditTarget]    = React.useState(null);
+  const [deleteTarget,  setDeleteTarget]  = React.useState(null);
 
   // ─── Computed ──────────────────────────────────────────────
   const computed = goals.map(m => {
@@ -772,6 +775,28 @@ function MetasStudio({ onAdd, onNav }) {
       {/* ─── Em breve overlay ─── */}
       <EmBreveModal open={emBreve} onClose={() => setEmBreve(false)}/>
 
+      {/* ─── Meta CRUD modals ─── */}
+      <CriarMetaModal open={criarOpen} onConfirm={(payload) => addGoal(payload)} onClose={() => setCriarOpen(false)}/>
+      <AjustarPlanoModal
+        open={!!editTarget}
+        meta={editTarget}
+        onConfirm={(patch) => updateGoal(editTarget.id, {
+          name: patch.nome,
+          target: Number(patch.alvo) || 0,
+          target_date: patch.prazo || null,
+          description: patch.descricao || '',
+          emoji: patch.emoji,
+          tint: patch.tint,
+        })}
+        onClose={() => setEditTarget(null)}
+      />
+      <MetConfirmDeleteModal
+        open={!!deleteTarget}
+        nome={deleteTarget?.nome}
+        onConfirm={() => deleteGoal(deleteTarget.id)}
+        onCancel={() => setDeleteTarget(null)}
+      />
+
       {/* ─── Read-only panels ─── */}
       <SimularPanel open={!!simularDivida} dívida={simularDivida} onClose={() => setSimularDivida(null)}/>
       <RevisarPanel open={revisarOpen} assinaturas={assinaturas} onClose={() => setRevisarOpen(false)}/>
@@ -787,7 +812,7 @@ function MetasStudio({ onAdd, onNav }) {
           </p>
           <button
             className="fds-empty-state-btn"
-            onClick={() => setEmBreve(true)}
+            onClick={() => setCriarOpen(true)}
             style={{ touchAction: 'manipulation', WebkitTapHighlightColor: 'transparent' }}
           >
             + Nova meta
@@ -856,7 +881,7 @@ function MetasStudio({ onAdd, onNav }) {
           {/* ─── Capítulo I · Em curso ─── */}
           <ChapterMark roman="I" title="Em curso"
                        caption={`${goals.length} metas com aporte regular`}
-                       action={<button className="stu-link" onClick={() => setEmBreve(true)}><Icon.Plus size={12}/> Nova meta</button>}/>
+                       action={<button className="stu-link" onClick={() => setCriarOpen(true)}><Icon.Plus size={12}/> Nova meta</button>}/>
           <div className="met-grid" data-od-id="met-grid">
             {computed.map((m) => {
               const aporteOk = m.atual >= m.aporteEsperado * 0.9;
@@ -872,9 +897,9 @@ function MetasStudio({ onAdd, onNav }) {
                       <div className="met-card-desc">{m.descricao}</div>
                     </div>
                     <MetDotsMenu items={[
-                      { id: 'editar',   label: 'Editar meta',           icon: 'Edit',   onClick: () => setEmBreve(true) },
+                      { id: 'editar',   label: 'Editar meta',           icon: 'Edit',   onClick: () => setEditTarget(m) },
                       { id: 'concluir', label: 'Marcar como concluída', icon: 'Trophy', onClick: () => setEmBreve(true) },
-                      { id: 'excluir',  label: 'Excluir meta',          icon: 'Trash',  danger: true, onClick: () => setEmBreve(true) },
+                      { id: 'excluir',  label: 'Excluir meta',          icon: 'Trash',  danger: true, onClick: () => setDeleteTarget(m) },
                     ]}/>
                   </div>
 
