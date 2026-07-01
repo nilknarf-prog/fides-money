@@ -4,7 +4,7 @@ milestone: v1.0
 milestone_name: Polish pré-lançamento
 current_phase: 06
 current_phase_name: Fix v1.0 tech debt
-status: verifying
+status: verified
 stopped_at: Phase 06 context gathered
 last_updated: "2026-07-01T03:51:01.576Z"
 last_activity: 2026-07-01
