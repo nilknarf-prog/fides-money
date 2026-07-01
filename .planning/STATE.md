@@ -2,29 +2,29 @@
 gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: Polish pré-lançamento
-current_phase: 05
-status: verifying
+current_phase: 06
+current_phase_name: Fix v1.0 tech debt
+status: executing
 stopped_at: Phase 06 context gathered
-last_updated: "2026-07-01T03:21:01.158Z"
+last_updated: "2026-07-01T03:42:04.528Z"
 last_activity: 2026-07-01
-last_activity_desc: Phase 05 complete
+last_activity_desc: Phase 06 execution started
 progress:
   total_phases: 5
   completed_phases: 3
-  total_plans: 7
-  completed_plans: 7
+  total_plans: 9
+  completed_plans: 8
   percent: 60
-current_phase_name: IA Real
 ---
 
 # Project State
 
 ## Current Position
 
-Phase: 05
-Plan: Not started
-Status: Phase complete — ready for verification
-Last activity: 2026-07-01 — Phase 05 complete
+Phase: 06 (Fix v1.0 tech debt) — EXECUTING
+Plan: 2 of 2
+Status: Ready to execute
+Last activity: 2026-07-01 — Phase 06 execution started
 
 ## Phase Overview
 
@@ -49,6 +49,7 @@ Run `/gsd-plan-phase 06` to create the plan for Phase 06 (Fix v1.0 tech debt).
 | Phase 04 P02 | ~15min | 3 tasks | 3 files |
 | Phase 04 P04 | 5min | 2 tasks | 2 files |
 | Phase 05 P01 | ~20min | 4 tasks | 2 files |
+| Phase 06 P01 | 8min | 3 tasks | 3 files |
 
 ## Decisions
 
@@ -61,10 +62,13 @@ Run `/gsd-plan-phase 06` to create the plan for Phase 06 (Fix v1.0 tech debt).
 - [Phase ?]: 04-04: .stu-acct hover values unchanged, only moved inside @media (hover:hover)
 - [Phase ?]: 04-04: .cat-card border-color hover kept as-is; new lift added additively inside @media (hover:hover), shadow values mirrored from .stu-acct
 - [Phase 05]: 05-01: single-shot analysis intentionally does not execute READ tool_calls from api/assistant.js; fails closed with friendlyAiError('GEMINI_ERROR') rather than hanging. To add tool round-trips later, port executeTools from fides-claude.jsx.
+- [Phase ?]: 06-01: DEBT-01 bloco morto removido por deleção pura, sem repurpose com totals.planned/realized
+- [Phase ?]: 06-01: DEBT-03 --warn-soft convergiu para #FEF0D6 (tokens.css); --accent-soft (#FEF3C7) é token distinto, fora do escopo
+- [Phase ?]: 06-01: DEBT-04 onSave do NovaTransacaoModal só grava; fechar passa a vir exclusivamente do onClose via requestClose
 
 ## Session
 
-**Last session:** 2026-07-01T03:21:01.109Z
+**Last session:** 2026-07-01T03:42:04.504Z
 **Stopped at:** Phase 06 context gathered
 **Resume file:** .planning/phases/06-fix-v1-0-tech-debt-dead-ai-context-block-metas-modal-motion-/06-CONTEXT.md
 

@@ -221,10 +221,11 @@
   3. **DEBT-03 (WARN-4):** O token `--warn-soft` = `#FEF0D6` em todos os CSS que o definem (fides.css alinhado a tokens.css/fides-studio.css; verificável por grep)
   4. **DEBT-04 (WARN-2):** O caminho salvar-e-fechar dispara `setModalOpen(false)` uma única vez (fides-transacoes.jsx / fides-studio.jsx) — sem double-write
 
-**Plans**: 2 plans (Wave 1 — os 4 fixes são de arquivos independentes, paralelos sem overlap)
+**Plans**: 1/2 plans executed
 
 Plans:
-- [ ] 06-01-PLAN.md — DEBT-01/03/04: remove bloco morto de `buildAiContext()`, alinha `--warn-soft`→`#FEF0D6` em fides.css, elimina `setModalOpen(false)` duplicado
+
+- [x] 06-01-PLAN.md — DEBT-01/03/04: remove bloco morto de `buildAiContext()`, alinha `--warn-soft`→`#FEF0D6` em fides.css, elimina `setModalOpen(false)` duplicado
 - [ ] 06-02-PLAN.md — DEBT-02: liga os 8 modais `fds-modal-backdrop` de fides-metas.jsx ao `useModalClose` (saída animada via `is-closing`, mesmo padrão da fase 04)
 
 **Marker**: (INSERTED) — débito técnico v1.0 (fecha as 4 warnings de `v1.0-MILESTONE-AUDIT.md`)
@@ -239,7 +240,7 @@ Plans:
 | 03 - Limpeza + Tokens | 2/2 | Complete    | 2026-06-30 |
 | 04 - UX Mobile + Motion | 4/4 | Complete    | 2026-07-01 |
 | 05 - IA Real | 1/1 | Complete    | 2026-07-01 |
-| 06 - Fix v1.0 tech debt | 0/2 | Planned | — |
+| 06 - Fix v1.0 tech debt | 1/2 | In Progress|  |
 
 ---
 
