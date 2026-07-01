@@ -92,7 +92,8 @@ function normalizeGoal(row) {
   return {
     id: row.id,
     nome: row.name,
-    descricao: '',
+    descricao: row.description || '',
+    prazo: row.target_date || null,
     emoji: row.emoji || '🎯',
     tint: row.tint || '#00C37B',
     alvo: Number(row.target),
