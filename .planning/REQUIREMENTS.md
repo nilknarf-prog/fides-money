@@ -28,8 +28,8 @@
 
 ### AI — Integração IA real (P5)
 
-- [ ] **AI-01**: Botão "Análise da IA" em `fides-orcamento.jsx` chama `api/assistant.js` real (não stub de 2,2s)
-- [ ] **AI-02**: UI exibe loading state e resposta da IA sem travamento do thread principal
+- [x] **AI-01**: Botão "Análise da IA" em `fides-orcamento.jsx` chama `api/assistant.js` real (não stub de 2,2s)
+- [x] **AI-02**: UI exibe loading state e resposta da IA sem travamento do thread principal
 
 ## v2 Requirements (M5 Expansão — deferred)
 
@@ -74,8 +74,8 @@
 | MOBILE-01 | Phase 04 | Complete |
 | MOTION-01 | Phase 04 | Complete |
 | MOTION-02 | Phase 04 | Complete |
-| AI-01 | Phase 05 | Pending |
-| AI-02 | Phase 05 | Pending |
+| AI-01 | Phase 05 | Complete |
+| AI-02 | Phase 05 | Complete |
 
 **Coverage:**
 

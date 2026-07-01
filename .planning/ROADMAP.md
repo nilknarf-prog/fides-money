@@ -123,7 +123,7 @@
 
 - [x] **Phase 03: Limpeza + Tokens** — Dead code removido e identidade visual alinhada aos tokens de marca (completed 2026-06-30)
 - [x] **Phase 04: UX Mobile + Motion** — Perfil acessível no mobile e micro-interações CSS em modais/cards (completed 2026-07-01)
-- [ ] **Phase 05: IA Real** — Botão "Análise da IA" conectado ao Gemini real com loading state funcional
+- [x] **Phase 05: IA Real** — Botão "Análise da IA" conectado ao Gemini real com loading state funcional (completed 2026-07-01)
 
 ### Phase Details
 
@@ -199,9 +199,9 @@
   3. Se a chamada falhar (rede, erro 5xx), a UI exibe mensagem de erro amigável — não trava nem fica em loading infinito
   4. O arquivo `api/assistant.js` usa `commonjs` (`require`/`module.exports`) — nenhum `import`/`export` ESM introduzido
 
-**Plans**: 0/1 plans executed
+**Plans**: 1/1 plans complete
 
-- [ ] 05-01-PLAN.md — AI-01/AI-02: substitui stub 2,2s por fetch real ao `/api/assistant`; 3 superfícies (loading spinner com gate reduced-motion, painel `.pln-mi-ai-result`, erro `.pln-mi-ai-error`); garantia never-hang + checkpoint humano
+- [x] 05-01-PLAN.md — AI-01/AI-02: substitui stub 2,2s por fetch real ao `/api/assistant`; 3 superfícies (loading spinner com gate reduced-motion, painel `.pln-mi-ai-result`, erro `.pln-mi-ai-error`); garantia never-hang + checkpoint humano
 
 **UI hint**: yes
 
@@ -213,7 +213,7 @@
 |-------|----------------|--------|-----------|
 | 03 - Limpeza + Tokens | 2/2 | Complete    | 2026-06-30 |
 | 04 - UX Mobile + Motion | 4/4 | Complete    | 2026-07-01 |
-| 05 - IA Real | 0/1 | Planned    |  |
+| 05 - IA Real | 1/1 | Complete   | 2026-07-01 |
 
 ---
 
