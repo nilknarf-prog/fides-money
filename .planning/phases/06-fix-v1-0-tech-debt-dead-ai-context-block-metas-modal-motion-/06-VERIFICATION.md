@@ -1,8 +1,9 @@
 ---
 phase: 06-fix-v1-0-tech-debt-dead-ai-context-block-metas-modal-motion-
-verified: 2026-06-30T00:00:00Z
-status: human_needed
+verified: 2026-07-01T00:00:00Z
+status: passed
 score: 4/4 must-haves verified
+human_verification_result: "UAT 06 — teste 3 (NovaTransacaoModal save-close) pass após fix de motion perceptível (commit d3c5e65: slide 40px desktop + bottom-sheet mobile, CLOSE_MS 320). Testes 1/2 (modais de Metas) skipped: seção Metas gated como 'Em breve' no app, painéis não acessíveis — wiring DEBT-02 verificado em código (grep 4/4), UAT visual adiado até Metas sair de construção (M5)."
 behavior_unverified: 0
 overrides_applied: 0
 human_verification:
