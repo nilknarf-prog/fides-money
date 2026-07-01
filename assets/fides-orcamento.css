@@ -822,3 +822,33 @@
   border-radius: 50%; animation: pln-mi-spin 0.7s linear infinite;
 }
 @keyframes pln-mi-spin { to { transform: rotate(360deg); } }
+.pln-mi-ai-result {
+  margin-top: 4px;
+  padding: 12px 14px;
+  border-radius: 10px;
+  background: var(--card-soft);
+  border: 1px solid var(--border-strong);
+}
+.pln-mi-ai-result p {
+  margin: 0 0 8px 0;
+  font-size: 12.5px;
+  line-height: 1.5;
+  color: var(--ink-3);
+}
+.pln-mi-ai-result p:last-child { margin-bottom: 0; }
+.pln-mi-ai-error {
+  margin-top: 4px;
+  padding: 10px 14px;
+  border-radius: 10px;
+  background: var(--bad-soft);
+  color: var(--bad);
+  border: 1px solid var(--bad);
+  font-size: 12.5px;
+  line-height: 1.5;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+@media (prefers-reduced-motion: reduce) {
+  .pln-mi-spin { animation: none; border-top-color: var(--border-strong); }
+}
