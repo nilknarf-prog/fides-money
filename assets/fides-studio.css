@@ -538,8 +538,15 @@
   display: flex; flex-direction: column; gap: 8px;
   box-shadow: 0 1px 0 rgba(15,26,20,.04);
   transition: all 0.15s;
+  will-change: transform;
 }
-.stu-acct:hover { transform: translateY(-1px); border-color: var(--border-strong); box-shadow: 0 1px 0 rgba(15,26,20,.04), 0 6px 16px -10px rgba(45,90,61,.16); }
+@media (hover: hover) {
+  .stu-acct:hover { transform: translateY(-1px); border-color: var(--border-strong); box-shadow: 0 1px 0 rgba(15,26,20,.04), 0 6px 16px -10px rgba(45,90,61,.16); }
+}
+.stu-acct:active { transform: scale(0.98); }
+@media (prefers-reduced-motion: reduce) {
+  .stu-acct, .stu-acct:hover, .stu-acct:active { transform: none !important; transition: none !important; }
+}
 .stu-acct-h { display: flex; align-items: center; gap: 10px; }
 .stu-acct-mark {
   width: 28px; height: 28px; border-radius: 7px;
