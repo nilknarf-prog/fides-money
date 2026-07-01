@@ -180,6 +180,86 @@ function AportarModal({ open, meta, onConfirm, onClose }) {
   );
 }
 
+// ─── Modal: Criar meta (nova) ──────────────────────────────────
+function CriarMetaModal({ open, onConfirm, onClose }) {
+  const { rendered, closing, requestClose } = window.FidesUI.useModalClose(open, onClose);
+  if (!rendered) return null;
+  const TINTS = ['#2D5A3D','#2C5282','#B45309','#7C3AED','#0F766E','#9B2C2C','#0891B2','#BE185D'];
+
+  return (
+    <div className={"fds-modal-backdrop" + (closing ? " is-closing" : "")} onClick={requestClose}>
+      <div className={"fds-modal" + (closing ? " is-closing" : "")} style={{ maxWidth: 460 }} onClick={e => e.stopPropagation()}>
+        <div className="fds-modal-head">
+          <div>
+            <div className="fds-modal-eyebrow">Nova meta</div>
+            <div className="fds-modal-title">Criar meta</div>
+          </div>
+          <button className="fds-icon-btn" onClick={requestClose}><Icon.X size={16}/></button>
+        </div>
+        <form
+          className="fds-modal-body"
+          onSubmit={e => {
+            e.preventDefault();
+            const fd = new FormData(e.target);
+            onConfirm({
+              nome:      fd.get('nome')      || '',
+              descricao: fd.get('descricao') || '',
+              emoji:     fd.get('emoji')     || '🎯',
+              alvo:      parseFloat(fd.get('alvo')) || 0,
+              prazo:     fd.get('prazo')     || null,
+              tint:      fd.get('tint')      || '#00C37B',
+            });
+            requestClose();
+          }}
+          style={{ display: 'flex', flexDirection: 'column', gap: 14 }}
+        >
+          <div style={{ display: 'grid', gridTemplateColumns: '52px 1fr', gap: 12 }}>
+            <label className="fds-field">
+              <span>Emoji</span>
+              <input className="fds-input" name="emoji" maxLength={2} style={{ textAlign: 'center', fontSize: 20 }}/>
+            </label>
+            <label className="fds-field">
+              <span>Nome da meta</span>
+              <input className="fds-input" name="nome" required/>
+            </label>
+          </div>
+          <label className="fds-field">
+            <span>Descrição</span>
+            <input className="fds-input" name="descricao" placeholder="Ex: Férias de julho 2027"/>
+          </label>
+          <div className="fds-modal-row two">
+            <label className="fds-field">
+              <span>Valor alvo (R$)</span>
+              <input className="fds-input" name="alvo" type="number" step="0.01" min="0" required/>
+            </label>
+            <label className="fds-field">
+              <span>Prazo</span>
+              <input className="fds-input" name="prazo" type="date" min={new Date().toISOString().slice(0,10)}/>
+            </label>
+          </div>
+          <div className="fds-field">
+            <span>Cor</span>
+            <div className="met-tint-picker">
+              {TINTS.map(t => (
+                <label key={t} className="met-tint-opt">
+                  <input type="radio" name="tint" value={t} defaultChecked={t === TINTS[0]} style={{ display: 'none' }}/>
+                  <span className="met-tint-swatch" style={{ background: t }}>
+                    {t === TINTS[0] && <Icon.Check size={12}/>}
+                  </span>
+                </label>
+              ))}
+            </div>
+          </div>
+          <div className="fds-modal-foot" style={{ display: 'flex', justifyContent: 'flex-end', gap: 8, padding: '12px 0 0' }}>
+            <button type="button" className="fds-btn-ghost" onClick={requestClose}>Cancelar</button>
+            <button type="submit" className="fds-btn-primary"><Icon.Check size={13}/> Criar meta</button>
+          </div>
+        </form>
+      </div>
+    </div>
+  );
+}
+
 // ─── Modal: Ajustar plano (edição completa da meta) ───────────
 function AjustarPlanoModal({ open, meta, onConfirm, onClose }) {
   const { rendered, closing, requestClose } = window.FidesUI.useModalClose(open, onClose);
@@ -203,13 +283,12 @@ function AjustarPlanoModal({ open, meta, onConfirm, onClose }) {
             e.preventDefault();
             const fd = new FormData(e.target);
             onConfirm({
-              nome:         fd.get('nome')        || meta.nome,
-              descricao:    fd.get('descricao')   ?? meta.descricao,
-              emoji:        fd.get('emoji')       || meta.emoji,
-              alvo:         parseFloat(fd.get('alvo'))         || meta.alvo,
-              atual:        parseFloat(fd.get('atual'))        ?? meta.atual,
-              contribuicao: parseFloat(fd.get('contribuicao')) || meta.contribuicao,
-              tint:         fd.get('tint')        || meta.tint,
+              nome:      fd.get('nome')      || meta.nome,
+              descricao: fd.get('descricao') ?? meta.descricao,
+              emoji:     fd.get('emoji')     || meta.emoji,
+              alvo:      parseFloat(fd.get('alvo')) || meta.alvo,
+              prazo:     fd.get('prazo')     || null,
+              tint:      fd.get('tint')      || meta.tint,
             });
             requestClose();
           }}
@@ -235,14 +314,10 @@ function AjustarPlanoModal({ open, meta, onConfirm, onClose }) {
               <input className="fds-input" name="alvo" type="number" step="0.01" min="0" defaultValue={meta.alvo} required/>
             </label>
             <label className="fds-field">
-              <span>Já guardado (R$)</span>
-              <input className="fds-input" name="atual" type="number" step="0.01" min="0" defaultValue={meta.atual}/>
+              <span>Prazo</span>
+              <input className="fds-input" name="prazo" type="date" min={new Date().toISOString().slice(0,10)} defaultValue={meta.prazo || ''}/>
             </label>
           </div>
-          <label className="fds-field">
-            <span>Aporte mensal (R$)</span>
-            <input className="fds-input" name="contribuicao" type="number" step="0.01" min="0" defaultValue={meta.contribuicao} required/>
-          </label>
           <div className="fds-field">
             <span>Cor</span>
             <div className="met-tint-picker">
