@@ -1418,13 +1418,14 @@ const CATEGORY_TINTS = [
 
 function CategoriaModal({ open, onClose }) {
   const { categories, addCategory, updateCategory, deleteCategory, moveCategory } = useFides();
+  const { rendered, closing, requestClose } = window.FidesUI.useModalClose(open, onClose);
   const [activeGroup, setActiveGroup] = React.useState('essencial');
   const [creating, setCreating]       = React.useState(false);
   const [draft, setDraft]             = React.useState({
     label: '', emoji: '🛒', tint: '#F59E0B', group: 'essencial',
   });
 
-  if (!open) return null;
+  if (!rendered) return null;
 
   const grouped = ['essencial', 'estilo', 'divida', 'receita'].map(g => ({
     id: g,
@@ -1453,14 +1454,14 @@ function CategoriaModal({ open, onClose }) {
   };
 
   return (
-    <div className="fds-modal-backdrop" onClick={onClose} style={{ position: 'fixed', inset: 0, zIndex: 200 }}>
-      <div className="fds-modal cat-modal" onClick={e => e.stopPropagation()} style={{ maxWidth: 720 }}>
+    <div className={"fds-modal-backdrop" + (closing ? " is-closing" : "")} onClick={requestClose} style={{ position: 'fixed', inset: 0, zIndex: 200 }}>
+      <div className={"fds-modal cat-modal" + (closing ? " is-closing" : "")} onClick={e => e.stopPropagation()} style={{ maxWidth: 720 }}>
         <header className="fds-modal-head">
           <div>
             <div className="fds-modal-eyebrow">Personalizar</div>
             <h2 className="fds-modal-title">Categorias</h2>
           </div>
-          <button className="fds-icon-btn" onClick={onClose}><Icon.X size={16}/></button>
+          <button className="fds-icon-btn" onClick={requestClose}><Icon.X size={16}/></button>
         </header>
 
         <div className="cat-tabs">
@@ -1577,7 +1578,7 @@ function CategoriaModal({ open, onClose }) {
           <span className="fds-muted" style={{ fontSize: 12 }}>
             {Object.keys(categories).length} categorias · {Object.values(categories).filter(c => c.custom).length} personalizadas
           </span>
-          <button className="fds-btn-primary" onClick={onClose}>Fechar</button>
+          <button className="fds-btn-primary" onClick={requestClose}>Fechar</button>
         </footer>
       </div>
     </div>
