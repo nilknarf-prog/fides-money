@@ -145,26 +145,28 @@ function DotsMenu({ items, align = 'right' }) {
 
 // ─── ConfirmDeleteModal ────────────────────────────────────────
 function ConfirmDeleteModal({ open, title, desc, onConfirm, onCancel }) {
-  if (!open) return null;
+  const { rendered, closing, requestClose } = window.FidesUI.useModalClose(open, onCancel);
+  if (!rendered) return null;
+  const handleConfirm = () => { onConfirm(); requestClose(); };
   return (
-    <div className="fds-modal-backdrop" onClick={onCancel}>
-      <div className="fds-modal" style={{ maxWidth: 400 }} onClick={e => e.stopPropagation()}>
+    <div className={"fds-modal-backdrop" + (closing ? " is-closing" : "")} onClick={requestClose}>
+      <div className={"fds-modal" + (closing ? " is-closing" : "")} style={{ maxWidth: 400 }} onClick={e => e.stopPropagation()}>
         <div className="fds-modal-head">
           <div className="fds-modal-title" style={{ color: 'var(--bad)' }}>
             <CtnIcon.Trash size={16} style={{ marginRight: 8, verticalAlign: 'middle' }}/>
             {title}
           </div>
-          <button className="fds-icon-btn" onClick={onCancel}><Icon.X size={16}/></button>
+          <button className="fds-icon-btn" onClick={requestClose}><Icon.X size={16}/></button>
         </div>
         <div className="fds-modal-body">
           <p style={{ fontSize: 14, color: 'var(--ink-3)', lineHeight: 1.6, margin: 0 }}>{desc}</p>
         </div>
         <div className="fds-modal-foot" style={{ display: 'flex', justifyContent: 'flex-end', gap: 8 }}>
-          <button className="fds-btn-ghost" onClick={onCancel}>Cancelar</button>
+          <button className="fds-btn-ghost" onClick={requestClose}>Cancelar</button>
           <button
             className="fds-btn-primary"
             style={{ background: 'var(--bad)' }}
-            onClick={onConfirm}
+            onClick={handleConfirm}
           >
             <CtnIcon.Trash size={13}/> Excluir
           </button>
