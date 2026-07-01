@@ -824,7 +824,14 @@ img, svg, video { max-width: 100%; height: auto; }
     max-width: 100% !important;
     border-radius: 20px 20px 0 0;
     max-height: 94svh;
+    /* Bottom-sheet: desliza de baixo pra cima (override do slide desktop). Saída casada com CLOSE_MS=320 em fides-ui.jsx. */
+    animation: fds-sheet-up 0.32s cubic-bezier(.2,.8,.2,1);
   }
+  .fds-modal.is-closing {
+    animation: fds-sheet-down 0.3s cubic-bezier(.4,0,.7,.3) forwards;
+  }
+  @keyframes fds-sheet-up   { from { transform: translateY(100%) } to { transform: translateY(0) } }
+  @keyframes fds-sheet-down { from { transform: translateY(0) }    to { transform: translateY(100%) } }
   .fds-modal-row.two { grid-template-columns: 1fr; }
   .fds-modal-body { padding: 14px 16px; }
   .fds-modal-head { padding: 16px 16px 0; }
