@@ -4,9 +4,9 @@ milestone: v1.0
 milestone_name: Polish pré-lançamento
 current_phase: 05
 current_phase_name: IA Real
-status: verifying
+status: executing
 stopped_at: Phase 05 UI-SPEC approved
-last_updated: "2026-07-01T02:03:52.664Z"
+last_updated: "2026-07-01T02:21:15.599Z"
 last_activity: 2026-07-01
 last_activity_desc: Phase 04 complete, transitioned to Phase 05
 progress:
@@ -23,7 +23,7 @@ progress:
 
 Phase: 05 — IA Real
 Plan: Not started
-Status: Phase complete — ready for verification
+Status: Ready to execute
 Last activity: 2026-07-01 — Phase 04 complete, transitioned to Phase 05
 
 ## Phase Overview
