@@ -1049,7 +1049,62 @@
       setAiError(null);
       setAiResult(null);
       setAiLoading(true);
-      setTimeout(function() { setAiLoading(false); }, 2200);
+
+      (async function() {
+        try {
+          var jwt = null;
+          if (window.fidesAuth && typeof window.fidesAuth.getSession === 'function') {
+            var sessionResp = await window.fidesAuth.getSession();
+            var sessionData = sessionResp && sessionResp.data;
+            jwt = (sessionData && sessionData.session && sessionData.session.access_token) || null;
+          }
+          if (!jwt) {
+            setAiError(friendlyAiError('JWT_MISSING'));
+            setAiLoading(false);
+            return;
+          }
+
+          var res = await fetch('/api/assistant', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              messages: [{ role: 'user', content: 'Analise meu orçamento deste mês e aponte os principais pontos de atenção.' }],
+              context: buildAiContext(),
+              jwt: jwt,
+              toolResults: null,
+            }),
+          });
+
+          var data = await res.json().catch(function() { return {}; });
+
+          if (!res.ok) {
+            setAiError(friendlyAiError(data && data.error));
+            setAiLoading(false);
+            return;
+          }
+
+          if (Array.isArray(data && data.tool_calls) && data.tool_calls.length > 0) {
+            // Análise single-shot não executa tool_calls READ (sem executeTools aqui).
+            // Fail closed com mensagem amigável em vez de travar o spinner.
+            setAiError(friendlyAiError('GEMINI_ERROR'));
+            setAiLoading(false);
+            return;
+          }
+
+          var reply = data && data.reply;
+          if (!reply) {
+            setAiError(friendlyAiError('EMPTY_REPLY'));
+            setAiLoading(false);
+            return;
+          }
+
+          setAiResult(reply);
+          setAiLoading(false);
+        } catch (err) {
+          setAiError(friendlyAiError('NETWORK'));
+          setAiLoading(false);
+        }
+      })();
     }
 
     return React.createElement('div', { className: 'pln-mes-insights' },
@@ -1091,7 +1146,18 @@
             ? React.createElement('span', { className: 'pln-mi-spin' })
             : React.createElement('span', null, '🤖'),
           React.createElement('span', null, aiLoading ? 'Analisando…' : 'Análise da IA')
-        )
+        ),
+        (aiResult && !aiError)
+          ? React.createElement('div', { className: 'pln-mi-ai-result' },
+              aiResult.split('\n').map(function(line, j) {
+                return React.createElement('p', { key: j }, line);
+              }))
+          : null,
+        aiError
+          ? React.createElement('div', { className: 'pln-mi-ai-error' },
+              React.createElement('span', null, '⚠️'),
+              React.createElement('span', null, aiError))
+          : null
       )
     );
   }
