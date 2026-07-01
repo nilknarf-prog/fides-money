@@ -5,14 +5,14 @@ milestone_name: Polish pré-lançamento
 current_phase: 05
 current_phase_name: IA Real
 status: executing
-stopped_at: Phase 05 UI-SPEC approved
-last_updated: "2026-07-01T02:21:15.599Z"
+stopped_at: "05-01: Tasks 1-3 complete; paused at Task 4 human-verify checkpoint (blocking)"
+last_updated: "2026-07-01T02:32:21.039Z"
 last_activity: 2026-07-01
-last_activity_desc: Phase 04 complete, transitioned to Phase 05
+last_activity_desc: Phase 05 execution started
 progress:
   total_phases: 3
   completed_phases: 2
-  total_plans: 6
+  total_plans: 7
   completed_plans: 6
   percent: 67
 ---
@@ -21,10 +21,10 @@ progress:
 
 ## Current Position
 
-Phase: 05 — IA Real
-Plan: Not started
-Status: Ready to execute
-Last activity: 2026-07-01 — Phase 04 complete, transitioned to Phase 05
+Phase: 05 (IA Real) — EXECUTING
+Plan: 1 of 1
+Status: Executing Phase 05
+Last activity: 2026-07-01 — Phase 05 execution started
 
 ## Phase Overview
 
@@ -59,9 +59,10 @@ Run `/gsd-plan-phase 03` to create the plan for Phase 03 (Limpeza + Tokens).
 - [Phase ?]: 04-02: ConfirmDeleteModal Excluir uses handleConfirm wrapper (onConfirm then requestClose) for animated exit on delete confirm
 - [Phase ?]: 04-04: .stu-acct hover values unchanged, only moved inside @media (hover:hover)
 - [Phase ?]: 04-04: .cat-card border-color hover kept as-is; new lift added additively inside @media (hover:hover), shadow values mirrored from .stu-acct
+- [Phase 05]: 05-01: single-shot analysis intentionally does not execute READ tool_calls from api/assistant.js; fails closed with friendlyAiError('GEMINI_ERROR') rather than hanging. To add tool round-trips later, port executeTools from fides-claude.jsx.
 
 ## Session
 
-**Last session:** 2026-07-01T02:03:52.609Z
-**Stopped at:** Phase 05 UI-SPEC approved
-**Resume file:** .planning/phases/05-ia-real/05-UI-SPEC.md
+**Last session:** 2026-07-01T02:32:21.017Z
+**Stopped at:** 05-01: Tasks 1-3 complete; paused at Task 4 human-verify checkpoint (blocking)
+**Resume file:** .planning/phases/05-ia-real/05-01-PLAN.md
