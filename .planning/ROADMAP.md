@@ -210,19 +210,25 @@
 
 ### Phase 06: Fix v1.0 tech debt
 
-**Goal**: A base v1.0 fica sem débito residual — bloco de contexto de IA morto removido, modal de metas com motion consistente com os demais modais, e token `--warn-soft` alinhado entre os CSS.
+**Goal**: A base v1.0 fica sem as 4 warnings da auditoria do milestone — bloco de contexto de IA morto removido, os 8 modais de metas com motion consistente, token `--warn-soft` alinhado e o `setModalOpen(false)` duplicado eliminado.
 **Depends on**: Phase 05
-**Requirements**: DEBT-01, DEBT-02, DEBT-03 *(a refinar em discuss-phase)*
-**Key files**: *(a mapear em discuss/plan)*
+**Requirements**: DEBT-01, DEBT-02, DEBT-03, DEBT-04
+**Key files**: `assets/fides-orcamento.jsx`, `assets/fides-metas.jsx`, `assets/fides.css`, `assets/fides-transacoes.jsx`, `assets/fides-studio.jsx`, `assets/fides-ui.jsx`
 **Success Criteria** (what must be TRUE):
 
-  1. O bloco de contexto de IA morto não existe mais no código e nenhuma referência remanescente o invoca (verificável por grep)
-  2. O modal de metas abre/fecha com a mesma animação de entrada/saída dos demais modais (via `useModalClose`), sem corte abrupto
-  3. O token `--warn-soft` tem valor consistente entre os arquivos CSS que o usam (verificável com grep)
+  1. **DEBT-01 (WARN-1):** O bloco morto em `buildAiContext()` (fides-orcamento.jsx ~1019-1029) que lê `totals.receitas/despesas` não existe mais — a IA continua recebendo status do planejamento + tendência (verificável por grep)
+  2. **DEBT-02 (WARN-3):** Os 8 modais `fds-modal-backdrop` de `fides-metas.jsx` abrem/fecham com a mesma animação de saída dos demais (via `useModalClose` + `is-closing`), sem corte abrupto
+  3. **DEBT-03 (WARN-4):** O token `--warn-soft` = `#FEF0D6` em todos os CSS que o definem (fides.css alinhado a tokens.css/fides-studio.css; verificável por grep)
+  4. **DEBT-04 (WARN-2):** O caminho salvar-e-fechar dispara `setModalOpen(false)` uma única vez (fides-transacoes.jsx / fides-studio.jsx) — sem double-write
 
-**Plans**: not planned yet
-**Marker**: (INSERTED) — débito técnico v1.0
-**UI hint**: yes
+**Plans**: 2 plans (Wave 1 — os 4 fixes são de arquivos independentes, paralelos sem overlap)
+
+Plans:
+- [ ] 06-01-PLAN.md — DEBT-01/03/04: remove bloco morto de `buildAiContext()`, alinha `--warn-soft`→`#FEF0D6` em fides.css, elimina `setModalOpen(false)` duplicado
+- [ ] 06-02-PLAN.md — DEBT-02: liga os 8 modais `fds-modal-backdrop` de fides-metas.jsx ao `useModalClose` (saída animada via `is-closing`, mesmo padrão da fase 04)
+
+**Marker**: (INSERTED) — débito técnico v1.0 (fecha as 4 warnings de `v1.0-MILESTONE-AUDIT.md`)
+**UI hint**: no (replica padrão de motion existente da fase 04 — sem novo design)
 
 ---
 
@@ -233,7 +239,7 @@
 | 03 - Limpeza + Tokens | 2/2 | Complete    | 2026-06-30 |
 | 04 - UX Mobile + Motion | 4/4 | Complete    | 2026-07-01 |
 | 05 - IA Real | 1/1 | Complete    | 2026-07-01 |
-| 06 - Fix v1.0 tech debt | 0/? | Not planned | — |
+| 06 - Fix v1.0 tech debt | 0/2 | Planned | — |
 
 ---
 
@@ -258,14 +264,15 @@
 
 ### Phase 6: Fix v1.0 tech debt: dead AI-context block, metas modal motion, --warn-soft align
 
-**Goal:** [To be planned]
-**Requirements**: TBD
+**Goal:** A base v1.0 fica sem as 4 warnings da auditoria do milestone — bloco de contexto de IA morto removido, os 8 modais de metas com motion consistente, token `--warn-soft` alinhado e o `setModalOpen(false)` duplicado eliminado.
+**Requirements**: DEBT-01, DEBT-02, DEBT-03, DEBT-04
 **Depends on:** Phase 5
-**Plans:** 0 plans
+**Plans:** 2 plans
 
 Plans:
 
-- [ ] TBD (run /gsd-plan-phase 6 to break down)
+- [ ] 06-01-PLAN.md — DEBT-01/03/04: bloco morto de IA + `--warn-soft` + double `setModalOpen`
+- [ ] 06-02-PLAN.md — DEBT-02: motion dos 8 modais de metas via `useModalClose`
 
 ---
 
