@@ -1306,7 +1306,7 @@ function FidesProvider({ children }) {
     mode, userId, isLoading, isEmpty,
     userName, firstName, userEmail,
     refreshData: () => refreshData(userId),
-    goals,
+    goals, addGoal, updateGoal, deleteGoal,
     // Transactions
     transactions, addTransaction, addTransactions, payCartaoFatura, transferFunds,
     updateTransaction, deleteTransaction,
@@ -1354,7 +1354,7 @@ function useFides() {
     mode: 'mock', userId: null, isLoading: false, isEmpty: false,
     userName: '', firstName: '', userEmail: '',
     refreshData: async () => {},
-    goals: [],
+    goals: [], addGoal: () => {}, updateGoal: () => {}, deleteGoal: () => {},
     transactions: TRANSACTIONS,
     monthTransactions: TRANSACTIONS,
     prevMonthTransactions: [],
