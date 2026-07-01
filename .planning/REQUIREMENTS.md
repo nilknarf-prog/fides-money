@@ -8,10 +8,10 @@
 
 ### META — CRUD de Metas
 
-- [ ] **META-01**: Usuário cria uma meta (nome, valor-alvo, prazo) persistida na tabela `goals`
-- [ ] **META-02**: Usuário edita nome, valor-alvo e/ou prazo de uma meta existente e a mudança persiste
-- [ ] **META-03**: Usuário exclui uma meta via modal de confirmação; a meta some da lista após confirmar
-- [ ] **META-04**: A view de Metas lista as metas reais do usuário (não placeholder), refletindo criação/edição/exclusão sem reload da página
+- [x] **META-01**: Usuário cria uma meta (nome, valor-alvo, prazo) persistida na tabela `goals`
+- [x] **META-02**: Usuário edita nome, valor-alvo e/ou prazo de uma meta existente e a mudança persiste
+- [x] **META-03**: Usuário exclui uma meta via modal de confirmação; a meta some da lista após confirmar
+- [x] **META-04**: A view de Metas lista as metas reais do usuário (não placeholder), refletindo criação/edição/exclusão sem reload da página
 
 ## Future Requirements (deferred)
 
@@ -47,10 +47,10 @@
 
 | Requirement | Phase | Status |
 |-------------|-------|--------|
-| META-01 | Phase 07 | Pending |
-| META-02 | Phase 07 | Pending |
-| META-03 | Phase 07 | Pending |
-| META-04 | Phase 07 | Pending |
+| META-01 | Phase 07 | Complete |
+| META-02 | Phase 07 | Complete |
+| META-03 | Phase 07 | Complete |
+| META-04 | Phase 07 | Complete |
 
 **Coverage:**
 

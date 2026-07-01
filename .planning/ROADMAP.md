@@ -253,7 +253,7 @@ Plans:
 
 ### Phases
 
-- [ ] **Phase 07: CRUD Metas** - Usuário cria, edita, exclui e lista metas reais persistidas em `goals`, sem placeholders
+- [x] **Phase 07: CRUD Metas** - Usuário cria, edita, exclui e lista metas reais persistidas em `goals`, sem placeholders (completed 2026-07-01)
 
 ### Phase Details
 
@@ -271,7 +271,7 @@ Plans:
   4. A view de Metas, ao carregar, exibe as metas reais do usuário autenticado vindas de `goals` (não dados mock/placeholder) — lista vazia mostra empty state, não erro (META-04)
 
 **Notas de escopo:** NÃO inclui aportes, acompanhamento de progresso ou ajuste de plano (deferidos a M5+). A fonte do "valor atual" da meta (aportes manuais vs vínculo a conta/reserva) é uma decisão de modelo de dados em aberto — resolver em `/gsd-discuss-phase 07` antes de planejar. Este phase cobre apenas persistência de nome/valor-alvo/prazo e listagem live; os modais `Aportar`/`AjustarPlano` (como calculadora de plano) permanecem placeholder (não fazem parte do escopo v1.1).
-**Plans**: 2/3 plans executed
+**Plans**: 3/3 plans complete
 
 Plans:
 **Wave 1**
@@ -284,7 +284,7 @@ Plans:
 
 **Wave 3** *(blocked on Wave 2 completion)*
 
-- [ ] 07-03-PLAN.md — UI: `CriarMetaModal` novo, `AjustarPlanoModal` para edição, wiring de Nova/Editar/Excluir aos modais reais + fix do `onAdd` mal-cabeado (D-06/13/14/15/16)
+- [x] 07-03-PLAN.md — UI: `CriarMetaModal` novo, `AjustarPlanoModal` para edição, wiring de Nova/Editar/Excluir aos modais reais + fix do `onAdd` mal-cabeado (D-06/13/14/15/16)
 
 **UI hint**: yes
 
@@ -294,7 +294,7 @@ Plans:
 
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
-| 07 - CRUD Metas | 2/3 | In Progress|  |
+| 07 - CRUD Metas | 3/3 | Complete   | 2026-07-01 |
 
 ---
 

@@ -6,15 +6,15 @@ current_phase: 07
 current_phase_name: crud-metas
 status: executing
 stopped_at: Phase 07 context gathered
-last_updated: "2026-07-01T19:38:56.710Z"
+last_updated: "2026-07-01T19:48:12.334Z"
 last_activity: 2026-07-01
 last_activity_desc: Phase 07 execution started
 progress:
   total_phases: 1
-  completed_phases: 0
+  completed_phases: 1
   total_plans: 3
-  completed_plans: 2
-  percent: 0
+  completed_plans: 3
+  percent: 100
 ---
 
 # Project State
@@ -22,7 +22,7 @@ progress:
 ## Current Position
 
 Phase: 07 (crud-metas) — EXECUTING
-Plan: 2 of 3
+Plan: 3 of 3
 Status: Ready to execute
 Last activity: 2026-07-01 — Phase 07 execution started
 
@@ -73,6 +73,7 @@ Run `/gsd-discuss-phase 07` to resolve the open data-model decision (source of a
 | Phase 06 P01 | 8min | 3 tasks | 3 files |
 | Phase 06 P02 | ~10min | 2 tasks | 1 files |
 | Phase 07 P02 | 6min | 3 tasks | 1 files |
+| Phase 07 P03 | 12min | 3 tasks | 1 files |
 
 ## Decisions
 
@@ -94,10 +95,12 @@ Run `/gsd-discuss-phase 07` to resolve the open data-model decision (source of a
 - [Phase ?]: 07-02: normalizeGoal maps prazo/descricao from target_date/description with row.field || default idiom, no Date parsing (D-02/D-05/D-10)
 - [Phase ?]: 07-02: addGoal payload omits current/monthly_contrib entirely, left to schema defaults (D-07/D-08)
 - [Phase ?]: 07-02: updateGoal stays DB-shaped (no __targetBal-style RPC branch); UI to DB key translation deferred to Plan 03's modal onConfirm handlers
+- [Phase ?]: 07-03: UI->DB translation for goal edits lives in MetasStudio onConfirm wrapper, not in the modal or updateGoal (mirrors updateAccount call-site pattern)
+- [Phase ?]: 07-03: moved MetasStudio useState declarations above the isEmpty early return to fix a Rules of Hooks violation; also fixed the top empty-state CTA which was wrongly wired to the parent onAdd prop
 
 ## Session
 
-**Last session:** 2026-07-01T19:37:51.360Z
+**Last session:** 2026-07-01T19:46:56.920Z
 **Stopped at:** Phase 07 context gathered
 **Resume file:** .planning/phases/07-crud-metas/07-CONTEXT.md
 
