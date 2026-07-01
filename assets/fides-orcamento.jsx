@@ -986,14 +986,68 @@
     var stAI = React.useState(false);
     var aiLoading = stAI[0]; var setAiLoading = stAI[1];
 
+    var stAIResult = React.useState(null);
+    var aiResult = stAIResult[0]; var setAiResult = stAIResult[1];
+
+    var stAIError = React.useState(null);
+    var aiError = stAIError[0]; var setAiError = stAIError[1];
+
     var result   = computeInsights(groups, totals, prevTxs);
     var cards    = result.cards;
     var hasHistory = result.hasHistory;
 
     if (!cards.length) return null;
 
+    function friendlyAiError(errCode) {
+      var map = {
+        JWT_MISSING:        'Sessão expirada. Atualize a página e tente novamente.',
+        JWT_INVALID:        'Sessão expirada. Atualize a página e tente novamente.',
+        USER_DAILY_LIMIT:   'Você atingiu o limite diário de análises. Tente novamente amanhã.',
+        RATE_LIMIT:         'Muitas pessoas usando a IA agora. Tente novamente em instantes.',
+        EMPTY_REPLY:        'A IA não conseguiu gerar uma análise dessa vez. Tente novamente.',
+        GEMINI_ERROR:       'O assistente está temporariamente indisponível. Tente novamente em instantes.',
+        INTERNAL_ERROR:     'O assistente está temporariamente indisponível. Tente novamente em instantes.',
+        GEMINI_KEY_MISSING: 'O assistente está temporariamente indisponível. Tente novamente em instantes.',
+        GEMINI_BAD_REQUEST: 'O assistente está temporariamente indisponível. Tente novamente em instantes.',
+        NETWORK:            'Sem conexão. Verifique a internet e tente de novo.',
+      };
+      return map[errCode] || 'Não consegui gerar a análise agora. Tente novamente em instantes.';
+    }
+
+    function buildAiContext() {
+      var parts = [];
+      if (totals && (totals.receitas != null || totals.despesas != null)) {
+        var receitas = totals.receitas != null ? fmtVal(totals.receitas) : null;
+        var despesas = totals.despesas != null ? fmtVal(Math.abs(totals.despesas)) : null;
+        if (receitas != null && despesas != null) {
+          parts.push('Receitas do mês: ' + receitas + '. Despesas: ' + despesas + '.');
+        } else if (despesas != null) {
+          parts.push('Despesas do mês: ' + despesas + '.');
+        } else if (receitas != null) {
+          parts.push('Receitas do mês: ' + receitas + '.');
+        }
+      }
+      if (groups && groups.length > 0) {
+        var groupLines = groups
+          .filter(function(g) { return g && g.label != null && g.limit != null; })
+          .map(function(g) {
+            var pct = g.limit > 0 ? Math.round((g.spent / g.limit) * 100) : 0;
+            return g.label + ': ' + fmtVal(g.spent) + ' de ' + fmtVal(g.limit) + ' (' + pct + '%)';
+          });
+        if (groupLines.length > 0) {
+          parts.push('Status do Planejamento (50·30·20): ' + groupLines.join('; ') + '.');
+        }
+      }
+      if (prevTxs && prevTxs.length > 0) {
+        parts.push('Há histórico do mês anterior disponível para comparação de tendência.');
+      }
+      return parts.join(' ');
+    }
+
     function handleAiClick() {
       if (aiLoading) return;
+      setAiError(null);
+      setAiResult(null);
       setAiLoading(true);
       setTimeout(function() { setAiLoading(false); }, 2200);
     }
