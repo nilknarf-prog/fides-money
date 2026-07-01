@@ -4,17 +4,17 @@ milestone: v1.0
 milestone_name: Polish pré-lançamento
 current_phase: 04
 current_phase_name: ux-mobile-motion
-status: executing
+status: verifying
 stopped_at: Completed 04-02-PLAN.md (MOTION-01 modal wiring)
-last_updated: "2026-07-01T01:17:27.209Z"
+last_updated: "2026-07-01T01:23:19.071Z"
 last_activity: 2026-06-30
 last_activity_desc: Phase 04 execution started
 progress:
   total_phases: 3
-  completed_phases: 1
+  completed_phases: 2
   total_plans: 6
-  completed_plans: 5
-  percent: 33
+  completed_plans: 6
+  percent: 67
 ---
 
 # Project State
@@ -23,7 +23,7 @@ progress:
 
 Phase: 04 (ux-mobile-motion) — EXECUTING
 Plan: 4 of 4
-Status: Ready to execute
+Status: Phase complete — ready for verification
 Last activity: 2026-06-30 — Phase 04 execution started
 
 ## Phase Overview
@@ -47,6 +47,7 @@ Run `/gsd-plan-phase 03` to create the plan for Phase 03 (Limpeza + Tokens).
 | Phase 03 P02 | audit | 3 tasks (T3 checkpoint aprovado) | 1 file |
 | Phase 04 P03 | 8min | 3 tasks | 3 files |
 | Phase 04 P02 | ~15min | 3 tasks | 3 files |
+| Phase 04 P04 | 5min | 2 tasks | 2 files |
 
 ## Decisions
 
@@ -56,9 +57,11 @@ Run `/gsd-plan-phase 03` to create the plan for Phase 03 (Limpeza + Tokens).
 - [Phase ?]: MOBILE-01: goPerfil useCallback with functional updater + lastView toggle
 - [Phase ?]: 04-02: CategoriaModal footer Fechar button completed to route through requestClose (finishing partial Task 2)
 - [Phase ?]: 04-02: ConfirmDeleteModal Excluir uses handleConfirm wrapper (onConfirm then requestClose) for animated exit on delete confirm
+- [Phase ?]: 04-04: .stu-acct hover values unchanged, only moved inside @media (hover:hover)
+- [Phase ?]: 04-04: .cat-card border-color hover kept as-is; new lift added additively inside @media (hover:hover), shadow values mirrored from .stu-acct
 
 ## Session
 
-**Last session:** 2026-07-01T01:17:27.187Z
+**Last session:** 2026-07-01T01:22:35.696Z
 **Stopped at:** Completed 04-02-PLAN.md (MOTION-01 modal wiring)
 **Resume file:** None

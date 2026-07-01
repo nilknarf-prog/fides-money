@@ -122,7 +122,7 @@
 ### Phases
 
 - [x] **Phase 03: Limpeza + Tokens** — Dead code removido e identidade visual alinhada aos tokens de marca (completed 2026-06-30)
-- [ ] **Phase 04: UX Mobile + Motion** — Perfil acessível no mobile e micro-interações CSS em modais/cards
+- [x] **Phase 04: UX Mobile + Motion** — Perfil acessível no mobile e micro-interações CSS em modais/cards (completed 2026-07-01)
 - [ ] **Phase 05: IA Real** — Botão "Análise da IA" conectado ao Gemini real com loading state funcional
 
 ### Phase Details
@@ -170,7 +170,7 @@
   3. Ao tocar/hover em um card de categoria ou conta, há micro-feedback visual (ex.: escala, brilho, sombra) implementado puramente em CSS
   4. As animações não causam jank em iPhone SE (400px) — nenhum `transform` ou `opacity` transition acima de 300ms sem `will-change` ou GPU hint
 
-**Plans**: 3/4 plans executed
+**Plans**: 4/4 plans complete
 
 **Wave 1**
 
@@ -180,7 +180,7 @@
 **Wave 2** *(blocked on Wave 1)*
 
 - [x] 04-02-PLAN.md — MOTION-01: wiring dos 3 modais (NovaTransacao/Categoria/contas) ao `useModalClose` (saída animada, re-open limpo)
-- [ ] 04-04-PLAN.md — MOTION-02/PERF: micro-feedback CSS em `.stu-acct` e `.cat-card` (`:hover` isolado em `@media (hover:hover)` + `:active` scale)
+- [x] 04-04-PLAN.md — MOTION-02/PERF: micro-feedback CSS em `.stu-acct` e `.cat-card` (`:hover` isolado em `@media (hover:hover)` + `:active` scale)
 
 **UI hint**: yes
 
@@ -208,7 +208,7 @@
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
 | 03 - Limpeza + Tokens | 0/2 | Not started | - |
-| 04 - UX Mobile + Motion | 3/4 | In Progress|  |
+| 04 - UX Mobile + Motion | 4/4 | Complete   | 2026-07-01 |
 | 05 - IA Real | 0/TBD | Not started | - |
 
 ---

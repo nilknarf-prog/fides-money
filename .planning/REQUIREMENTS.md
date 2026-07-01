@@ -24,7 +24,7 @@
 ### MOTION — Micro-interações (P4)
 
 - [x] **MOTION-01**: Modais exibem transição de entrada/saída suave via CSS keyframes (sem JS adicional)
-- [ ] **MOTION-02**: Cards de categoria e conta têm micro-interação em tap/hover (CSS, não JS)
+- [x] **MOTION-02**: Cards de categoria e conta têm micro-interação em tap/hover (CSS, não JS)
 
 ### AI — Integração IA real (P5)
 
@@ -73,7 +73,7 @@
 | DESIGN-04 | Phase 03 | Complete |
 | MOBILE-01 | Phase 04 | Complete |
 | MOTION-01 | Phase 04 | Complete |
-| MOTION-02 | Phase 04 | Pending |
+| MOTION-02 | Phase 04 | Complete |
 | AI-01 | Phase 05 | Pending |
 | AI-02 | Phase 05 | Pending |
 
