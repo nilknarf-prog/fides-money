@@ -124,6 +124,7 @@
 - [x] **Phase 03: Limpeza + Tokens** — Dead code removido e identidade visual alinhada aos tokens de marca (completed 2026-06-30)
 - [x] **Phase 04: UX Mobile + Motion** — Perfil acessível no mobile e micro-interações CSS em modais/cards (completed 2026-07-01)
 - [x] **Phase 05: IA Real** — Botão "Análise da IA" conectado ao Gemini real com loading state funcional (completed 2026-07-01)
+- [ ] **Phase 06: Fix v1.0 tech debt** — Remove bloco de contexto IA morto, aplica motion ao modal de metas e alinha token `--warn-soft` (INSERTED)
 
 ### Phase Details
 
@@ -207,6 +208,24 @@
 
 ---
 
+### Phase 06: Fix v1.0 tech debt
+
+**Goal**: A base v1.0 fica sem débito residual — bloco de contexto de IA morto removido, modal de metas com motion consistente com os demais modais, e token `--warn-soft` alinhado entre os CSS.
+**Depends on**: Phase 05
+**Requirements**: DEBT-01, DEBT-02, DEBT-03 *(a refinar em discuss-phase)*
+**Key files**: *(a mapear em discuss/plan)*
+**Success Criteria** (what must be TRUE):
+
+  1. O bloco de contexto de IA morto não existe mais no código e nenhuma referência remanescente o invoca (verificável por grep)
+  2. O modal de metas abre/fecha com a mesma animação de entrada/saída dos demais modais (via `useModalClose`), sem corte abrupto
+  3. O token `--warn-soft` tem valor consistente entre os arquivos CSS que o usam (verificável com grep)
+
+**Plans**: not planned yet
+**Marker**: (INSERTED) — débito técnico v1.0
+**UI hint**: yes
+
+---
+
 ### Progress Table
 
 | Phase | Plans Complete | Status | Completed |
@@ -214,6 +233,7 @@
 | 03 - Limpeza + Tokens | 2/2 | Complete    | 2026-06-30 |
 | 04 - UX Mobile + Motion | 4/4 | Complete    | 2026-07-01 |
 | 05 - IA Real | 1/1 | Complete    | 2026-07-01 |
+| 06 - Fix v1.0 tech debt | 0/? | Not planned | — |
 
 ---
 
@@ -235,6 +255,17 @@
 | B12 | **[doc PM]** Pipeline CI/CD com ambientes Staging/Production (hoje deploy direto via `push.sh`/`vercel.json`) | 1 sessão | B11 ideal antes |
 
 > Origem B11–B12: `docs/planejamento/Relatórios_ideIA/analise_project_manager.md`. Estratégico, não bloqueia Fase 01.
+
+### Phase 6: Fix v1.0 tech debt: dead AI-context block, metas modal motion, --warn-soft align
+
+**Goal:** [To be planned]
+**Requirements**: TBD
+**Depends on:** Phase 5
+**Plans:** 0 plans
+
+Plans:
+
+- [ ] TBD (run /gsd-plan-phase 6 to break down)
 
 ---
 

@@ -4,16 +4,16 @@ milestone: v1.0
 milestone_name: Polish pré-lançamento
 current_phase: 05
 status: verifying
-stopped_at: "05-01: complete — SUMMARY.md written, Task 4 checkpoint approved"
-last_updated: "2026-07-01T02:44:44.198Z"
+stopped_at: Phase 06 context gathered
+last_updated: "2026-07-01T03:21:01.158Z"
 last_activity: 2026-07-01
 last_activity_desc: Phase 05 complete
 progress:
-  total_phases: 3
+  total_phases: 5
   completed_phases: 3
   total_plans: 7
   completed_plans: 7
-  percent: 100
+  percent: 60
 current_phase_name: IA Real
 ---
 
@@ -36,7 +36,7 @@ Last activity: 2026-07-01 — Phase 05 complete
 
 ## Next Action
 
-Run `/gsd-plan-phase 03` to create the plan for Phase 03 (Limpeza + Tokens).
+Run `/gsd-plan-phase 06` to create the plan for Phase 06 (Fix v1.0 tech debt).
 
 ## Performance Metrics
 
@@ -64,6 +64,12 @@ Run `/gsd-plan-phase 03` to create the plan for Phase 03 (Limpeza + Tokens).
 
 ## Session
 
-**Last session:** 2026-07-01T02:40:08.927Z
-**Stopped at:** 05-01: complete — SUMMARY.md written, Task 4 checkpoint approved
-**Resume file:** None
+**Last session:** 2026-07-01T03:21:01.109Z
+**Stopped at:** Phase 06 context gathered
+**Resume file:** .planning/phases/06-fix-v1-0-tech-debt-dead-ai-context-block-metas-modal-motion-/06-CONTEXT.md
+
+## Accumulated Context
+
+### Roadmap Evolution
+
+- Phase 06 added: Fix v1.0 tech debt: dead AI-context block, metas modal motion, --warn-soft align
