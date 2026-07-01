@@ -233,7 +233,7 @@
   //   if (!mc.rendered) return null;
   //   // aplicar mc.closing como classe 'is-closing' nos elementos do modal
   //   // substituir chamadas de fechar por mc.requestClose()
-  var CLOSE_MS = 180;
+  var CLOSE_MS = 240; // casado com a duração de saída em fides.css (.is-closing = 0.24s); divergir corta a animação
 
   function useModalClose(open, onClose) {
     var ref0 = React.useState(!!open);
