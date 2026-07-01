@@ -566,6 +566,61 @@ function FidesProvider({ children }) {
     setAccounts(prev => prev.filter(a => a.id !== id));
   }, [mode, userId, refreshData]);
 
+  // ─── Goals ────────────────────────────────────────────────────
+
+  const addGoal = React.useCallback(async (g) => {
+    if (mode === 'live' && userId) {
+      try {
+        const { error } = await window.fidesDb.from('goals').insert({
+          user_id: userId,
+          name:        g.nome || '',
+          target:      Number(g.alvo) || 0,
+          target_date: g.prazo || null,
+          description: g.descricao || '',
+          emoji:       g.emoji || '🎯',
+          tint:        g.tint || '#00C37B',
+        });
+        if (error) throw error;
+        await refreshData(userId);
+      } catch (err) {
+        console.error('[Fides] addGoal:', err.message);
+      }
+      return;
+    }
+    setGoals(prev => [
+      { ...g, id: g.id ?? ('goal_' + Date.now()), _new: true },
+      ...prev,
+    ]);
+  }, [mode, userId, refreshData]);
+
+  const updateGoal = React.useCallback(async (id, patch) => {
+    if (mode === 'live' && userId) {
+      try {
+        const { error } = await window.fidesDb.from('goals').update(patch).eq('id', id);
+        if (error) throw error;
+        await refreshData(userId);
+      } catch (err) {
+        console.error('[Fides] updateGoal:', err.message);
+      }
+      return;
+    }
+    setGoals(prev => prev.map(x => x.id === id ? { ...x, ...patch } : x));
+  }, [mode, userId, refreshData]);
+
+  const deleteGoal = React.useCallback(async (id) => {
+    if (mode === 'live' && userId) {
+      try {
+        const { error } = await window.fidesDb.from('goals').delete().eq('id', id);
+        if (error) throw error;
+        await refreshData(userId);
+      } catch (err) {
+        console.error('[Fides] deleteGoal:', err.message);
+      }
+      return;
+    }
+    setGoals(prev => prev.filter(x => x.id !== id));
+  }, [mode, userId, refreshData]);
+
   // ─── Cards ────────────────────────────────────────────────────
 
   const addCard = React.useCallback(async (card) => {
