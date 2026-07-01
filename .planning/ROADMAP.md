@@ -270,8 +270,15 @@ Plans:
   3. Usuário aciona excluir em uma meta, confirma no modal `ConfirmDelete`, e a meta some da lista imediatamente e permanece ausente após reload (META-03, META-04)
   4. A view de Metas, ao carregar, exibe as metas reais do usuário autenticado vindas de `goals` (não dados mock/placeholder) — lista vazia mostra empty state, não erro (META-04)
 
-**Notas de escopo:** NÃO inclui aportes, acompanhamento de progresso ou ajuste de plano (deferidos a M5+). A fonte do "valor atual" da meta (aportes manuais vs vínculo a conta/reserva) é uma decisão de modelo de dados em aberto — resolver em `/gsd-discuss-phase 07` antes de planejar. Este phase cobre apenas persistência de nome/valor-alvo/prazo e listagem live; os modais `Aportar`/`AjustarPlano` permanecem placeholder (não fazem parte do escopo v1.1).
-**Plans**: TBD
+**Notas de escopo:** NÃO inclui aportes, acompanhamento de progresso ou ajuste de plano (deferidos a M5+). A fonte do "valor atual" da meta (aportes manuais vs vínculo a conta/reserva) é uma decisão de modelo de dados em aberto — resolver em `/gsd-discuss-phase 07` antes de planejar. Este phase cobre apenas persistência de nome/valor-alvo/prazo e listagem live; os modais `Aportar`/`AjustarPlano` (como calculadora de plano) permanecem placeholder (não fazem parte do escopo v1.1).
+**Plans**: 3 plans (waves 1→2→3, sequenciais por dependência de dados: schema → store → UI)
+
+Plans:
+
+- [ ] 07-01-PLAN.md — [BLOCKING] Migration via MCP: `target_date DATE` + `description text` (nullable) em `goals` + espelho (D-01/02/03/10)
+- [ ] 07-02-PLAN.md — Store: `addGoal`/`updateGoal`/`deleteGoal` (espelham trio de accounts) + `normalizeGoal` lê prazo/descrição + exposição no context/fallback (D-05/11/12)
+- [ ] 07-03-PLAN.md — UI: `CriarMetaModal` novo, `AjustarPlanoModal` para edição, wiring de Nova/Editar/Excluir aos modais reais + fix do `onAdd` mal-cabeado (D-06/13/14/15/16)
+
 **UI hint**: yes
 
 ---
@@ -280,7 +287,7 @@ Plans:
 
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
-| 07 - CRUD Metas | 0/TBD | Not started | - |
+| 07 - CRUD Metas | 0/3 | Not started | - |
 
 ---
 
