@@ -6,14 +6,14 @@ current_phase: 07
 current_phase_name: crud-metas
 status: executing
 stopped_at: Phase 07 context gathered
-last_updated: "2026-07-01T19:18:03.930Z"
+last_updated: "2026-07-01T19:38:56.710Z"
 last_activity: 2026-07-01
 last_activity_desc: Phase 07 execution started
 progress:
   total_phases: 1
   completed_phases: 0
   total_plans: 3
-  completed_plans: 0
+  completed_plans: 2
   percent: 0
 ---
 
@@ -22,8 +22,8 @@ progress:
 ## Current Position
 
 Phase: 07 (crud-metas) — EXECUTING
-Plan: 1 of 3
-Status: Executing Phase 07
+Plan: 2 of 3
+Status: Ready to execute
 Last activity: 2026-07-01 — Phase 07 execution started
 
 ## Project Reference
@@ -72,6 +72,7 @@ Run `/gsd-discuss-phase 07` to resolve the open data-model decision (source of a
 | Phase 05 P01 | ~20min | 4 tasks | 2 files |
 | Phase 06 P01 | 8min | 3 tasks | 3 files |
 | Phase 06 P02 | ~10min | 2 tasks | 1 files |
+| Phase 07 P02 | 6min | 3 tasks | 1 files |
 
 ## Decisions
 
@@ -90,10 +91,13 @@ Run `/gsd-discuss-phase 07` to resolve the open data-model decision (source of a
 - [Phase ?]: 06-02: overlay inline Em breve extraido para componente EmBreveModal para poder consumir useModalClose
 - [Phase ?]: 06-02: os 4 paineis montados (Simular/Revisar/Aplicar/EmBreve) migraram de mount condicional pelo pai para mount sempre + prop open, gate interno via rendered
 - [Phase ?]: 06-02: os 4 modais placeholder (Aportar/AjustarPlano/MetConfirmDelete/Configurar) recebem wiring completo mas seguem sem mount site - Metas continua read-only
+- [Phase ?]: 07-02: normalizeGoal maps prazo/descricao from target_date/description with row.field || default idiom, no Date parsing (D-02/D-05/D-10)
+- [Phase ?]: 07-02: addGoal payload omits current/monthly_contrib entirely, left to schema defaults (D-07/D-08)
+- [Phase ?]: 07-02: updateGoal stays DB-shaped (no __targetBal-style RPC branch); UI to DB key translation deferred to Plan 03's modal onConfirm handlers
 
 ## Session
 
-**Last session:** 2026-07-01T18:48:31.857Z
+**Last session:** 2026-07-01T19:37:51.360Z
 **Stopped at:** Phase 07 context gathered
 **Resume file:** .planning/phases/07-crud-metas/07-CONTEXT.md
 
