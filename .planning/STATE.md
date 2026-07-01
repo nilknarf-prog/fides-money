@@ -1,30 +1,26 @@
 ---
 gsd_state_version: 1.0
-milestone: v1.0
-milestone_name: Polish pré-lançamento
-current_phase: 0
-status: Awaiting next milestone
-stopped_at: Phase 06 context gathered
-last_updated: "2026-07-01T09:09:46.714Z"
+milestone: v1.1
+milestone_name: CRUD Metas
+status: planning
+last_updated: "2026-07-01T09:25:10.095Z"
 last_activity: 2026-07-01
-last_activity_desc: Milestone v1.0 completed and archived
 progress:
-  total_phases: 5
-  completed_phases: 4
-  total_plans: 9
-  completed_plans: 9
-  percent: 80
-current_phase_name: Fix v1.0 tech debt
+  total_phases: 0
+  completed_phases: 0
+  total_plans: 0
+  completed_plans: 0
+  percent: 0
 ---
 
 # Project State
 
 ## Current Position
 
-Milestone: v1.0 Polish pré-lançamento — ✅ SHIPPED 2026-07-01 (tag `v1.0`)
-Phase: —
-Status: Awaiting next milestone
-Last activity: 2026-07-01 — Milestone v1.0 completed and archived
+Phase: Not started (defining requirements)
+Plan: —
+Status: Defining requirements
+Last activity: 2026-07-01 — Milestone v1.1 started
 
 ## Project Reference
 

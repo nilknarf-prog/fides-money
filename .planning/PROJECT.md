@@ -117,7 +117,20 @@ Entregue:
 | Fechamento de modal por via única (`requestClose→onClose`) | Elimina double `setModalOpen(false)` | ✓ Good |
 | Auditoria CSS conservadora (não remover órfãos dinâmicos) | Evita regressão visual em regras interleaved vivas | — Pending (reavaliar se CSS crescer) |
 
-**Próximo milestone:** definir via `/gsd-new-milestone`. Candidatos do backlog M5 Expansão: CRUD Metas, import CSV/OFX, busca ⌘K, WRITE assistente.
+---
+
+## Current Milestone: v1.1 CRUD Metas
+
+**Goal:** Tornar Metas funcional — usuário cria, edita e exclui metas (nome, valor-alvo, prazo) persistidas na tabela `goals`, saindo do estado read-only atual.
+
+**Target features:**
+- Criar meta (nome, valor-alvo, prazo)
+- Editar meta existente
+- Excluir meta (com confirmação)
+
+**Fora do escopo (deferido):** aportes/contribuição, acompanhamento de progresso, ajuste de plano. **Fonte do valor atual da meta** = decisão de modelo de dados adiada para `/gsd-discuss-phase 07`.
+
+**Context:** modais de Metas já têm motion (fase 06); os 4 placeholders (Aportar/AjustarPlano/ConfirmDelete/Configurar) têm wiring mas sem mount site. `goals` já existe no schema — verificar via MCP antes de assumir. Numeração de fases continua na 07.
 
 ---
 
@@ -138,4 +151,4 @@ Este documento evolui nas transições de fase e marcos de milestone.
 3. Auditoria Out of Scope — razões ainda válidas?
 4. Atualizar Context com estado atual
 
-*Última atualização: 2026-07-01 — Milestone v1.0 concluído e arquivado*
+*Última atualização: 2026-07-01 — Milestone v1.1 CRUD Metas iniciado*
