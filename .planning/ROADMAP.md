@@ -208,7 +208,7 @@
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
 | 03 - Limpeza + Tokens | 0/2 | Not started | - |
-| 04 - UX Mobile + Motion | 4/4 | Complete   | 2026-07-01 |
+| 04 - UX Mobile + Motion | 4/4 | Complete    | 2026-07-01 |
 | 05 - IA Real | 0/TBD | Not started | - |
 
 ---
