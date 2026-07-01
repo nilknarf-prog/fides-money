@@ -291,7 +291,9 @@ function MetConfirmDeleteModal({ open, nome, onConfirm, onCancel }) {
 }
 
 // ─── Painel: Simular renegociação ─────────────────────────────
-function SimularPanel({ dívida, onClose }) {
+function SimularPanel({ open, dívida, onClose }) {
+  const { rendered, closing, requestClose } = window.FidesUI.useModalClose(open, onClose);
+  if (!rendered) return null;
   if (!dívida) return null;
   const parcelaAtual = Math.abs(dívida.val);
   const totalParcelas = parseInt(dívida.sub?.split('/')[1] || '12', 10);
@@ -314,14 +316,14 @@ function SimularPanel({ dívida, onClose }) {
   }));
 
   return (
-    <div className="fds-modal-backdrop" onClick={onClose}>
-      <div className="fds-modal" style={{ maxWidth: 500 }} onClick={e => e.stopPropagation()}>
+    <div className={"fds-modal-backdrop" + (closing ? " is-closing" : "")} onClick={requestClose}>
+      <div className={"fds-modal" + (closing ? " is-closing" : "")} style={{ maxWidth: 500 }} onClick={e => e.stopPropagation()}>
         <div className="fds-modal-head">
           <div>
             <div className="fds-modal-eyebrow">Calculadora</div>
             <div className="fds-modal-title">Simular antecipação</div>
           </div>
-          <button className="fds-icon-btn" onClick={onClose}><Icon.X size={16}/></button>
+          <button className="fds-icon-btn" onClick={requestClose}><Icon.X size={16}/></button>
         </div>
         <div className="fds-modal-body" style={{ display: 'flex', flexDirection: 'column', gap: 18 }}>
           <div className="met-simul-origem">
@@ -387,7 +389,7 @@ function SimularPanel({ dívida, onClose }) {
           </p>
         </div>
         <div className="fds-modal-foot" style={{ justifyContent: 'flex-end' }}>
-          <button className="fds-btn-primary" onClick={onClose}>Entendi</button>
+          <button className="fds-btn-primary" onClick={requestClose}>Entendi</button>
         </div>
       </div>
     </div>
@@ -395,8 +397,10 @@ function SimularPanel({ dívida, onClose }) {
 }
 
 // ─── Painel: Revisar assinaturas ──────────────────────────────
-function RevisarPanel({ assinaturas, onClose }) {
+function RevisarPanel({ open, assinaturas, onClose }) {
   const [marcadas, setMarcadas] = React.useState([]);
+  const { rendered, closing, requestClose } = window.FidesUI.useModalClose(open, onClose);
+  if (!rendered) return null;
   if (!assinaturas || assinaturas.length === 0) return null;
   const toggle = (id) => setMarcadas(prev =>
     prev.includes(id) ? prev.filter(x => x !== id) : [...prev, id]
@@ -406,14 +410,14 @@ function RevisarPanel({ assinaturas, onClose }) {
     .reduce((s, t) => s + Math.abs(t.val), 0);
 
   return (
-    <div className="fds-modal-backdrop" onClick={onClose}>
-      <div className="fds-modal" style={{ maxWidth: 460 }} onClick={e => e.stopPropagation()}>
+    <div className={"fds-modal-backdrop" + (closing ? " is-closing" : "")} onClick={requestClose}>
+      <div className={"fds-modal" + (closing ? " is-closing" : "")} style={{ maxWidth: 460 }} onClick={e => e.stopPropagation()}>
         <div className="fds-modal-head">
           <div>
             <div className="fds-modal-eyebrow">Revisão</div>
             <div className="fds-modal-title">Assinaturas ativas</div>
           </div>
-          <button className="fds-icon-btn" onClick={onClose}><Icon.X size={16}/></button>
+          <button className="fds-icon-btn" onClick={requestClose}><Icon.X size={16}/></button>
         </div>
         <div className="fds-modal-body" style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
           <p style={{ fontSize: 13, color: 'var(--ink-3)', margin: 0, lineHeight: 1.5 }}>
@@ -456,9 +460,9 @@ function RevisarPanel({ assinaturas, onClose }) {
           )}
         </div>
         <div className="fds-modal-foot" style={{ justifyContent: 'flex-end' }}>
-          <button className="fds-btn-ghost" onClick={onClose}>Fechar</button>
+          <button className="fds-btn-ghost" onClick={requestClose}>Fechar</button>
           {economia > 0 && (
-            <button className="fds-btn-primary" onClick={onClose}>
+            <button className="fds-btn-primary" onClick={requestClose}>
               <Icon.Check size={13}/> Registrei, obrigado
             </button>
           )}
@@ -469,18 +473,20 @@ function RevisarPanel({ assinaturas, onClose }) {
 }
 
 // ─── Painel: Aplicar (Tesouro Selic educativo) ────────────────
-function AplicarPanel({ totalContas, onClose }) {
+function AplicarPanel({ open, totalContas, onClose }) {
   const taxaMensal = 0.011;
   const meses = [3, 6, 12, 24];
+  const { rendered, closing, requestClose } = window.FidesUI.useModalClose(open, onClose);
+  if (!rendered) return null;
   return (
-    <div className="fds-modal-backdrop" onClick={onClose}>
-      <div className="fds-modal" style={{ maxWidth: 460 }} onClick={e => e.stopPropagation()}>
+    <div className={"fds-modal-backdrop" + (closing ? " is-closing" : "")} onClick={requestClose}>
+      <div className={"fds-modal" + (closing ? " is-closing" : "")} style={{ maxWidth: 460 }} onClick={e => e.stopPropagation()}>
         <div className="fds-modal-head">
           <div>
             <div className="fds-modal-eyebrow">Simulação</div>
             <div className="fds-modal-title">Tesouro Selic</div>
           </div>
-          <button className="fds-icon-btn" onClick={onClose}><Icon.X size={16}/></button>
+          <button className="fds-icon-btn" onClick={requestClose}><Icon.X size={16}/></button>
         </div>
         <div className="fds-modal-body" style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
           <p style={{ fontSize: 13, color: 'var(--ink-3)', margin: 0, lineHeight: 1.55 }}>
@@ -508,7 +514,7 @@ function AplicarPanel({ totalContas, onClose }) {
           </div>
         </div>
         <div className="fds-modal-foot" style={{ justifyContent: 'flex-end' }}>
-          <button className="fds-btn-primary" onClick={onClose}>Entendi</button>
+          <button className="fds-btn-primary" onClick={requestClose}>Entendi</button>
         </div>
       </div>
     </div>
@@ -586,6 +592,36 @@ function ConfigurarModal({ sobra, metas, onConfirm, onClose }) {
   );
 }
 
+// ─── Modal: Em breve (placeholder de funcionalidades futuras) ─
+function EmBreveModal({ open, onClose }) {
+  const { rendered, closing, requestClose } = window.FidesUI.useModalClose(open, onClose);
+  if (!rendered) return null;
+  return (
+    <div className={"fds-modal-backdrop" + (closing ? " is-closing" : "")} onClick={requestClose}>
+      <div className={"fds-modal" + (closing ? " is-closing" : "")} style={{ maxWidth: 380 }} onClick={e => e.stopPropagation()}>
+        <div className="fds-modal-head">
+          <div className="fds-modal-title">Em breve</div>
+          <button className="fds-icon-btn" onClick={requestClose}><Icon.X size={16}/></button>
+        </div>
+        <div className="fds-modal-body">
+          <p style={{ fontSize: 14, color: 'var(--ink-3)', lineHeight: 1.6, margin: 0 }}>
+            Metas com salvamento chegam em breve. Por enquanto é só leitura.
+          </p>
+        </div>
+        <div className="fds-modal-foot" style={{ justifyContent: 'flex-end' }}>
+          <button
+            className="fds-btn-primary"
+            onClick={requestClose}
+            style={{ touchAction: 'manipulation', WebkitTapHighlightColor: 'transparent' }}
+          >
+            <Icon.Check size={13}/> Entendi
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 // ─── MetasStudio ──────────────────────────────────────────────
 function MetasStudio({ onAdd, onNav }) {
   const { transactions, monthTransactions, selectedMonth, monthLabel, isEmpty, goals, accounts } = useFides();
@@ -650,35 +686,12 @@ function MetasStudio({ onAdd, onNav }) {
     <div className="fds-page stu-page" data-od-id="metas">
 
       {/* ─── Em breve overlay ─── */}
-      {emBreve && (
-        <div className="fds-modal-backdrop" onClick={() => setEmBreve(false)}>
-          <div className="fds-modal" style={{ maxWidth: 380 }} onClick={e => e.stopPropagation()}>
-            <div className="fds-modal-head">
-              <div className="fds-modal-title">Em breve</div>
-              <button className="fds-icon-btn" onClick={() => setEmBreve(false)}><Icon.X size={16}/></button>
-            </div>
-            <div className="fds-modal-body">
-              <p style={{ fontSize: 14, color: 'var(--ink-3)', lineHeight: 1.6, margin: 0 }}>
-                Metas com salvamento chegam em breve. Por enquanto é só leitura.
-              </p>
-            </div>
-            <div className="fds-modal-foot" style={{ justifyContent: 'flex-end' }}>
-              <button
-                className="fds-btn-primary"
-                onClick={() => setEmBreve(false)}
-                style={{ touchAction: 'manipulation', WebkitTapHighlightColor: 'transparent' }}
-              >
-                <Icon.Check size={13}/> Entendi
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
+      <EmBreveModal open={emBreve} onClose={() => setEmBreve(false)}/>
 
       {/* ─── Read-only panels ─── */}
-      {simularDivida && <SimularPanel dívida={simularDivida} onClose={() => setSimularDivida(null)}/>}
-      {revisarOpen   && <RevisarPanel assinaturas={assinaturas} onClose={() => setRevisarOpen(false)}/>}
-      {aplicarOpen   && <AplicarPanel totalContas={totalContas} onClose={() => setAplicarOpen(false)}/>}
+      <SimularPanel open={!!simularDivida} dívida={simularDivida} onClose={() => setSimularDivida(null)}/>
+      <RevisarPanel open={revisarOpen} assinaturas={assinaturas} onClose={() => setRevisarOpen(false)}/>
+      <AplicarPanel open={aplicarOpen} totalContas={totalContas} onClose={() => setAplicarOpen(false)}/>
 
       {/* ─── Empty state when no goals ─── */}
       {goals.length === 0 ? (
