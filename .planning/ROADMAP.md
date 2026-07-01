@@ -271,12 +271,12 @@ Plans:
   4. A view de Metas, ao carregar, exibe as metas reais do usuário autenticado vindas de `goals` (não dados mock/placeholder) — lista vazia mostra empty state, não erro (META-04)
 
 **Notas de escopo:** NÃO inclui aportes, acompanhamento de progresso ou ajuste de plano (deferidos a M5+). A fonte do "valor atual" da meta (aportes manuais vs vínculo a conta/reserva) é uma decisão de modelo de dados em aberto — resolver em `/gsd-discuss-phase 07` antes de planejar. Este phase cobre apenas persistência de nome/valor-alvo/prazo e listagem live; os modais `Aportar`/`AjustarPlano` (como calculadora de plano) permanecem placeholder (não fazem parte do escopo v1.1).
-**Plans**: 3 plans (waves 1→2→3, sequenciais por dependência de dados: schema → store → UI)
+**Plans**: 1/3 plans executed
 
 Plans:
 **Wave 1**
 
-- [ ] 07-01-PLAN.md — [BLOCKING] Migration via MCP: `target_date DATE` + `description text` (nullable) em `goals` + espelho (D-01/02/03/10)
+- [x] 07-01-PLAN.md — [BLOCKING] Migration via MCP: `target_date DATE` + `description text` (nullable) em `goals` + espelho (D-01/02/03/10)
 
 **Wave 2** *(blocked on Wave 1 completion)*
 
@@ -294,7 +294,7 @@ Plans:
 
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
-| 07 - CRUD Metas | 0/3 | Not started | - |
+| 07 - CRUD Metas | 1/3 | In Progress|  |
 
 ---
 
