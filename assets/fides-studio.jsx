@@ -46,12 +46,13 @@ function FidesStudioShell({ initialPage = 'dashboard' }) {
   React.useEffect(() => { setActive(initialPage); }, [initialPage]);
 
   const goPerfil = React.useCallback(() => {
-    setActive(a => {
-      if (a === 'perfil') return lastView || 'dashboard';
-      setLastView(a);
-      return 'perfil';
-    });
-  }, [lastView]);
+    if (active === 'perfil') {
+      setActive(lastView || 'dashboard');
+    } else {
+      setLastView(active);
+      setActive('perfil');
+    }
+  }, [active, lastView]);
 
   return (
     <div className="fds-app fds-studio" data-variant="studio">
