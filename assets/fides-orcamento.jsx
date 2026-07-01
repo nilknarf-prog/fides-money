@@ -1016,17 +1016,6 @@
 
     function buildAiContext() {
       var parts = [];
-      if (totals && (totals.receitas != null || totals.despesas != null)) {
-        var receitas = totals.receitas != null ? fmtVal(totals.receitas) : null;
-        var despesas = totals.despesas != null ? fmtVal(Math.abs(totals.despesas)) : null;
-        if (receitas != null && despesas != null) {
-          parts.push('Receitas do mês: ' + receitas + '. Despesas: ' + despesas + '.');
-        } else if (despesas != null) {
-          parts.push('Despesas do mês: ' + despesas + '.');
-        } else if (receitas != null) {
-          parts.push('Receitas do mês: ' + receitas + '.');
-        }
-      }
       if (groups && groups.length > 0) {
         var groupLines = groups
           .filter(function(g) { return g && g.label != null && g.limit != null; })
