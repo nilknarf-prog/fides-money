@@ -84,7 +84,7 @@ design-canvas.jsx   tweaks-panel.jsx   Fides-app.html
 |---|---|
 | **M1 — Fundação** (infra Supabase, auth, store live/mock, saldo derivado) | ✅ Concluído (v2–v16) |
 | **M2 — Núcleo de produto** (Transações, Planejamento+Insights, Contas, fatura selecionável) | ✅ Concluído (v6–v18) |
-| **M3 — Polish pré-lançamento** (dead code, design polish, perfil mobile, motion, IA real) | 🔄 **Milestone ativo (v1.0 GSD)** |
+| **M3 — Polish pré-lançamento** (dead code, design polish, perfil mobile, motion, IA real) | ✅ **Concluído (v1.0 GSD · shipped 2026-07-01, tag `v1.0`)** |
 | **M4 — Ciclo de fatura confiável** (faturas por mês, seletor, avisos, sincronia com fatura real) | ✅ Concluído (`ade84f7`) |
 | **M5 — Expansão** (CRUD Metas, Dívidas/Família, import CSV/OFX, busca ⌘K, WRITE assistente, WhatsApp) | ⏳ Backlog |
 | **M6 — Comercial** (landing, FAQ, pricing, monetização) | ⏳ Roadmap longo |
@@ -93,16 +93,31 @@ design-canvas.jsx   tweaks-panel.jsx   Fides-app.html
 
 ---
 
-## Current Milestone: v1.0 Polish pré-lançamento
+## Current State — v1.0 shipped (2026-07-01)
 
-**Goal:** Finalizar a camada de qualidade visual e técnica do Fides Money antes de ampliar a base F&F — removendo débitos de código morto, alinhando identidade visual, habilitando acesso mobile ao perfil, adicionando micro-interações e conectando a IA real.
+**Último milestone:** v1.0 Polish pré-lançamento (M3) — 4 fases, 9 plans, 21 tasks, 14/14 requisitos. Tag `v1.0`.
 
-**Target features:**
-- P1: Remover `fides-diario.*` (dead code jsx+css+`<link>`)
-- P2: Design polish — roxo off-brand, `--warn` divergente, auditoria CSS
-- P3: Acesso ao Perfil no mobile (engrenagem clicável)
-- P4: Micro-interações CSS (`emilkowalski-motion`) em modais/cards
-- P5: Gemini real no botão "Análise da IA" (hoje stub 2,2s)
+Entregue:
+- ✅ Dead code `fides-diario.*` removido (CLEAN-01)
+- ✅ Identidade visual alinhada a tokens de marca — avatares/perfil sem roxo hardcoded, `--warn`/`--warn-soft` consistentes (DESIGN-01/02/03/04)
+- ✅ Perfil acessível no mobile via engrenagem clicável em 400×512px (MOBILE-01)
+- ✅ Micro-interações CSS em modais e cards, incluindo os 8 modais de Metas (MOTION-01/02, DEBT-02)
+- ✅ Botão "Análise da IA" conectado ao Gemini 2.5 Flash-Lite real com loading/erro (AI-01/02)
+- ✅ 4 warnings da auditoria v1.0 fechadas na Phase 06 (DEBT-01/02/03/04)
+
+**Item deferido:** UAT humano de `fatura-ciclo` (M4, já shipado `ade84f7`) — rodar no app pós-deploy.
+
+### Key Decisions (v1.0)
+
+| Decisão | Racional | Outcome |
+|---|---|---|
+| Análise IA single-shot, sem executar tool_calls READ | Falha-fecha com erro amigável em vez de travar; tools ficam para depois | ✓ Good |
+| `useModalClose` como hook único de saída animada | Padrão reusado em todos os modais (fase 04 → metas na 06) | ✓ Good |
+| `--warn-soft` convergido para `#FEF0D6` (tokens.css) | Fim da divergência de cascade frágil | ✓ Good |
+| Fechamento de modal por via única (`requestClose→onClose`) | Elimina double `setModalOpen(false)` | ✓ Good |
+| Auditoria CSS conservadora (não remover órfãos dinâmicos) | Evita regressão visual em regras interleaved vivas | — Pending (reavaliar se CSS crescer) |
+
+**Próximo milestone:** definir via `/gsd-new-milestone`. Candidatos do backlog M5 Expansão: CRUD Metas, import CSV/OFX, busca ⌘K, WRITE assistente.
 
 ---
 
@@ -123,4 +138,4 @@ Este documento evolui nas transições de fase e marcos de milestone.
 3. Auditoria Out of Scope — razões ainda válidas?
 4. Atualizar Context com estado atual
 
-*Última atualização: 2026-06-29 — Milestone v1.0 iniciado*
+*Última atualização: 2026-07-01 — Milestone v1.0 concluído e arquivado*
