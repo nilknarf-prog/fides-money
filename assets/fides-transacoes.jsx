@@ -1268,6 +1268,7 @@ function NovaTransacaoModal({ open, onClose, onSave, variant }) {
       resetForm();
     } else {
       onSave?.(txs.length === 1 ? txs[0] : txs);
+      requestClose();
     }
   };
 
