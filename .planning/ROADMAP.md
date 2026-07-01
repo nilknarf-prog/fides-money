@@ -213,7 +213,7 @@
 |-------|----------------|--------|-----------|
 | 03 - Limpeza + Tokens | 2/2 | Complete    | 2026-06-30 |
 | 04 - UX Mobile + Motion | 4/4 | Complete    | 2026-07-01 |
-| 05 - IA Real | 1/1 | Complete   | 2026-07-01 |
+| 05 - IA Real | 1/1 | Complete    | 2026-07-01 |
 
 ---
 
