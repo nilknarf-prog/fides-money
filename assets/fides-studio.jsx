@@ -74,7 +74,6 @@ function FidesStudioShell({ initialPage = 'dashboard' }) {
                           onSave={(tx) => {
                             if (Array.isArray(tx)) addTransactions(tx);
                             else addTransaction(tx);
-                            setModalOpen(false);
                           }}
                           variant="v3"/>
       <CategoriaModal open={categoryModalOpen} onClose={closeCategoryModal}/>
