@@ -76,11 +76,13 @@ create table if not exists public.goals (
   id              uuid primary key default uuid_generate_v4(),
   user_id         uuid references public.profiles(id) on delete cascade not null,
   name            text not null,
+  description     text,
   emoji           text not null default '🎯',
   target          numeric(12,2) not null,
   current         numeric(12,2) not null default 0,
   monthly_contrib numeric(12,2) not null default 0,
   tint            text not null default '#00C37B',
+  target_date     date,
   completed       boolean not null default false,
   completed_at    timestamptz,
   created_at      timestamptz not null default now()
