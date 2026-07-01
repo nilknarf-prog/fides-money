@@ -34,7 +34,7 @@
 ### DEBT — Dívida técnica v1.0 (Phase 06 — fecha as 4 warnings de `v1.0-MILESTONE-AUDIT.md`)
 
 - [x] **DEBT-01** (WARN-1): Bloco morto em `buildAiContext()` (`fides-orcamento.jsx`) que lê `totals.receitas/despesas` inexistentes é removido — IA mantém status do planejamento + tendência
-- [ ] **DEBT-02** (WARN-3): Os 8 modais `fds-modal-backdrop` de `fides-metas.jsx` são ligados a `useModalClose` — saída animada consistente com os 3 modais da fase 04
+- [x] **DEBT-02** (WARN-3): Os 8 modais `fds-modal-backdrop` de `fides-metas.jsx` são ligados a `useModalClose` — saída animada consistente com os 3 modais da fase 04
 - [x] **DEBT-03** (WARN-4): Token `--warn-soft` alinhado para `#FEF0D6` (valor de `tokens.css`) em `fides.css` — consistente em todos os CSS
 - [x] **DEBT-04** (WARN-2): `setModalOpen(false)` duplicado no caminho salvar-e-fechar (`fides-transacoes.jsx` / `fides-studio.jsx`) eliminado — dispara uma única vez
 
@@ -84,7 +84,7 @@
 | AI-01 | Phase 05 | Complete |
 | AI-02 | Phase 05 | Complete |
 | DEBT-01 | Phase 06 | Complete |
-| DEBT-02 | Phase 06 | Pending |
+| DEBT-02 | Phase 06 | Complete |
 | DEBT-03 | Phase 06 | Complete |
 | DEBT-04 | Phase 06 | Complete |
 

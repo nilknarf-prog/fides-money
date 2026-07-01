@@ -124,7 +124,7 @@
 - [x] **Phase 03: Limpeza + Tokens** — Dead code removido e identidade visual alinhada aos tokens de marca (completed 2026-06-30)
 - [x] **Phase 04: UX Mobile + Motion** — Perfil acessível no mobile e micro-interações CSS em modais/cards (completed 2026-07-01)
 - [x] **Phase 05: IA Real** — Botão "Análise da IA" conectado ao Gemini real com loading state funcional (completed 2026-07-01)
-- [ ] **Phase 06: Fix v1.0 tech debt** — Remove bloco de contexto IA morto, aplica motion ao modal de metas e alinha token `--warn-soft` (INSERTED)
+- [x] **Phase 06: Fix v1.0 tech debt** — Remove bloco de contexto IA morto, aplica motion ao modal de metas e alinha token `--warn-soft` (INSERTED) (completed 2026-07-01)
 
 ### Phase Details
 
@@ -221,12 +221,12 @@
   3. **DEBT-03 (WARN-4):** O token `--warn-soft` = `#FEF0D6` em todos os CSS que o definem (fides.css alinhado a tokens.css/fides-studio.css; verificável por grep)
   4. **DEBT-04 (WARN-2):** O caminho salvar-e-fechar dispara `setModalOpen(false)` uma única vez (fides-transacoes.jsx / fides-studio.jsx) — sem double-write
 
-**Plans**: 1/2 plans executed
+**Plans**: 2/2 plans complete
 
 Plans:
 
 - [x] 06-01-PLAN.md — DEBT-01/03/04: remove bloco morto de `buildAiContext()`, alinha `--warn-soft`→`#FEF0D6` em fides.css, elimina `setModalOpen(false)` duplicado
-- [ ] 06-02-PLAN.md — DEBT-02: liga os 8 modais `fds-modal-backdrop` de fides-metas.jsx ao `useModalClose` (saída animada via `is-closing`, mesmo padrão da fase 04)
+- [x] 06-02-PLAN.md — DEBT-02: liga os 8 modais `fds-modal-backdrop` de fides-metas.jsx ao `useModalClose` (saída animada via `is-closing`, mesmo padrão da fase 04)
 
 **Marker**: (INSERTED) — débito técnico v1.0 (fecha as 4 warnings de `v1.0-MILESTONE-AUDIT.md`)
 **UI hint**: no (replica padrão de motion existente da fase 04 — sem novo design)
@@ -240,7 +240,7 @@ Plans:
 | 03 - Limpeza + Tokens | 2/2 | Complete    | 2026-06-30 |
 | 04 - UX Mobile + Motion | 4/4 | Complete    | 2026-07-01 |
 | 05 - IA Real | 1/1 | Complete    | 2026-07-01 |
-| 06 - Fix v1.0 tech debt | 1/2 | In Progress|  |
+| 06 - Fix v1.0 tech debt | 2/2 | Complete   | 2026-07-01 |
 
 ---
 
@@ -272,7 +272,7 @@ Plans:
 
 Plans:
 
-- [ ] 06-01-PLAN.md — DEBT-01/03/04: bloco morto de IA + `--warn-soft` + double `setModalOpen`
+- [x] 06-01-PLAN.md — DEBT-01/03/04: bloco morto de IA + `--warn-soft` + double `setModalOpen`
 - [ ] 06-02-PLAN.md — DEBT-02: motion dos 8 modais de metas via `useModalClose`
 
 ---

@@ -4,17 +4,17 @@ milestone: v1.0
 milestone_name: Polish pré-lançamento
 current_phase: 06
 current_phase_name: Fix v1.0 tech debt
-status: executing
+status: verifying
 stopped_at: Phase 06 context gathered
-last_updated: "2026-07-01T03:42:04.528Z"
+last_updated: "2026-07-01T03:51:01.576Z"
 last_activity: 2026-07-01
 last_activity_desc: Phase 06 execution started
 progress:
   total_phases: 5
-  completed_phases: 3
+  completed_phases: 4
   total_plans: 9
-  completed_plans: 8
-  percent: 60
+  completed_plans: 9
+  percent: 80
 ---
 
 # Project State
@@ -23,7 +23,7 @@ progress:
 
 Phase: 06 (Fix v1.0 tech debt) — EXECUTING
 Plan: 2 of 2
-Status: Ready to execute
+Status: Phase complete — ready for verification
 Last activity: 2026-07-01 — Phase 06 execution started
 
 ## Phase Overview
@@ -50,6 +50,7 @@ Run `/gsd-plan-phase 06` to create the plan for Phase 06 (Fix v1.0 tech debt).
 | Phase 04 P04 | 5min | 2 tasks | 2 files |
 | Phase 05 P01 | ~20min | 4 tasks | 2 files |
 | Phase 06 P01 | 8min | 3 tasks | 3 files |
+| Phase 06 P02 | ~10min | 2 tasks | 1 files |
 
 ## Decisions
 
@@ -65,10 +66,13 @@ Run `/gsd-plan-phase 06` to create the plan for Phase 06 (Fix v1.0 tech debt).
 - [Phase ?]: 06-01: DEBT-01 bloco morto removido por deleção pura, sem repurpose com totals.planned/realized
 - [Phase ?]: 06-01: DEBT-03 --warn-soft convergiu para #FEF0D6 (tokens.css); --accent-soft (#FEF3C7) é token distinto, fora do escopo
 - [Phase ?]: 06-01: DEBT-04 onSave do NovaTransacaoModal só grava; fechar passa a vir exclusivamente do onClose via requestClose
+- [Phase ?]: 06-02: overlay inline Em breve extraido para componente EmBreveModal para poder consumir useModalClose
+- [Phase ?]: 06-02: os 4 paineis montados (Simular/Revisar/Aplicar/EmBreve) migraram de mount condicional pelo pai para mount sempre + prop open, gate interno via rendered
+- [Phase ?]: 06-02: os 4 modais placeholder (Aportar/AjustarPlano/MetConfirmDelete/Configurar) recebem wiring completo mas seguem sem mount site - Metas continua read-only
 
 ## Session
 
-**Last session:** 2026-07-01T03:42:04.504Z
+**Last session:** 2026-07-01T03:49:56.131Z
 **Stopped at:** Phase 06 context gathered
 **Resume file:** .planning/phases/06-fix-v1-0-tech-debt-dead-ai-context-block-metas-modal-motion-/06-CONTEXT.md
 
