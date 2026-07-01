@@ -3,10 +3,10 @@ gsd_state_version: 1.0
 milestone: v1.1
 milestone_name: CRUD Metas
 status: planning
-last_updated: "2026-07-01T09:25:10.095Z"
+last_updated: "2026-07-01T09:40:00.000Z"
 last_activity: 2026-07-01
 progress:
-  total_phases: 0
+  total_phases: 1
   completed_phases: 0
   total_plans: 0
   completed_plans: 0
@@ -17,17 +17,17 @@ progress:
 
 ## Current Position
 
-Phase: Not started (defining requirements)
-Plan: —
-Status: Defining requirements
-Last activity: 2026-07-01 — Milestone v1.1 started
+Phase: 07 - CRUD Metas
+Plan: — (roadmap created, not yet planned)
+Status: Roadmap created — ready for /gsd-discuss-phase 07
+Last activity: 2026-07-01 — Milestone v1.1 roadmap created (Phase 07)
 
 ## Project Reference
 
 See: .planning/PROJECT.md (updated 2026-07-01)
 
 **Core value:** Finanças pessoais por registro manual (fricção intencional → consciência); nunca número que impressiona mas engana.
-**Current focus:** Planning next milestone
+**Current focus:** Phase 07 — CRUD Metas (v1.1)
 
 ## Phase Overview
 
@@ -37,6 +37,7 @@ See: .planning/PROJECT.md (updated 2026-07-01)
 | 04 | UX Mobile + Motion | MOBILE-01, MOTION-01/02 | ✅ Complete |
 | 05 | IA Real | AI-01, AI-02 | ✅ Complete |
 | 06 | Fix v1.0 tech debt | DEBT-01/02/03/04 | ✅ Complete |
+| 07 | CRUD Metas | META-01/02/03/04 | ⏳ Not started |
 
 ## Deferred Items
 
@@ -48,9 +49,11 @@ Items acknowledged and deferred at milestone close on 2026-07-01:
 
 > UAT humano de feature já shipada no M4 (`ade84f7`), fora do escopo v1.0. Rodar no app pós-deploy.
 
+**v1.1 deferred (out of scope, see REQUIREMENTS.md):** fonte do valor atual da meta (aportes vs vínculo a conta/reserva) — decisão a tomar em `/gsd-discuss-phase 07`; aportes/progresso/ajuste de plano (M5+); import CSV/OFX (M5); busca ⌘K (M5).
+
 ## Next Action
 
-Run `/gsd-new-milestone` to start the next milestone (questioning → research → requirements → roadmap).
+Run `/gsd-discuss-phase 07` to resolve the open data-model decision (source of a goal's current value) before planning, then `/gsd-plan-phase 07`.
 
 ## Performance Metrics
 
@@ -86,18 +89,21 @@ Run `/gsd-new-milestone` to start the next milestone (questioning → research �
 
 ## Session
 
-**Last session:** 2026-07-01 — v1.0 milestone closed and archived
-**Stopped at:** Milestone complete
+**Last session:** 2026-07-01 — v1.1 roadmap created (Phase 07: CRUD Metas), 4/4 META requirements mapped
+**Stopped at:** Roadmap approved, ready for phase discussion
 **Resume file:** —
 
 ## Accumulated Context
 
 Milestone v1.0 decisions log moved to PROJECT.md Key Decisions. No open blockers.
 
+Milestone v1.1 (CRUD Metas) roadmap: single phase (Phase 07) given tight scope — create/edit/delete/list are one cohesive capability sharing `fides-metas.jsx` and the `goals` table. Open item carried into phase discussion: source of a goal's "current value" (manual contributions vs linking to account/reserve) is explicitly deferred to `/gsd-discuss-phase 07` and must not be designed around before that decision is made.
+
 ### Roadmap Evolution
 
 - Phase 06 added mid-milestone: Fix v1.0 tech debt (dead AI-context block, metas modal motion, --warn-soft align) — closed the 4 audit warnings.
+- Phase 07 added for milestone v1.1: CRUD Metas — continues phase numbering from v1.0 (06 → 07), single phase covering all 4 META requirements.
 
 ## Operator Next Steps
 
-- Start the next milestone with /gsd-new-milestone
+- Run `/gsd-discuss-phase 07` to resolve the goal-value data-model decision, then `/gsd-plan-phase 07`.

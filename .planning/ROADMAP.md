@@ -247,13 +247,50 @@ Plans:
 
 ---
 
+## PARTE 3.8 — 🔄 M3.1 v1.1 CRUD Metas — EM PLANEJAMENTO
+
+**Goal do milestone:** tornar a view de Metas funcional — usuário cria, edita e exclui metas (nome, valor-alvo, prazo) persistidas na tabela `goals`, saindo do estado read-only atual. Fonte do valor atual da meta é decisão explicitamente deferida — não faz parte deste milestone.
+
+### Phases
+
+- [ ] **Phase 07: CRUD Metas** - Usuário cria, edita, exclui e lista metas reais persistidas em `goals`, sem placeholders
+
+### Phase Details
+
+### Phase 07: CRUD Metas
+
+**Goal**: A view de Metas deixa de ser read-only — usuário cria, edita e exclui metas (nome, valor-alvo, prazo) com persistência real na tabela `goals`, e a lista reflete o estado atual do banco sem reload de página.
+**Depends on**: Phase 06 (concluída — modais de Metas já têm `useModalClose` wiring)
+**Requirements**: META-01, META-02, META-03, META-04
+**Key files**: `assets/fides-metas.jsx`, `assets/fides-data.jsx` (camada de acesso a dados — **protegido**, mudanças coordenadas), schema `goals` (Supabase, verificar via MCP)
+**Success Criteria** (what must be TRUE):
+
+  1. Usuário preenche nome, valor-alvo e prazo em um formulário/modal de criação e, ao salvar, a meta aparece na lista imediatamente e persiste após reload da página (META-01, META-04)
+  2. Usuário abre uma meta existente, altera nome e/ou valor-alvo e/ou prazo, salva, e a lista reflete os novos valores sem reload (META-02, META-04)
+  3. Usuário aciona excluir em uma meta, confirma no modal `ConfirmDelete`, e a meta some da lista imediatamente e permanece ausente após reload (META-03, META-04)
+  4. A view de Metas, ao carregar, exibe as metas reais do usuário autenticado vindas de `goals` (não dados mock/placeholder) — lista vazia mostra empty state, não erro (META-04)
+
+**Notas de escopo:** NÃO inclui aportes, acompanhamento de progresso ou ajuste de plano (deferidos a M5+). A fonte do "valor atual" da meta (aportes manuais vs vínculo a conta/reserva) é uma decisão de modelo de dados em aberto — resolver em `/gsd-discuss-phase 07` antes de planejar. Este phase cobre apenas persistência de nome/valor-alvo/prazo e listagem live; os modais `Aportar`/`AjustarPlano` permanecem placeholder (não fazem parte do escopo v1.1).
+**Plans**: TBD
+**UI hint**: yes
+
+---
+
+### Progress Table
+
+| Phase | Plans Complete | Status | Completed |
+|-------|----------------|--------|-----------|
+| 07 - CRUD Metas | 0/TBD | Not started | - |
+
+---
+
 ## PARTE 4 — BACKLOG (⏳ M5 · Expansão)
 
 | # | Item | Estimativa | Dependência |
 |---|---|---|---|
 | B1 | CSV/OFX/PDF import (avaliar `fdt-bulk-*` antes) | 1+ sessão | — |
 | B2 | Lote 5B — preview de limite no modal de Nova Transação | ½ sessão | — |
-| B3 | CRUD Metas (Claude Design + `design-brief`; tabela `goals` já existe) | 1 sessão | — |
+| B3 | ~~CRUD Metas~~ (movido para milestone v1.1, Phase 07) | 1 sessão | — |
 | B4 | Telas Dívidas / Família (Claude Design) | 1+ sessão | — |
 | B5 | Investimento ≠ despesa (mudança de modelo de dados) | design próprio | — |
 | B6 | Projeção via média histórica (após 3+ meses de dados) | 1+ sessão | histórico |

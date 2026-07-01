@@ -47,16 +47,17 @@
 
 | Requirement | Phase | Status |
 |-------------|-------|--------|
-| META-01 | TBD | Pending |
-| META-02 | TBD | Pending |
-| META-03 | TBD | Pending |
-| META-04 | TBD | Pending |
+| META-01 | Phase 07 | Pending |
+| META-02 | Phase 07 | Pending |
+| META-03 | Phase 07 | Pending |
+| META-04 | Phase 07 | Pending |
 
 **Coverage:**
 
 - v1.1 requirements: 4 total
-- Mapped to phases: 0/4 (roadmap pendente)
-- Unmapped: 4
+- Mapped to phases: 4/4 ✓
+- Unmapped: 0
 
 ---
 *Requirements defined: 2026-07-01 — Milestone v1.1 CRUD Metas*
+*Roadmap created: 2026-07-01 — Phase 07 (CRUD Metas) covers all 4 requirements*
