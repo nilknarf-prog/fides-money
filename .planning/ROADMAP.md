@@ -199,7 +199,11 @@
   3. Se a chamada falhar (rede, erro 5xx), a UI exibe mensagem de erro amigável — não trava nem fica em loading infinito
   4. O arquivo `api/assistant.js` usa `commonjs` (`require`/`module.exports`) — nenhum `import`/`export` ESM introduzido
 
-**Plans**: TBD
+**Plans**: 1 plan (wave 1)
+
+- [ ] 05-01-PLAN.md — AI-01/AI-02: substitui stub 2,2s por fetch real ao `/api/assistant`; 3 superfícies (loading spinner com gate reduced-motion, painel `.pln-mi-ai-result`, erro `.pln-mi-ai-error`); garantia never-hang + checkpoint humano
+
+**UI hint**: yes
 
 ---
 
@@ -209,7 +213,7 @@
 |-------|----------------|--------|-----------|
 | 03 - Limpeza + Tokens | 2/2 | Complete    | 2026-06-30 |
 | 04 - UX Mobile + Motion | 4/4 | Complete    | 2026-07-01 |
-| 05 - IA Real | 0/TBD | Not started | - |
+| 05 - IA Real | 0/1 | Not started | - |
 
 ---
 
