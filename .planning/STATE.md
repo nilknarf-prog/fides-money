@@ -114,6 +114,7 @@ Milestone v1.1 (CRUD Metas) roadmap: single phase (Phase 07) given tight scope �
 
 - Phase 06 added mid-milestone: Fix v1.0 tech debt (dead AI-context block, metas modal motion, --warn-soft align) — closed the 4 audit warnings.
 - Phase 07 added for milestone v1.1: CRUD Metas — continues phase numbering from v1.0 (06 → 07), single phase covering all 4 META requirements.
+- Phase 08 added: Metas vision-board redesign — spec em docs/superpowers/specs/2026-07-02-metas-vision-board-design.md; eleva a tela Metas ao nível visual do PlannerFin.
 
 ## Operator Next Steps
 

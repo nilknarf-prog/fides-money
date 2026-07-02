@@ -317,6 +317,17 @@ Plans:
 
 > Origem B11–B12: `docs/planejamento/Relatórios_ideIA/analise_project_manager.md`. Estratégico, não bloqueia Fase 01.
 
+### Phase 8: Metas vision-board redesign
+
+**Goal:** [To be planned]
+**Requirements**: TBD
+**Depends on:** Phase 7
+**Plans:** 0 plans
+
+Plans:
+
+- [ ] TBD (run /gsd-plan-phase 8 to break down)
+
 ---
 
 ## PARTE 5 — ROADMAP COMERCIAL (⏳ M6)
