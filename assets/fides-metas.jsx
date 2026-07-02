@@ -719,6 +719,8 @@ function MetasStudio({ onAdd, onNav }) {
   const [criarOpen,     setCriarOpen]     = React.useState(false);
   const [editTarget,    setEditTarget]    = React.useState(null);
   const [deleteTarget,  setDeleteTarget]  = React.useState(null);
+  const [search,        setSearch]        = React.useState('');
+  const [statusFilter,  setStatusFilter]  = React.useState('todas');
 
   if (isEmpty) return (
     <div className="fds-page stu-page">
@@ -878,6 +880,37 @@ function MetasStudio({ onAdd, onNav }) {
               </div>
             </div>
           </section>
+
+          {/* ─── Barra de controles: busca + filtro de status + Nova meta ─── */}
+          <div className="met-controls" data-od-id="met-controls" data-status-filter={statusFilter}>
+            <div className="fds-tx-v2-search">
+              <Icon.Search size={14} style={{ opacity: 0.5 }}/>
+              <input className="fds-tx-v2-search-input"
+                     placeholder="Buscar por nome ou descrição…"
+                     value={search}
+                     onChange={(e) => setSearch(e.target.value)}/>
+              {search && (
+                <button type="button" className="fds-tx-v2-search-clear" aria-label="Limpar busca"
+                        onClick={() => setSearch('')}>
+                  <Icon.X size={13}/>
+                </button>
+              )}
+            </div>
+            <div className="fds-seg fds-seg-3">
+              {[['todas','Todas'], ['ativas','Ativas'], ['concluidas','Concluídas']].map(([k, l]) => (
+                <button key={k} className={statusFilter === k ? 'on' : ''} onClick={() => setStatusFilter(k)}>
+                  {l}
+                </button>
+              ))}
+            </div>
+            <button
+              className="fds-btn-primary met-controls-nova"
+              onClick={() => setCriarOpen(true)}
+              style={{ touchAction: 'manipulation', WebkitTapHighlightColor: 'transparent' }}
+            >
+              <Icon.Plus size={13}/> Nova meta
+            </button>
+          </div>
 
           {/* ─── Capítulo I · Em curso ─── */}
           <ChapterMark roman="I" title="Em curso"

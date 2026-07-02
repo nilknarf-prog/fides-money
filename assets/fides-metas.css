@@ -1,5 +1,31 @@
 /* fides-metas.css — Studio Metas page */
 
+/* ─── Barra de controles: busca + filtro de status + Nova meta ─── */
+.fds-studio .met-controls {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+.fds-studio .met-controls .fds-tx-v2-search {
+  flex: 1 1 240px;
+  min-width: 180px;
+}
+.fds-studio .met-controls .fds-seg {
+  flex: none;
+}
+.fds-studio .met-controls-nova {
+  flex: none;
+  margin-left: auto;
+  display: inline-flex; align-items: center; gap: 6px;
+}
+@media (max-width: 640px) {
+  .fds-studio .met-controls { flex-wrap: wrap; }
+  .fds-studio .met-controls .fds-tx-v2-search { flex: 1 1 100%; }
+  .fds-studio .met-controls .fds-seg { flex: 1 1 100%; }
+  .fds-studio .met-controls-nova { flex: 1 1 100%; margin-left: 0; justify-content: center; }
+}
+
 /* ─── Capítulo I · Em curso ─── */
 .fds-studio .met-grid {
   display: grid;
