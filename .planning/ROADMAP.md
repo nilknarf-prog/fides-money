@@ -315,6 +315,7 @@ Plans:
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
 | 07 - CRUD Metas | 3/3 | Complete   | 2026-07-01 |
+| 08 - Metas vision-board | 5/6 | Código completo — aguarda apply LIVE de 08-01 (checkpoint humano) | — |
 
 ### Phase 7: Metas vision-board redesign
 
@@ -326,18 +327,18 @@ Plans:
 Plans:
 **Wave 1** *(fundação — arquivos distintos, em paralelo)*
 
-- [ ] 07-01-PLAN.md — [BLOCKING] Backend: coluna `goals.image_url` + bucket `goal-covers` + 5 policies RLS owner-only; verificação RLS live + apply via Supabase MCP/SQL Editor (autonomous:false) (UAT-1/2/5)
-- [ ] 07-02-PLAN.md — ~16 capas preset SVG bespoke em `assets/covers/*.svg` (paleta tint, zero-tooling) (UAT-1)
-- [ ] 07-03-PLAN.md — Store: `normalizeGoal` mapeia cover/completed/completedAt (gap Phase-07 #1) + `addGoal` cover/current + helpers `uploadGoalCover`/`deleteGoalCover` (UAT-1..5)
+- [~] 07-01-PLAN.md (disco: 08-01) — [BLOCKING] Backend: SQL escrito+commitado (040dc31, hardened pós security-review); **apply ao banco LIVE PENDENTE** (Task 2 = checkpoint humano, Supabase MCP sem auth) (UAT-1/2/5)
+- [x] 07-02-PLAN.md (disco: 08-02) — 16 capas preset SVG bespoke em `assets/covers/*.svg` (paleta tint, zero-tooling) — commit 107d30a (UAT-1)
+- [x] 07-03-PLAN.md (disco: 08-03) — Store: `normalizeGoal` mapeia cover/completed/completedAt (gap Phase-07 #1) + `addGoal` cover/current + helpers `uploadGoalCover`/`deleteGoalCover` — 6318f22/f875532 (UAT-1..5)
 
 **Wave 2** *(depende de 07-03)*
 
-- [ ] 07-04-PLAN.md — Barra de controles (busca + filtro segmentado Todas/Ativas/Concluídas + Nova meta) + Capítulo III "Já atingidas" populado por `completed` (UAT-3/7)
+- [x] 07-04-PLAN.md (disco: 08-04) — Barra de controles (busca + filtro segmentado Todas/Ativas/Concluídas + Nova meta) + Capítulo III "Já atingidas" populado por `completed` — 09ade51/f460682 (UAT-3/7)
 
 **Wave 3** *(depende de 07-04, 07-02)*
 
-- [ ] 07-05-PLAN.md — Hero próprio `met-hero` (D3) + redesign `vcard` (capa/scrim/overlay/corpo) + `resolveCoverUrl` + montar `AportarModal` (gap Phase-07 #2) + Atualizar saldo inline + Marcar como concluída (UAT-4/6/7)
+- [x] 07-05-PLAN.md (disco: 08-05) — Hero próprio `met-hero` (D3) + redesign `vcard` (capa/scrim/overlay/corpo) + `resolveCoverUrl` + montar `AportarModal` (gap Phase-07 #2) + Atualizar saldo inline + Marcar como concluída — 432e278/e18482f/b0fc048/b652475 (UAT-4/6/7)
 
 **Wave 4** *(depende de 07-05, 07-03, 07-01, 07-02)*
 
-- [ ] 07-06-PLAN.md — Seletor de capa (Galeria/Enviar foto) nos modais + campos Valor atual/Status + limpeza de Storage no editar/excluir (UAT-1/2/5)
+- [x] 07-06-PLAN.md (disco: 08-06) — Seletor de capa (Galeria/Enviar foto) nos modais + campos Valor atual/Status + limpeza de Storage no editar/excluir — 0264389/6b7612a (código pronto; persistência real depende do apply de 08-01) (UAT-1/2/5)

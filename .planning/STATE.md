@@ -2,36 +2,36 @@
 gsd_state_version: 1.0
 milestone: v1.1
 milestone_name: CRUD Metas — EM PLANEJAMENTO
-current_phase: 07
-current_phase_name: crud-metas
-status: executing
-stopped_at: Phase 07 context gathered
-last_updated: "2026-07-01T19:48:12.334Z"
-last_activity: 2026-07-01
-last_activity_desc: Phase 07 execution started
+current_phase: 08
+current_phase_name: metas-vision-board-redesign
+status: blocked-human
+stopped_at: "Phase 08 — 08-01 blocking-human checkpoint (aplicar migração + bucket ao banco LIVE)"
+last_updated: "2026-07-02T18:23:55.975Z"
+last_activity: 2026-07-02
+last_activity_desc: "Phase 08 executado: 5/6 plans code-complete (02,03,04,05,06); 08-01 SQL commitado (040dc31) — apply LIVE pendente"
 progress:
-  total_phases: 1
+  total_phases: 3
   completed_phases: 1
   total_plans: 3
   completed_plans: 3
-  percent: 100
+  percent: 33
 ---
 
 # Project State
 
 ## Current Position
 
-Phase: 07 (crud-metas) — EXECUTING
-Plan: 3 of 3
-Status: Ready to execute
-Last activity: 2026-07-01 — Phase 07 execution started
+Phase: 08 (metas-vision-board-redesign) — BLOCKED (checkpoint humano)
+Plan: 5/6 code-complete (08-02/03/04/05/06); 08-01 SQL commitado, apply LIVE pendente
+Status: Aguardando apply da migração + bucket ao banco Supabase LIVE (08-01 Task 2, autonomous:false)
+Last activity: 2026-07-02 — Phase 08 executado; código no ar após push, mas criar meta falha até o apply de 08-01
 
 ## Project Reference
 
 See: .planning/PROJECT.md (updated 2026-07-01)
 
 **Core value:** Finanças pessoais por registro manual (fricção intencional → consciência); nunca número que impressiona mas engana.
-**Current focus:** Phase 07 — crud-metas
+**Current focus:** Phase 08 — metas-vision-board-redesign
 
 ## Phase Overview
 
@@ -57,7 +57,13 @@ Items acknowledged and deferred at milestone close on 2026-07-01:
 
 ## Next Action
 
-Run `/gsd-discuss-phase 07` to resolve the open data-model decision (source of a goal's current value) before planning, then `/gsd-plan-phase 07`.
+**BLOQUEADO — checkpoint humano (08-01 Task 2):** aplicar ao banco Supabase LIVE, nesta ordem:
+1. Confirmar RLS de `public.goals` ENABLED + policy `goals: próprio usuário` (`auth.uid() = user_id`) — Dashboard → Authentication → Policies (ou MCP).
+2. `alter table public.goals add column if not exists image_url text;` (SQL Editor / MCP apply_migration).
+3. Aplicar `supabase/goal-covers-storage.sql` (bucket `goal-covers` + 4 policies owner-scoped). Se apply_migration reclamar das colunas do bucket → criar bucket via Dashboard → Storage (public, 5MB, jpeg/png/webp) e só as policies via SQL Editor.
+4. Confirmar bucket + 4 policies em Storage → Policies.
+
+Depois: `/gsd-verify-work 08` (inclui smoke test RLS de dois usuários — UAT-2/5). Sinal de retomada: "aplicado".
 
 ## Performance Metrics
 
