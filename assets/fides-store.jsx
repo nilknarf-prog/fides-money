@@ -100,6 +100,9 @@ function normalizeGoal(row) {
     atual: Number(row.current),
     contribuicao: Number(row.monthly_contrib),
     criadaEm: String(d.getMonth() + 1).padStart(2, '0') + '/' + d.getFullYear(),
+    cover: row.image_url || null,
+    completed: !!row.completed,
+    completedAt: row.completed_at || null,
   };
 }
 
@@ -579,6 +582,8 @@ function FidesProvider({ children }) {
           description: g.descricao || '',
           emoji:       g.emoji || '🎯',
           tint:        g.tint || '#00C37B',
+          image_url:   g.cover || null,
+          current:     Number(g.atual) || 0,
         });
         if (error) throw error;
         await refreshData(userId);
