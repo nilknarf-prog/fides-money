@@ -1,5 +1,39 @@
 /* fides-metas.css — Studio Metas page */
 
+/* ─── Hero editorial — identidade própria de Metas (D3) ──────
+   Box model copiado de .stu-hero (fides-studio.css:306-322) como ponto de
+   partida; backdrop substituído por colagem (mask) das capas para distinguir
+   visualmente do hero compartilhado da home. NÃO editar fides-studio.css. */
+.fds-studio .met-hero {
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: 20px;
+  padding: 28px 32px 22px;
+  display: flex; flex-direction: column; gap: 14px;
+  position: relative;
+  overflow: hidden;
+  box-shadow: 0 1px 0 rgba(15,26,20,.04), 0 12px 32px -16px rgba(45,90,61,.18);
+}
+.fds-studio .met-hero::before {
+  content: '';
+  position: absolute; right: -40px; top: -30px;
+  width: 380px; height: 240px;
+  background-image:
+    url('covers/viagem.svg'),
+    url('covers/investimento.svg'),
+    url('covers/casa.svg'),
+    url('covers/natureza.svg');
+  background-repeat: no-repeat;
+  background-size: 150px 100px, 130px 90px, 140px 95px, 120px 85px;
+  background-position: 30px 0px, 200px 30px, 0px 120px, 220px 140px;
+  -webkit-mask-image: radial-gradient(ellipse 260px 200px at 68% 40%, black 0%, black 30%, transparent 78%);
+          mask-image: radial-gradient(ellipse 260px 200px at 68% 40%, black 0%, black 30%, transparent 78%);
+  transform: rotate(-3deg);
+  opacity: 0.20;
+  filter: saturate(0.85);
+  pointer-events: none;
+}
+
 /* ─── Barra de controles: busca + filtro de status + Nova meta ─── */
 .fds-studio .met-controls {
   display: flex;

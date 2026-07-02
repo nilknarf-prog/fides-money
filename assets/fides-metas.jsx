@@ -836,8 +836,8 @@ function MetasStudio({ onAdd, onNav }) {
         </div>
       ) : (
         <>
-          {/* ─── Editorial hero ─── */}
-          <section className="stu-hero" data-od-id="met-hero">
+          {/* ─── Editorial hero (identidade própria — D3) ─── */}
+          <section className="met-hero" data-od-id="met-hero">
             <div className="stu-hero-eyebrow">
               <Icon.Goal size={11}/>
               metas · {goals.length} em curso
