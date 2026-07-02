@@ -32,6 +32,34 @@ const MetIcon = {
   )),
 };
 
+// ─── Capas (presets) ────────────────────────────────────────
+// Mapa dos 16 ids bespoke (Plan 08-02) → SVG local. `cover` guardado no goal
+// é `preset:<id>` (resolve aqui) OU URL pública do Storage (retorna direto).
+const COVER_PRESETS = {
+  viagem:        'assets/covers/viagem.svg',
+  casa:          'assets/covers/casa.svg',
+  carro:         'assets/covers/carro.svg',
+  reserva:       'assets/covers/reserva.svg',
+  educacao:      'assets/covers/educacao.svg',
+  casamento:     'assets/covers/casamento.svg',
+  bebe:          'assets/covers/bebe.svg',
+  saude:         'assets/covers/saude.svg',
+  aposentadoria: 'assets/covers/aposentadoria.svg',
+  negocio:       'assets/covers/negocio.svg',
+  tecnologia:    'assets/covers/tecnologia.svg',
+  presente:      'assets/covers/presente.svg',
+  natureza:      'assets/covers/natureza.svg',
+  festa:         'assets/covers/festa.svg',
+  investimento:  'assets/covers/investimento.svg',
+  emergencia:    'assets/covers/emergencia.svg',
+};
+
+function resolveCoverUrl(cover) {
+  if (!cover) return null;
+  if (cover.startsWith('preset:')) return COVER_PRESETS[cover.slice('preset:'.length)] || null;
+  return cover; // já é URL pública do Storage
+}
+
 // ─── MetDotsMenu — dropdown contextual das metas ──────────────
 function MetDotsMenu({ items }) {
   const [open, setOpen] = React.useState(false);
@@ -936,86 +964,102 @@ function MetasStudio({ onAdd, onNav }) {
           ) : (
           <div className="met-grid" data-od-id="met-grid">
             {metasFiltradas.map((m) => {
-              const aporteOk = m.atual >= m.aporteEsperado * 0.9;
+              const coverUrl = resolveCoverUrl(m.cover);
+              const statsPair = m.completed
+                ? [
+                    { lbl: 'Guardado',      val: fmtBRL(m.atual) },
+                    { lbl: 'Concluída em',  val: m.completedAt ? new Date(m.completedAt).toLocaleDateString('pt-BR') : '—' },
+                  ]
+                : [
+                    { lbl: 'Aporte mensal', val: fmtBRL(m.contribuicao) },
+                    { lbl: 'Chega em',      val: m.mesesAteFim === Infinity ? '—' : `${m.mesesAteFim} ${m.mesesAteFim === 1 ? 'mês' : 'meses'}`, sub: m.fimLabel },
+                  ];
               return (
-                <div className="met-card" key={m.id}>
-                  <div className="met-card-glow" style={{ background: `radial-gradient(circle at 80% 0%, ${m.tint}33 0%, transparent 60%)` }}/>
-                  <div className="met-card-head">
-                    <div className="met-card-emoji" style={{ background: m.tint + '1A', borderColor: m.tint + '33' }}>
-                      {m.emoji}
-                    </div>
-                    <div className="met-card-meta">
-                      <div className="met-card-name">{m.nome}</div>
-                      <div className="met-card-desc">{m.descricao}</div>
-                    </div>
-                    <MetDotsMenu items={[
-                      { id: 'editar',   label: 'Editar meta',           icon: 'Edit',   onClick: () => setEditTarget(m) },
-                      { id: 'concluir', label: 'Marcar como concluída', icon: 'Trophy', onClick: () => setEmBreve(true) },
-                      { id: 'excluir',  label: 'Excluir meta',          icon: 'Trash',  danger: true, onClick: () => setDeleteTarget(m) },
-                    ]}/>
-                  </div>
-
-                  <div className="met-card-amounts">
-                    <div className="met-card-current">
-                      <span className="met-card-cur">R$</span>
-                      <span className="met-card-int">{Math.floor(m.atual).toLocaleString('pt-BR')}</span>
-                    </div>
-                    <div className="met-card-alvo">
-                      de <strong>{fmtBRL(m.alvo)}</strong>
-                    </div>
-                  </div>
-
-                  <div className="met-card-bar">
-                    <div className="met-card-bar-track">
-                      <div className="met-card-bar-fill"
-                           style={{ width: `${m.pct * 100}%`,
-                                    background: `linear-gradient(90deg, ${m.tint}, color-mix(in oklab, ${m.tint} 70%, black))`,
-                                    boxShadow: `0 0 10px ${m.tint}66` }}/>
-                    </div>
-                    <div className="met-card-bar-foot">
-                      <span className="met-card-pct" style={{ color: m.tint }}>{Math.round(m.pct * 100)}%</span>
-                      <span className="met-card-faltam">faltam <strong>{fmtBRL(m.faltam)}</strong></span>
-                    </div>
-                  </div>
-
-                  <div className="met-card-stats">
-                    <div className="met-stat">
-                      <div className="met-stat-lbl">Aporte mensal</div>
-                      <div className="met-stat-val">{fmtBRL(m.contribuicao)}</div>
-                    </div>
-                    <div className="met-stat">
-                      <div className="met-stat-lbl">Chega em</div>
-                      <div className="met-stat-val">
-                        {m.mesesAteFim} {m.mesesAteFim === 1 ? 'mês' : 'meses'}
-                        <span className="met-stat-sub">{m.fimLabel}</span>
-                      </div>
-                    </div>
-                    <div className="met-stat">
-                      <div className="met-stat-lbl">Aderência</div>
-                      <div className={`met-stat-val ${aporteOk ? 'pos' : 'warn'}`}>
-                        {aporteOk ? 'Em dia' : 'Atrás'}
-                        <span className="met-stat-sub">
-                          {m.atual >= m.aporteEsperado ? '✓' : (m.aporteEsperado ? Math.round((m.atual/m.aporteEsperado)*100) : 100) + '%'} do esperado
+                <div className="vcard" key={m.id}>
+                  <div
+                    className="vcard-cover"
+                    style={coverUrl
+                      ? { backgroundImage: `url(${coverUrl})` }
+                      : { background: `linear-gradient(135deg, ${m.tint}66, ${m.tint}14)` }}
+                  >
+                    <div className="vcard-cover-scrim"/>
+                    <div className="vcard-overlay">
+                      <div className="vcard-overlay-top">
+                        <span className={`vcard-pill${m.completed ? ' done' : ''}`}>
+                          {m.completed ? 'Concluída' : 'Ativa'}
                         </span>
+                        <MetDotsMenu items={[
+                          { id: 'editar',   label: 'Editar meta',           icon: 'Edit',   onClick: () => setEditTarget(m) },
+                          { id: 'concluir', label: 'Marcar como concluída', icon: 'Trophy', onClick: () => setEmBreve(true) },
+                          { id: 'excluir',  label: 'Excluir meta',          icon: 'Trash',  danger: true, onClick: () => setDeleteTarget(m) },
+                        ]}/>
+                      </div>
+                      <div className="vcard-overlay-bottom">
+                        <span className="vcard-chip" style={{ background: m.tint + '33', borderColor: m.tint + '55' }}>
+                          {m.emoji}
+                        </span>
+                        <div className="vcard-overlay-text">
+                          <div className="vcard-name">{m.nome}</div>
+                          <div className="vcard-desc">{m.descricao}</div>
+                        </div>
                       </div>
                     </div>
                   </div>
 
-                  <div className="met-card-actions">
-                    <button
-                      className="met-card-aportar"
-                      style={{ background: m.tint, touchAction: 'manipulation', WebkitTapHighlightColor: 'transparent' }}
-                      onClick={() => setEmBreve(true)}
-                    >
-                      <Icon.Plus size={13}/> Aportar
-                    </button>
-                    <button
-                      className="fds-btn-ghost"
-                      onClick={() => setEmBreve(true)}
-                      style={{ touchAction: 'manipulation', WebkitTapHighlightColor: 'transparent' }}
-                    >
-                      <Icon.Settings size={13}/> Ajustar plano
-                    </button>
+                  <div className="vcard-body">
+                    <div className="met-card-amounts">
+                      <div className="met-card-current">
+                        <span className="met-card-cur">R$</span>
+                        <span className="met-card-int">{Math.floor(m.atual).toLocaleString('pt-BR')}</span>
+                      </div>
+                      <div className="met-card-alvo">
+                        de <strong>{fmtBRL(m.alvo)}</strong>
+                      </div>
+                    </div>
+
+                    <div className="met-card-bar">
+                      <div className="met-card-bar-track">
+                        <div className="met-card-bar-fill"
+                             style={{ width: `${m.pct * 100}%`,
+                                      background: `linear-gradient(90deg, ${m.tint}, color-mix(in oklab, ${m.tint} 70%, black))`,
+                                      boxShadow: `0 0 10px ${m.tint}66` }}/>
+                      </div>
+                      <div className="met-card-bar-foot">
+                        <span className="met-card-pct" style={{ color: m.tint }}>{Math.round(m.pct * 100)}%</span>
+                        <span className="met-card-faltam">faltam <strong>{fmtBRL(m.faltam)}</strong></span>
+                      </div>
+                    </div>
+
+                    <div className="met-card-stats">
+                      {statsPair.map(s => (
+                        <div className="met-stat" key={s.lbl}>
+                          <div className="met-stat-lbl">{s.lbl}</div>
+                          <div className="met-stat-val">
+                            {s.val}
+                            {s.sub && <span className="met-stat-sub">{s.sub}</span>}
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+
+                    <div className="vcard-actions">
+                      <div className="vcard-actions-row">
+                        <button
+                          className="met-card-aportar"
+                          style={{ background: m.tint, touchAction: 'manipulation', WebkitTapHighlightColor: 'transparent' }}
+                          onClick={() => setEmBreve(true)}
+                        >
+                          <Icon.Plus size={13}/> Aportar
+                        </button>
+                        <button
+                          className="fds-btn-ghost"
+                          onClick={() => setEmBreve(true)}
+                          style={{ touchAction: 'manipulation', WebkitTapHighlightColor: 'transparent' }}
+                        >
+                          <Icon.Settings size={13}/> Ajustar plano
+                        </button>
+                      </div>
+                    </div>
                   </div>
                 </div>
               );
