@@ -60,6 +60,110 @@ function resolveCoverUrl(cover) {
   return cover; // já é URL pública do Storage
 }
 
+// Deriva o path (dentro do bucket goal-covers) a partir da URL pública, para
+// permitir deleteGoalCover(path). Presets/null não têm objeto no Storage.
+function coverStoragePath(url) {
+  if (!url || typeof url !== 'string') return null;
+  if (url.startsWith('preset:')) return null;
+  const marker = '/goal-covers/';
+  const idx = url.indexOf(marker);
+  if (idx === -1) return null;
+  return url.slice(idx + marker.length);
+}
+
+// ─── CoverPicker — seletor de capa (abas Galeria/Enviar foto) ────────
+// Compartilhado por CriarMetaModal/AjustarPlanoModal. Estado (aba/valor/
+// uploading) é controlado pelo modal pai (hooks-before-early-return); este
+// componente é filho condicional (só existe enquanto o modal está `rendered`),
+// então seu próprio useRef reseta naturalmente a cada abertura do modal.
+function CoverPicker({ value, onChange, tab, onTabChange, uploading, onUploadingChange, userId, uploadGoalCover, deleteGoalCover, toast }) {
+  const uploadedPathRef = React.useRef(null);
+
+  const handleFile = async (e) => {
+    const file = e.target.files && e.target.files[0];
+    e.target.value = '';
+    if (!file) return;
+    onUploadingChange(true);
+    try {
+      const { url, path } = await uploadGoalCover(userId, file);
+      const prevPath = uploadedPathRef.current;
+      uploadedPathRef.current = path;
+      onChange(url);
+      if (prevPath) deleteGoalCover(prevPath); // limpa upload anterior desta mesma sessão (substituição antes de salvar)
+    } catch (err) {
+      toast.error(err?.message || 'Não foi possível enviar a imagem.');
+    } finally {
+      onUploadingChange(false);
+    }
+  };
+
+  const removeSessionUpload = () => {
+    if (uploadedPathRef.current) {
+      deleteGoalCover(uploadedPathRef.current);
+      uploadedPathRef.current = null;
+    }
+    onChange(null);
+  };
+
+  return (
+    <div className="fds-field">
+      <span>Capa</span>
+      <div className="met-cover-picker">
+        <div className="met-cover-picker-tabs">
+          <button type="button" className={'met-cover-picker-tab' + (tab === 'galeria' ? ' on' : '')} onClick={() => onTabChange('galeria')}>Galeria</button>
+          <button type="button" className={'met-cover-picker-tab' + (tab === 'foto' ? ' on' : '')} onClick={() => onTabChange('foto')}>Enviar foto</button>
+        </div>
+
+        {tab === 'galeria' ? (
+          <div className="met-cover-picker-grid">
+            {Object.keys(COVER_PRESETS).map(id => {
+              const key = 'preset:' + id;
+              const selected = value === key;
+              return (
+                <button
+                  type="button"
+                  key={id}
+                  className={'met-cover-picker-opt' + (selected ? ' selected' : '')}
+                  style={{ backgroundImage: `url(${COVER_PRESETS[id]})` }}
+                  onClick={() => onChange(key)}
+                  aria-label={id}
+                  aria-pressed={selected}
+                >
+                  {selected && <span className="met-cover-picker-check"><Icon.Check size={12}/></span>}
+                </button>
+              );
+            })}
+          </div>
+        ) : (
+          <div className="met-cover-picker-upload">
+            {value && !value.startsWith('preset:') ? (
+              <div className="met-cover-picker-preview" style={{ backgroundImage: `url(${value})` }}>
+                {uploadedPathRef.current && (
+                  <button type="button" className="met-cover-picker-remove" onClick={removeSessionUpload} aria-label="Remover foto enviada">
+                    <Icon.X size={12}/>
+                  </button>
+                )}
+              </div>
+            ) : (
+              <label className="met-cover-picker-dropzone">
+                <input
+                  type="file"
+                  accept="image/jpeg,image/png,image/webp"
+                  onChange={handleFile}
+                  disabled={uploading}
+                  style={{ display: 'none' }}
+                />
+                {uploading ? 'Enviando…' : 'Escolher foto do dispositivo'}
+              </label>
+            )}
+            <span className="met-cover-picker-hint">JPG, PNG ou WEBP · até 5MB</span>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
 // ─── MetDotsMenu — dropdown contextual das metas ──────────────
 function MetDotsMenu({ items }) {
   const [open, setOpen] = React.useState(false);
@@ -210,7 +314,23 @@ function AportarModal({ open, meta, onConfirm, onClose }) {
 
 // ─── Modal: Criar meta (nova) ──────────────────────────────────
 function CriarMetaModal({ open, onConfirm, onClose }) {
+  const { userId, uploadGoalCover, deleteGoalCover } = useFides();
+  const toast = window.FidesUI.useToast();
+
+  // ─── Local state (declarado antes de qualquer early return — Rules of Hooks) ───
+  const [coverTab,   setCoverTab]   = React.useState('galeria');
+  const [coverValue, setCoverValue] = React.useState(null);
+  const [uploading,  setUploading]  = React.useState(false);
   const { rendered, closing, requestClose } = window.FidesUI.useModalClose(open, onClose);
+
+  React.useEffect(() => {
+    if (open) {
+      setCoverTab('galeria');
+      setCoverValue(null);
+      setUploading(false);
+    }
+  }, [open]);
+
   if (!rendered) return null;
   const TINTS = ['#2D5A3D','#2C5282','#B45309','#7C3AED','#0F766E','#9B2C2C','#0891B2','#BE185D'];
 
@@ -228,6 +348,7 @@ function CriarMetaModal({ open, onConfirm, onClose }) {
           className="fds-modal-body"
           onSubmit={e => {
             e.preventDefault();
+            if (uploading) return;
             const fd = new FormData(e.target);
             onConfirm({
               nome:      fd.get('nome')      || '',
@@ -236,6 +357,8 @@ function CriarMetaModal({ open, onConfirm, onClose }) {
               alvo:      parseFloat(fd.get('alvo')) || 0,
               prazo:     fd.get('prazo')     || null,
               tint:      fd.get('tint')      || '#00C37B',
+              cover:     coverValue,
+              atual:     parseFloat(fd.get('atual')) || 0,
             });
             requestClose();
           }}
@@ -255,16 +378,29 @@ function CriarMetaModal({ open, onConfirm, onClose }) {
             <span>Descrição</span>
             <input className="fds-input" name="descricao" placeholder="Ex: Férias de julho 2027"/>
           </label>
+
+          <CoverPicker
+            value={coverValue} onChange={setCoverValue}
+            tab={coverTab} onTabChange={setCoverTab}
+            uploading={uploading} onUploadingChange={setUploading}
+            userId={userId} uploadGoalCover={uploadGoalCover} deleteGoalCover={deleteGoalCover}
+            toast={toast}
+          />
+
           <div className="fds-modal-row two">
             <label className="fds-field">
               <span>Valor alvo (R$)</span>
               <input className="fds-input" name="alvo" type="number" step="0.01" min="0" required/>
             </label>
             <label className="fds-field">
-              <span>Prazo</span>
-              <input className="fds-input" name="prazo" type="date" min={new Date().toISOString().slice(0,10)}/>
+              <span>Valor atual (R$)</span>
+              <input className="fds-input" name="atual" type="number" step="0.01" min="0" defaultValue="0"/>
             </label>
           </div>
+          <label className="fds-field">
+            <span>Prazo</span>
+            <input className="fds-input" name="prazo" type="date" min={new Date().toISOString().slice(0,10)}/>
+          </label>
           <div className="fds-field">
             <span>Cor</span>
             <div className="met-tint-picker">
@@ -279,8 +415,10 @@ function CriarMetaModal({ open, onConfirm, onClose }) {
             </div>
           </div>
           <div className="fds-modal-foot" style={{ display: 'flex', justifyContent: 'flex-end', gap: 8, padding: '12px 0 0' }}>
-            <button type="button" className="fds-btn-ghost" onClick={requestClose}>Cancelar</button>
-            <button type="submit" className="fds-btn-primary"><Icon.Check size={13}/> Criar meta</button>
+            <button type="button" className="fds-btn-ghost" onClick={requestClose} disabled={uploading}>Cancelar</button>
+            <button type="submit" className="fds-btn-primary" disabled={uploading} style={{ opacity: uploading ? 0.6 : 1 }}>
+              <Icon.Check size={13}/> Criar meta
+            </button>
           </div>
         </form>
       </div>
