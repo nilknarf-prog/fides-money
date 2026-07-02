@@ -376,7 +376,12 @@ const [statusFilter, setStatusFilter] = React.useState('todas'); // declared wit
 | A3 | `upload()` options object accepts `{ contentType, upsert }` and `getPublicUrl()` returns `{ data: { publicUrl } }` exactly as shown | Architecture Patterns → Pattern 2 | Low risk (stable, unchanged since v2 launch, matches extensive training-data familiarity) but not independently re-fetched from a docs page this session — a quick smoke test during implementation resolves this cheaply |
 | A4 | RLS is actually enabled and correctly scoped on `goals` in the **live** Supabase project, matching `supabase/schema.sql:128-145` | Summary; Security Domain | `schema.sql` may be stale per CLAUDE.md's own warning (ROADMAP B10) — if live RLS differs, the new Storage bucket's owner-scoping model is built on an unverified foundation. Supabase MCP was unavailable (auth required) this session — **must be checked via MCP or Supabase dashboard before/alongside this phase's migration**, ideally as a `checkpoint:human-verify` early task |
 
-## Open Questions
+## Open Questions (RESOLVED 2026-07-02)
+
+> **All three resolved before planning** and threaded into the plans:
+> - **Q1 (`.webp` vs `.svg`)** → **RESOLVED: SVG** (CONTEXT D4 revision + Plan 08-02). No local encoder exists; SVG is zero-tooling and on-brand.
+> - **Q2 (bucket public vs private)** → **RESOLVED: public read + UUID object names**, owner-only write/delete (CONTEXT + Plan 08-01; `security-reviewer` sign-off required before commit).
+> - **Q3 (live RLS on `goals` verified?)** → **RESOLVED via process:** Plan 08-01 Task 2 is a `[BLOCKING] checkpoint:human-verify` (autonomous:false) confirming live RLS before applying bucket policies.
 
 1. **Preset cover file format: `.webp` (as locked in D4) or `.svg` (zero-tooling fallback)?**
    - What we know: no image-encoding tool exists in this dev environment; two viable paths exist (see Pitfall 5).
