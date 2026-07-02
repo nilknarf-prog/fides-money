@@ -88,6 +88,11 @@ create table if not exists public.goals (
   created_at      timestamptz not null default now()
 );
 
+-- Vision-board (Phase 08): capa da meta — guarda 'preset:<id>' OU URL pública
+-- do Storage (bucket goal-covers) OU null. Nullable, sem default: metas antigas
+-- ficam null → fallback gradiente tint no app (sem backfill).
+alter table public.goals add column if not exists image_url text;
+
 -- ─────────────────────────────────────────────
 -- TABELA: user_categories
 -- Categorias customizadas por usuário (defaults ficam hardcoded no app).
