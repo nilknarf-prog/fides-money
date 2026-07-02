@@ -753,6 +753,19 @@ function MetasStudio({ onAdd, onNav }) {
     return { ...m, faltam, pct, mesesAteFim, fimLabel, mesesDesdeInicio, aporteEsperado };
   });
 
+  // ─── Filtro client-side (busca + status) — alimenta o grid do Capítulo I ───
+  const termoBusca = search.trim().toLowerCase();
+  const metasFiltradas = computed.filter(m => {
+    const porStatus = statusFilter === 'todas' ? true
+      : statusFilter === 'concluidas' ? !!m.completed
+      : !m.completed; // 'ativas'
+    if (!porStatus) return false;
+    if (!termoBusca) return true;
+    const alvo = `${m.nome || ''} ${m.descricao || ''}`.toLowerCase();
+    return alvo.includes(termoBusca);
+  });
+  const metasConcluidas = computed.filter(m => !!m.completed);
+
   const totalGuardado = goals.reduce((s, m) => s + m.atual, 0);
   const totalAlvo     = goals.reduce((s, m) => s + m.alvo, 0);
   const totalAporte   = goals.reduce((s, m) => s + m.contribuicao, 0);
@@ -916,8 +929,13 @@ function MetasStudio({ onAdd, onNav }) {
           <ChapterMark roman="I" title="Em curso"
                        caption={`${goals.length} metas com aporte regular`}
                        action={<button className="stu-link" onClick={() => setCriarOpen(true)}><Icon.Plus size={12}/> Nova meta</button>}/>
+          {metasFiltradas.length === 0 ? (
+            <div className="stu-card met-done" data-od-id="met-grid-empty">
+              <div className="met-done-empty">Nenhuma meta encontrada para essa busca.</div>
+            </div>
+          ) : (
           <div className="met-grid" data-od-id="met-grid">
-            {computed.map((m) => {
+            {metasFiltradas.map((m) => {
               const aporteOk = m.atual >= m.aporteEsperado * 0.9;
               return (
                 <div className="met-card" key={m.id}>
@@ -1003,6 +1021,7 @@ function MetasStudio({ onAdd, onNav }) {
               );
             })}
           </div>
+          )}
 
           {/* ─── Capítulo II · Como acelerar ─── */}
           <ChapterMark roman="II" title="Como acelerar"
@@ -1097,7 +1116,23 @@ function MetasStudio({ onAdd, onNav }) {
           {/* ─── Capítulo III · Já atingidas ─── */}
           <ChapterMark roman="III" title="Já atingidas" caption="Suas conquistas — para lembrar"/>
           <div className="stu-card met-done" data-od-id="met-concluidas">
-            <div className="met-done-empty">Nenhuma meta concluída ainda. A primeira está chegando!</div>
+            {metasConcluidas.length === 0 ? (
+              <div className="met-done-empty">Nenhuma meta concluída ainda. A primeira está chegando!</div>
+            ) : (
+              <div className="met-done-list">
+                {metasConcluidas.map(m => (
+                  <div className="met-done-row" key={m.id}>
+                    <div className="met-done-emoji">{m.emoji}</div>
+                    <div className="met-done-name">{m.nome}</div>
+                    <div className="met-done-val">{fmtBRL(m.atual)}</div>
+                    <div className="met-done-date">
+                      {m.completedAt ? `Concluída em ${new Date(m.completedAt).toLocaleDateString('pt-BR')}` : '—'}
+                    </div>
+                    <div className="met-done-tag"><Icon.Trophy size={11}/> Concluída</div>
+                  </div>
+                ))}
+              </div>
+            )}
           </div>
         </>
       )}
