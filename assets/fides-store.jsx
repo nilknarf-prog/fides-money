@@ -117,6 +117,39 @@ function normalizeCategory(row) {
   };
 }
 
+// ─── Goal cover Storage helpers (Supabase Storage — bucket goal-covers) ──
+
+const ALLOWED_MIME = ['image/jpeg', 'image/png', 'image/webp'];
+const MAX_BYTES = 5 * 1024 * 1024;
+
+function extFromMime(mime) {
+  return { 'image/jpeg': 'jpg', 'image/png': 'png', 'image/webp': 'webp' }[mime] || null;
+}
+
+// Sobe a capa própria do usuário para o bucket goal-covers. Path é sempre
+// <user_id>/<uuid>.<ext> — nunca o nome do arquivo do usuário (anti-traversal/colisão).
+async function uploadGoalCover(userId, file) {
+  if (!ALLOWED_MIME.includes(file.type)) throw new Error('Formato não suportado (use JPG, PNG ou WEBP).');
+  if (file.size > MAX_BYTES) throw new Error('Arquivo maior que 5MB.');
+  const ext = extFromMime(file.type);
+  if (!ext) throw new Error('Formato não suportado.');
+  const path = `${userId}/${crypto.randomUUID()}.${ext}`;
+  const { error } = await window.fidesDb.storage.from('goal-covers').upload(path, file, {
+    contentType: file.type,
+    upsert: false,
+  });
+  if (error) throw error;
+  const { data } = window.fidesDb.storage.from('goal-covers').getPublicUrl(path);
+  return { url: data.publicUrl, path };
+}
+
+// Remove uma capa do bucket goal-covers. Não-throwing — falha é logada, não interrompe o fluxo.
+async function deleteGoalCover(path) {
+  if (!path) return;
+  const { error } = await window.fidesDb.storage.from('goal-covers').remove([path]);
+  if (error) console.error('[Fides] deleteGoalCover:', error.message);
+}
+
 // ─── FidesProvider ─────────────────────────────────────────────
 
 function FidesProvider({ children }) {
@@ -1312,6 +1345,7 @@ function FidesProvider({ children }) {
     userName, firstName, userEmail,
     refreshData: () => refreshData(userId),
     goals, addGoal, updateGoal, deleteGoal,
+    uploadGoalCover, deleteGoalCover,
     // Transactions
     transactions, addTransaction, addTransactions, payCartaoFatura, transferFunds,
     updateTransaction, deleteTransaction,
@@ -1360,6 +1394,7 @@ function useFides() {
     userName: '', firstName: '', userEmail: '',
     refreshData: async () => {},
     goals: [], addGoal: () => {}, updateGoal: () => {}, deleteGoal: () => {},
+    uploadGoalCover: async () => {}, deleteGoalCover: async () => {},
     transactions: TRANSACTIONS,
     monthTransactions: TRANSACTIONS,
     prevMonthTransactions: [],
