@@ -319,14 +319,29 @@ Plans:
 
 ### Phase 8: Metas vision-board redesign
 
-**Goal:** [To be planned]
-**Requirements**: TBD
+**Goal:** A área de Metas vira um "vision board": cards com capa (galeria de ~16 presets SVG bespoke OU upload próprio), busca por nome/descrição, filtro por status (Ativa/Concluída via `completed`) e update inline (Aportar com projeção + Atualizar saldo direto) — tudo persistido em `goals.image_url` + bucket Storage `goal-covers` com RLS owner-only — mantendo a identidade editorial Fides (hero próprio `met-hero`, capítulos I/II/III, sistema de tint por meta). Fecha 2 gaps herdados da Phase 07: `normalizeGoal` passa a mapear `completed`/`image_url`, e o `AportarModal` (dead code) é montado.
+**Requirements**: UAT-1…UAT-7 (design spec §8 — sem REQ-IDs formais; PRD Express Path)
 **Depends on:** Phase 7
-**Plans:** 0 plans
+**Plans:** 6 plans (waves 1→4)
 
 Plans:
+**Wave 1** *(fundação — arquivos distintos, em paralelo)*
 
-- [ ] TBD (run /gsd-plan-phase 8 to break down)
+- [ ] 08-01-PLAN.md — [BLOCKING] Backend: coluna `goals.image_url` + bucket `goal-covers` + 5 policies RLS owner-only; verificação RLS live + apply via Supabase MCP/SQL Editor (autonomous:false) (UAT-1/2/5)
+- [ ] 08-02-PLAN.md — ~16 capas preset SVG bespoke em `assets/covers/*.svg` (paleta tint, zero-tooling) (UAT-1)
+- [ ] 08-03-PLAN.md — Store: `normalizeGoal` mapeia cover/completed/completedAt (gap Phase-07 #1) + `addGoal` cover/current + helpers `uploadGoalCover`/`deleteGoalCover` (UAT-1..5)
+
+**Wave 2** *(depende de 08-03)*
+
+- [ ] 08-04-PLAN.md — Barra de controles (busca + filtro segmentado Todas/Ativas/Concluídas + Nova meta) + Capítulo III "Já atingidas" populado por `completed` (UAT-3/7)
+
+**Wave 3** *(depende de 08-04, 08-02)*
+
+- [ ] 08-05-PLAN.md — Hero próprio `met-hero` (D3) + redesign `vcard` (capa/scrim/overlay/corpo) + `resolveCoverUrl` + montar `AportarModal` (gap Phase-07 #2) + Atualizar saldo inline + Marcar como concluída (UAT-4/6/7)
+
+**Wave 4** *(depende de 08-05, 08-03, 08-01, 08-02)*
+
+- [ ] 08-06-PLAN.md — Seletor de capa (Galeria/Enviar foto) nos modais + campos Valor atual/Status + limpeza de Storage no editar/excluir (UAT-1/2/5)
 
 ---
 
