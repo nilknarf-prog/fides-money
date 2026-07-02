@@ -291,9 +291,9 @@ Plans:
 ### Phase 9: Transações — power tools + analytics
 
 **Goal:** Elevar a área de Transações a "power tools": filtro de Cartões dedicado, paginação com seletor de qtd (20/50/100), analytics de gasto por categoria cross-month (com range), export CSV e persistência de filtros — majoritariamente client-only (sem migração/gate de segurança). Respeita o modelo atual (`is_transfer` exclui de gasto).
-**Requirements**: TBD — absorve backlog B2 (UX-02 preview de limite no modal) e B7 (UX-01 ⌘K busca). Sem REQ-IDs formais até /gsd-plan-phase.
+**Requirements**: TX-01 (filtro Cartões), TX-02 (paginação 20/50/100), TX-03 (gasto/categoria cross-month), TX-04 (lista em modo range), TX-05 (export CSV + fix CSV-injection), TX-06 (persistência localStorage), TX-07 (⌘K, absorve UX-01/B7), TX-08 (preview de limite, absorve UX-02/B2)
 **Depends on:** Phase 8
-**Plans:** 0 plans
+**Plans:** 5 plans (waves 1→3)
 
 **Escopo previsto (decidido 2026-07-02):**
 - Filtro "Cartões" separado (dado já distingue via `cardIdSet` em `fides-store.jsx:161`) — `fides-transacoes.jsx` `TxAdvFiltersModal`
@@ -305,8 +305,19 @@ Plans:
 - **Deferido:** WhatsApp WRITE (C4) atrás do B8; captura quick-add + parse-NL client-side vira fase própria se crescer (tensão fricção-intencional = valor-núcleo)
 
 Plans:
+**Wave 1** *(fundação — arquivos distintos, em paralelo)*
 
-- [ ] TBD (run /gsd-plan-phase 9 to break down)
+- [ ] 09-01-PLAN.md — TX-03/TX-04 store: `monthsInRange` + `spendByCategoryRange` + `rangeTransactions` (derivações cross-month sobre `transactions`, sem alterar `spendByCategory`/`monthTransactions`)
+- [ ] 09-02-PLAN.md — TX-07: command palette ⌘K (novo `CommandPalette` + atalho Cmd/Ctrl+K global + liga o input morto do masthead)
+- [ ] 09-03-PLAN.md — TX-01/TX-02: filtro Cartões dedicado no `TxAdvFiltersModal` + paginação `pagedSorted` com seletor 20/50/100
+
+**Wave 2** *(depende de 09-01 e 09-03)*
+
+- [ ] 09-04-PLAN.md — TX-03/TX-04: modo range na lista (`baseList` alternável) + widget de gasto por categoria cross-month (Donut/CategoryChart reaproveitados)
+
+**Wave 3** *(depende de 09-04)*
+
+- [ ] 09-05-PLAN.md — TX-05/TX-06/TX-08: export CSV audit + fix CSV-injection; persistência `fides:tx.state`; preview de limite no Nova Transação
 
 ---
 
@@ -316,6 +327,7 @@ Plans:
 |-------|----------------|--------|-----------|
 | 07 - CRUD Metas | 3/3 | Complete   | 2026-07-01 |
 | 08 - Metas vision-board | 5/6 | Código completo — aguarda apply LIVE de 08-01 (checkpoint humano) | — |
+| 09 - Transações power tools + analytics | 0/5 | Planejado (waves 1→3) | — |
 
 ### Phase 7: Metas vision-board redesign
 
