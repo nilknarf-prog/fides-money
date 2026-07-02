@@ -734,6 +734,53 @@ function EmBreveModal({ open, onClose }) {
   );
 }
 
+// ─── SaldoInlineEditor — quick "Atualizar saldo" inline no vcard (D6) ──
+function SaldoInlineEditor({ meta, onConfirm }) {
+  const [open, setOpen] = React.useState(false);
+  const [valor, setValor] = React.useState('');
+
+  const submit = () => {
+    const v = parseFloat(valor);
+    if (!isNaN(v) && v >= 0) onConfirm(v);
+    setOpen(false);
+  };
+
+  if (!open) {
+    return (
+      <button
+        type="button"
+        className="vcard-saldo-toggle"
+        onClick={(e) => { e.stopPropagation(); setValor(String(meta.atual)); setOpen(true); }}
+        style={{ touchAction: 'manipulation', WebkitTapHighlightColor: 'transparent' }}
+      >
+        <MetIcon.Slider size={12}/> Atualizar saldo
+      </button>
+    );
+  }
+
+  return (
+    <div className="vcard-saldo-editor" onClick={(e) => e.stopPropagation()}>
+      <span className="vcard-saldo-prefix">R$</span>
+      <input
+        className="fds-input vcard-saldo-input"
+        type="number"
+        step="0.01"
+        min="0"
+        autoFocus
+        value={valor}
+        onChange={(e) => setValor(e.target.value)}
+        onKeyDown={(e) => { if (e.key === 'Enter') submit(); if (e.key === 'Escape') setOpen(false); }}
+      />
+      <button type="button" className="vcard-saldo-confirm" onClick={submit} aria-label="Confirmar novo saldo">
+        <Icon.Check size={12}/>
+      </button>
+      <button type="button" className="vcard-saldo-cancel" onClick={() => setOpen(false)} aria-label="Cancelar">
+        <Icon.X size={12}/>
+      </button>
+    </div>
+  );
+}
+
 // ─── MetasStudio ──────────────────────────────────────────────
 function MetasStudio({ onAdd, onNav }) {
   const { transactions, monthTransactions, selectedMonth, monthLabel, isEmpty, goals, accounts, addGoal, updateGoal, deleteGoal } = useFides();
@@ -749,6 +796,7 @@ function MetasStudio({ onAdd, onNav }) {
   const [deleteTarget,  setDeleteTarget]  = React.useState(null);
   const [search,        setSearch]        = React.useState('');
   const [statusFilter,  setStatusFilter]  = React.useState('todas');
+  const [aportarTarget, setAportarTarget] = React.useState(null);
 
   if (isEmpty) return (
     <div className="fds-page stu-page">
@@ -839,6 +887,12 @@ function MetasStudio({ onAdd, onNav }) {
         nome={deleteTarget?.nome}
         onConfirm={() => deleteGoal(deleteTarget.id)}
         onCancel={() => setDeleteTarget(null)}
+      />
+      <AportarModal
+        open={!!aportarTarget}
+        meta={aportarTarget}
+        onConfirm={(valor) => updateGoal(aportarTarget.id, { current: aportarTarget.atual + valor })}
+        onClose={() => setAportarTarget(null)}
       />
 
       {/* ─── Read-only panels ─── */}
@@ -990,7 +1044,7 @@ function MetasStudio({ onAdd, onNav }) {
                         </span>
                         <MetDotsMenu items={[
                           { id: 'editar',   label: 'Editar meta',           icon: 'Edit',   onClick: () => setEditTarget(m) },
-                          { id: 'concluir', label: 'Marcar como concluída', icon: 'Trophy', onClick: () => setEmBreve(true) },
+                          { id: 'concluir', label: 'Marcar como concluída', icon: 'Trophy', onClick: () => updateGoal(m.id, { completed: true, completed_at: new Date().toISOString() }) },
                           { id: 'excluir',  label: 'Excluir meta',          icon: 'Trash',  danger: true, onClick: () => setDeleteTarget(m) },
                         ]}/>
                       </div>
@@ -1043,17 +1097,21 @@ function MetasStudio({ onAdd, onNav }) {
                     </div>
 
                     <div className="vcard-actions">
+                      <SaldoInlineEditor
+                        meta={m}
+                        onConfirm={(novoValor) => updateGoal(m.id, { current: novoValor })}
+                      />
                       <div className="vcard-actions-row">
                         <button
                           className="met-card-aportar"
                           style={{ background: m.tint, touchAction: 'manipulation', WebkitTapHighlightColor: 'transparent' }}
-                          onClick={() => setEmBreve(true)}
+                          onClick={() => setAportarTarget(m)}
                         >
                           <Icon.Plus size={13}/> Aportar
                         </button>
                         <button
                           className="fds-btn-ghost"
-                          onClick={() => setEmBreve(true)}
+                          onClick={() => setEditTarget(m)}
                           style={{ touchAction: 'manipulation', WebkitTapHighlightColor: 'transparent' }}
                         >
                           <Icon.Settings size={13}/> Ajustar plano

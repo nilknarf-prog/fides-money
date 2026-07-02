@@ -285,6 +285,53 @@
 }
 .fds-studio .met-card-aportar:hover { filter: brightness(1.05); transform: translateY(-0.5px); }
 
+/* ─── SaldoInlineEditor — quick "Atualizar saldo" (D6) ─── */
+.fds-studio .vcard-saldo-toggle {
+  display: inline-flex; align-items: center; gap: 6px;
+  align-self: flex-start;
+  padding: 5px 10px;
+  border: 1px dashed var(--border);
+  border-radius: 999px;
+  background: transparent;
+  color: var(--muted);
+  font-family: inherit;
+  font-size: 11.5px; font-weight: 600;
+  cursor: pointer;
+  transition: background 0.12s, color 0.12s, border-color 0.12s;
+}
+.fds-studio .vcard-saldo-toggle:hover {
+  background: var(--card-soft);
+  color: var(--ink-2);
+  border-color: var(--ink-3);
+}
+.fds-studio .vcard-saldo-editor {
+  display: flex; align-items: center; gap: 6px;
+}
+.fds-studio .vcard-saldo-prefix {
+  font-size: 12px; color: var(--muted); white-space: nowrap;
+}
+.fds-studio .vcard-saldo-input {
+  flex: 1;
+  padding: 6px 8px;
+  font-size: 13px;
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+.fds-studio .vcard-saldo-confirm,
+.fds-studio .vcard-saldo-cancel {
+  display: flex; align-items: center; justify-content: center;
+  width: 28px; height: 28px; flex: none;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--card);
+  cursor: pointer;
+  transition: background 0.12s, border-color 0.12s;
+}
+.fds-studio .vcard-saldo-confirm { color: var(--ok); }
+.fds-studio .vcard-saldo-confirm:hover { background: var(--ok-soft); border-color: var(--ok); }
+.fds-studio .vcard-saldo-cancel { color: var(--muted); }
+.fds-studio .vcard-saldo-cancel:hover { background: var(--bad-soft); border-color: var(--bad); color: var(--bad); }
+
 /* ─── Capítulo II · Como acelerar ─── */
 .fds-studio .met-tips {
   display: grid;
