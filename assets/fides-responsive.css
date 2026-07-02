@@ -140,7 +140,7 @@ img, svg, video { max-width: 100%; height: auto; }
    The hero already has overflow:hidden on desktop; keep it stable. */
 .fds-hero-main { overflow: hidden; }
 .fds-studio .orc-rule-col { overflow: hidden; }
-.fds-studio .met-card { overflow: hidden; }
+.fds-studio .vcard { overflow: hidden; }
 
 /* Headings that can expand a container past its width */
 .stu-mast-title,
@@ -367,7 +367,11 @@ img, svg, video { max-width: 100%; height: auto; }
   .fds-page { padding: 14px 14px 80px; gap: 14px; }
 
   /* ── 5. EDITORIAL HERO ────────────────────────────────────── */
-  .stu-hero {
+  /* .met-hero (Metas, D3) partilha o mesmo box model responsivo do
+     .stu-hero compartilhado — hero renomeado na Fase 08, tratamento
+     de mobile precisa acompanhar em ambas as classes. */
+  .stu-hero,
+  .met-hero {
     padding: 18px 18px 16px;
     gap: 10px;
     border-radius: 14px;
@@ -453,7 +457,8 @@ img, svg, video { max-width: 100%; height: auto; }
   /* ── 12. METAS ────────────────────────────────────────────── */
   .fds-studio .met-grid { grid-template-columns: 1fr; }
   .fds-studio .met-tips { grid-template-columns: 1fr; }
-  .fds-studio .met-card { border-radius: 14px; padding: 18px; }
+  .fds-studio .vcard { border-radius: 14px; }
+  .fds-studio .vcard-body { padding: 16px; }
   .fds-studio .met-card-int { font-size: 26px; }
 
   /* Done goals: card layout on mobile */
@@ -1041,8 +1046,9 @@ img, svg, video { max-width: 100%; height: auto; }
   .fds-hero-amount.v2 .int,
   .fds-hero-amount.v3 .int { font-size: clamp(34px, 11vw, 50px); }
 
-  /* ── Hero card ────────────────────────────────────────────── */
-  .stu-hero { padding: 14px 14px 12px; border-radius: 12px; }
+  /* ── Hero card (.met-hero acompanha — ver nota na tablet/768px) ─ */
+  .stu-hero,
+  .met-hero { padding: 14px 14px 12px; border-radius: 12px; }
   .stu-hero-headline { font-size: clamp(18px, 6vw, 24px); }
   .stu-hero-lede { font-size: 13px; line-height: 1.55; }
 
