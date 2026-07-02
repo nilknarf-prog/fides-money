@@ -90,9 +90,9 @@
 
 **Plans:** 3 plans (waves 1→2→3, sequenciais por compartilharem `fides-studio.jsx`)
 
-- [x] 01-01-PLAN.md — R1: `budgetGroups` lê `categoryLimits` + estado "sem limite" no card
-- [x] 01-02-PLAN.md — R2: tooltip de fatia no `Donut` (centro reusado) + dismiss mobile
-- [x] 01-03-PLAN.md — R3: `saldoProjetado` no hero + fluxo negativo visível (P1)
+- [x] 00-01-PLAN.md — R1: `budgetGroups` lê `categoryLimits` + estado "sem limite" no card
+- [x] 00-02-PLAN.md — R2: tooltip de fatia no `Donut` (centro reusado) + dismiss mobile
+- [x] 00-03-PLAN.md — R3: `saldoProjetado` no hero + fluxo negativo visível (P1)
 
 **Tema:** o `DashboardStudio` exibe números que não refletem a verdade financeira do usuário. 3 correções:
 
@@ -108,7 +108,7 @@
 
 ## PARTE 3.6 — Fase 02 · Fixes de Experiência — ✅ (commit `3549395`, verificado)
 
-> Detalhe completo em `phases/02-fixes-experiencia/02-01-PLAN.md`.
+> Detalhe completo em `phases/02-fixes-experiencia/01-01-PLAN.md`.
 
 **Entregue:**
 
@@ -119,19 +119,19 @@
 
 ## PARTE 3.7 — ✅ M3 v1.0 Polish pré-lançamento — SHIPPED 2026-07-01 (tag `v1.0`)
 
-- [x] **Phase 03: Limpeza + Tokens** (2/2) — Dead code removido e identidade visual alinhada aos tokens de marca (2026-06-30)
-- [x] **Phase 04: UX Mobile + Motion** (4/4) — Perfil acessível no mobile e micro-interações CSS em modais/cards (2026-07-01)
-- [x] **Phase 05: IA Real** (1/1) — Botão "Análise da IA" conectado ao Gemini real (2026-07-01)
-- [x] **Phase 06: Fix v1.0 tech debt** (2/2, INSERTED) — Fecha as 4 warnings da auditoria v1.0 (2026-07-01)
+- [x] **Phase 2: Limpeza + Tokens** (2/2) — Dead code removido e identidade visual alinhada aos tokens de marca (2026-06-30)
+- [x] **Phase 3: UX Mobile + Motion** (4/4) — Perfil acessível no mobile e micro-interações CSS em modais/cards (2026-07-01)
+- [x] **Phase 4: IA Real** (1/1) — Botão "Análise da IA" conectado ao Gemini real (2026-07-01)
+- [x] **Phase 5: Fix v1.0 tech debt** (2/2, INSERTED) — Fecha as 4 warnings da auditoria v1.0 (2026-07-01)
 
 > Detalhe completo arquivado em `milestones/v1.0-ROADMAP.md`.
 
 <details>
-<summary>Phase Details (Phases 03-06) — clique para expandir</summary>
+<summary>Phase Details (Phases 02-06) — clique para expandir</summary>
 
 ---
 
-### Phase 03: Limpeza + Tokens
+### Phase 2: Limpeza + Tokens
 
 **Goal**: O repositório não contém código morto e toda a UI usa exclusivamente tokens CSS de marca — sem valores hardcoded de cor fora dos tokens.
 **Depends on**: Fase 02 (concluída)
@@ -148,21 +148,21 @@
 **Plans**: 2/2 plans complete
 **Wave 1**
 
-- [x] 03-01-PLAN.md — CLEAN-01 (verificação) + DESIGN-01/02/03: avatares roxo→verde de marca, perfil on-brand, token `--warn` consistente
+- [x] 02-01-PLAN.md — CLEAN-01 (verificação) + DESIGN-01/02/03: avatares roxo→verde de marca, perfil on-brand, token `--warn` consistente
 
 **Wave 2** *(blocked on Wave 1 completion)*
 
-- [x] 03-02-PLAN.md — DESIGN-04: auditoria conservadora dos 3 CSS (duplicatas, órfãos, tokens fantasma)
+- [x] 02-02-PLAN.md — DESIGN-04: auditoria conservadora dos 3 CSS (duplicatas, órfãos, tokens fantasma)
 
 **Achados do planejamento**: `fides-diario.*` já removido no commit `d4db34f` (CLEAN-01 vira verificação de estado). `.prf-view`/`.prf-avatar` já usam `var(--accent)` (DESIGN-02 conforme; apenas audita). Roxo real (`#6366F1→#8B5CF6`) vive em DOIS avatares: `.fds-avatar` (fides.css) e `.fds-sb-slim-avatar` (fides-studio.css). Única divergência de `--warn`: `#D97706` no bloco legado `.fds-app[data-variant="v3"]`.
 **UI hint**: yes
 
 ---
 
-### Phase 04: UX Mobile + Motion
+### Phase 3: UX Mobile + Motion
 
 **Goal**: O usuário acessa o perfil pelo mobile via engrenagem e percebe transições suaves ao abrir/fechar modais e interagir com cards — tudo via CSS, sem JS adicional.
-**Depends on**: Phase 03
+**Depends on**: Phase 2
 **Requirements**: MOBILE-01, MOTION-01, MOTION-02
 **Key files**: `fides-studio.jsx`, `fides-studio.css`, CSS de modais (fides.css / fides-studio.css), CSS de cards
 **Success Criteria** (what must be TRUE):
@@ -176,22 +176,22 @@
 
 **Wave 1**
 
-- [x] 04-01-PLAN.md — MOTION-01/PERF: hook `useModalClose` (fides-ui.jsx) + keyframes de saída + gate reduced-motion (fides.css)
-- [x] 04-03-PLAN.md — MOBILE-01: engrenagem clicável no masthead (≤768px) + foot gear desktop + estado `lastView`/toggle
+- [x] 03-01-PLAN.md — MOTION-01/PERF: hook `useModalClose` (fides-ui.jsx) + keyframes de saída + gate reduced-motion (fides.css)
+- [x] 03-03-PLAN.md — MOBILE-01: engrenagem clicável no masthead (≤768px) + foot gear desktop + estado `lastView`/toggle
 
 **Wave 2** *(blocked on Wave 1)*
 
-- [x] 04-02-PLAN.md — MOTION-01: wiring dos 3 modais (NovaTransacao/Categoria/contas) ao `useModalClose` (saída animada, re-open limpo)
-- [x] 04-04-PLAN.md — MOTION-02/PERF: micro-feedback CSS em `.stu-acct` e `.cat-card` (`:hover` isolado em `@media (hover:hover)` + `:active` scale)
+- [x] 03-02-PLAN.md — MOTION-01: wiring dos 3 modais (NovaTransacao/Categoria/contas) ao `useModalClose` (saída animada, re-open limpo)
+- [x] 03-04-PLAN.md — MOTION-02/PERF: micro-feedback CSS em `.stu-acct` e `.cat-card` (`:hover` isolado em `@media (hover:hover)` + `:active` scale)
 
 **UI hint**: yes
 
 ---
 
-### Phase 05: IA Real
+### Phase 4: IA Real
 
 **Goal**: O botão "Análise da IA" chama o Gemini 2.5 Flash-Lite real e exibe a resposta na UI com loading state, sem travar o thread principal.
-**Depends on**: Phase 03
+**Depends on**: Phase 2
 **Requirements**: AI-01, AI-02
 **Key files**: `fides-orcamento.jsx`, `api/assistant.js`
 **Success Criteria** (what must be TRUE):
@@ -203,16 +203,16 @@
 
 **Plans**: 1/1 plans complete
 
-- [x] 05-01-PLAN.md — AI-01/AI-02: substitui stub 2,2s por fetch real ao `/api/assistant`; 3 superfícies (loading spinner com gate reduced-motion, painel `.pln-mi-ai-result`, erro `.pln-mi-ai-error`); garantia never-hang + checkpoint humano
+- [x] 04-01-PLAN.md — AI-01/AI-02: substitui stub 2,2s por fetch real ao `/api/assistant`; 3 superfícies (loading spinner com gate reduced-motion, painel `.pln-mi-ai-result`, erro `.pln-mi-ai-error`); garantia never-hang + checkpoint humano
 
 **UI hint**: yes
 
 ---
 
-### Phase 06: Fix v1.0 tech debt
+### Phase 5: Fix v1.0 tech debt
 
 **Goal**: A base v1.0 fica sem as 4 warnings da auditoria do milestone — bloco de contexto de IA morto removido, os 8 modais de metas com motion consistente, token `--warn-soft` alinhado e o `setModalOpen(false)` duplicado eliminado.
-**Depends on**: Phase 05
+**Depends on**: Phase 4
 **Requirements**: DEBT-01, DEBT-02, DEBT-03, DEBT-04
 **Key files**: `assets/fides-orcamento.jsx`, `assets/fides-metas.jsx`, `assets/fides.css`, `assets/fides-transacoes.jsx`, `assets/fides-studio.jsx`, `assets/fides-ui.jsx`
 **Success Criteria** (what must be TRUE):
@@ -226,8 +226,8 @@
 
 Plans:
 
-- [x] 06-01-PLAN.md — DEBT-01/03/04: remove bloco morto de `buildAiContext()`, alinha `--warn-soft`→`#FEF0D6` em fides.css, elimina `setModalOpen(false)` duplicado
-- [x] 06-02-PLAN.md — DEBT-02: liga os 8 modais `fds-modal-backdrop` de fides-metas.jsx ao `useModalClose` (saída animada via `is-closing`, mesmo padrão da fase 04)
+- [x] 05-01-PLAN.md — DEBT-01/03/04: remove bloco morto de `buildAiContext()`, alinha `--warn-soft`→`#FEF0D6` em fides.css, elimina `setModalOpen(false)` duplicado
+- [x] 05-02-PLAN.md — DEBT-02: liga os 8 modais `fds-modal-backdrop` de fides-metas.jsx ao `useModalClose` (saída animada via `is-closing`, mesmo padrão da fase 04)
 
 **Marker**: (INSERTED) — débito técnico v1.0 (fecha as 4 warnings de `v1.0-MILESTONE-AUDIT.md`)
 **UI hint**: no (replica padrão de motion existente da fase 04 — sem novo design)
@@ -253,14 +253,14 @@ Plans:
 
 ### Phases
 
-- [x] **Phase 07: CRUD Metas** - Usuário cria, edita, exclui e lista metas reais persistidas em `goals`, sem placeholders (completed 2026-07-01)
+- [x] **Phase 6: CRUD Metas** - Usuário cria, edita, exclui e lista metas reais persistidas em `goals`, sem placeholders (completed 2026-07-01)
 
 ### Phase Details
 
-### Phase 07: CRUD Metas
+### Phase 6: CRUD Metas
 
 **Goal**: A view de Metas deixa de ser read-only — usuário cria, edita e exclui metas (nome, valor-alvo, prazo) com persistência real na tabela `goals`, e a lista reflete o estado atual do banco sem reload de página.
-**Depends on**: Phase 06 (concluída — modais de Metas já têm `useModalClose` wiring)
+**Depends on**: Phase 5 (concluída — modais de Metas já têm `useModalClose` wiring)
 **Requirements**: META-01, META-02, META-03, META-04
 **Key files**: `assets/fides-metas.jsx`, `assets/fides-data.jsx` (camada de acesso a dados — **protegido**, mudanças coordenadas), schema `goals` (Supabase, verificar via MCP)
 **Success Criteria** (what must be TRUE):
@@ -276,17 +276,37 @@ Plans:
 Plans:
 **Wave 1**
 
-- [x] 07-01-PLAN.md — [BLOCKING] Migration via MCP: `target_date DATE` + `description text` (nullable) em `goals` + espelho (D-01/02/03/10)
+- [x] 06-01-PLAN.md — [BLOCKING] Migration via MCP: `target_date DATE` + `description text` (nullable) em `goals` + espelho (D-01/02/03/10)
 
 **Wave 2** *(blocked on Wave 1 completion)*
 
-- [x] 07-02-PLAN.md — Store: `addGoal`/`updateGoal`/`deleteGoal` (espelham trio de accounts) + `normalizeGoal` lê prazo/descrição + exposição no context/fallback (D-05/11/12)
+- [x] 06-02-PLAN.md — Store: `addGoal`/`updateGoal`/`deleteGoal` (espelham trio de accounts) + `normalizeGoal` lê prazo/descrição + exposição no context/fallback (D-05/11/12)
 
 **Wave 3** *(blocked on Wave 2 completion)*
 
-- [x] 07-03-PLAN.md — UI: `CriarMetaModal` novo, `AjustarPlanoModal` para edição, wiring de Nova/Editar/Excluir aos modais reais + fix do `onAdd` mal-cabeado (D-06/13/14/15/16)
+- [x] 06-03-PLAN.md — UI: `CriarMetaModal` novo, `AjustarPlanoModal` para edição, wiring de Nova/Editar/Excluir aos modais reais + fix do `onAdd` mal-cabeado (D-06/13/14/15/16)
 
 **UI hint**: yes
+
+### Phase 9: Transações — power tools + analytics
+
+**Goal:** Elevar a área de Transações a "power tools": filtro de Cartões dedicado, paginação com seletor de qtd (20/50/100), analytics de gasto por categoria cross-month (com range), export CSV e persistência de filtros — majoritariamente client-only (sem migração/gate de segurança). Respeita o modelo atual (`is_transfer` exclui de gasto).
+**Requirements**: TBD — absorve backlog B2 (UX-02 preview de limite no modal) e B7 (UX-01 ⌘K busca). Sem REQ-IDs formais até /gsd-plan-phase.
+**Depends on:** Phase 8
+**Plans:** 0 plans
+
+**Escopo previsto (decidido 2026-07-02):**
+- Filtro "Cartões" separado (dado já distingue via `cardIdSet` em `fides-store.jsx:161`) — `fides-transacoes.jsx` `TxAdvFiltersModal`
+- Paginação + seletor de qtd 20/50/100 (hoje `grouped.map` renderiza tudo) — perf + paridade PlannerFin
+- Gasto por categoria **cross-month** com range (3m/6m/12m/ano/custom), honrando `is_transfer` — hoje `spendByCategory` trava em 1 mês (`fides-store.jsx:1068`)
+- Ver range / múltiplos meses na lista (destrava o item acima)
+- Export CSV; persistir filtro/sort/mês no reload (só import é rastreado hoje)
+- Absorve ⌘K global (B7/UX-01) e preview de limite no modal Nova Transação (B2/UX-02)
+- **Deferido:** WhatsApp WRITE (C4) atrás do B8; captura quick-add + parse-NL client-side vira fase própria se crescer (tensão fricção-intencional = valor-núcleo)
+
+Plans:
+
+- [ ] TBD (run /gsd-plan-phase 9 to break down)
 
 ---
 
@@ -296,77 +316,28 @@ Plans:
 |-------|----------------|--------|-----------|
 | 07 - CRUD Metas | 3/3 | Complete   | 2026-07-01 |
 
----
-
-## PARTE 4 — BACKLOG (⏳ M5 · Expansão)
-
-| # | Item | Estimativa | Dependência |
-|---|---|---|---|
-| B1 | CSV/OFX/PDF import (avaliar `fdt-bulk-*` antes) | 1+ sessão | — |
-| B2 | Lote 5B — preview de limite no modal de Nova Transação | ½ sessão | — |
-| B3 | ~~CRUD Metas~~ (movido para milestone v1.1, Phase 07) | 1 sessão | — |
-| B4 | Telas Dívidas / Família (Claude Design) | 1+ sessão | — |
-| B5 | Investimento ≠ despesa (mudança de modelo de dados) | design próprio | — |
-| B6 | Projeção via média histórica (após 3+ meses de dados) | 1+ sessão | histórico |
-| B7 | Busca ⌘K funcional | ½ sessão | — |
-| B8 | Assistente tools WRITE (pós validação de fundação) | 1+ sessão | fundação 100% |
-| B9 | Substituir `confirm()`/`alert()` residuais | ½ sessão | — |
-| B10 | Regenerar `supabase/schema.sql` do banco real via MCP | ¼ sessão | — |
-| B11 | **[doc PM]** Migrar Babel-standalone → Vite/Next (build moderno + quality gates: lint/types/testes) | 1+ milestone | débito arquitetural raiz |
-| B12 | **[doc PM]** Pipeline CI/CD com ambientes Staging/Production (hoje deploy direto via `push.sh`/`vercel.json`) | 1 sessão | B11 ideal antes |
-
-> Origem B11–B12: `docs/planejamento/Relatórios_ideIA/analise_project_manager.md`. Estratégico, não bloqueia Fase 01.
-
-### Phase 8: Metas vision-board redesign
+### Phase 7: Metas vision-board redesign
 
 **Goal:** A área de Metas vira um "vision board": cards com capa (galeria de ~16 presets SVG bespoke OU upload próprio), busca por nome/descrição, filtro por status (Ativa/Concluída via `completed`) e update inline (Aportar com projeção + Atualizar saldo direto) — tudo persistido em `goals.image_url` + bucket Storage `goal-covers` com RLS owner-only — mantendo a identidade editorial Fides (hero próprio `met-hero`, capítulos I/II/III, sistema de tint por meta). Fecha 2 gaps herdados da Phase 07: `normalizeGoal` passa a mapear `completed`/`image_url`, e o `AportarModal` (dead code) é montado.
 **Requirements**: UAT-1…UAT-7 (design spec §8 — sem REQ-IDs formais; PRD Express Path)
-**Depends on:** Phase 7
+**Depends on:** Phase 6
 **Plans:** 6 plans (waves 1→4)
 
 Plans:
 **Wave 1** *(fundação — arquivos distintos, em paralelo)*
 
-- [ ] 08-01-PLAN.md — [BLOCKING] Backend: coluna `goals.image_url` + bucket `goal-covers` + 5 policies RLS owner-only; verificação RLS live + apply via Supabase MCP/SQL Editor (autonomous:false) (UAT-1/2/5)
-- [ ] 08-02-PLAN.md — ~16 capas preset SVG bespoke em `assets/covers/*.svg` (paleta tint, zero-tooling) (UAT-1)
-- [ ] 08-03-PLAN.md — Store: `normalizeGoal` mapeia cover/completed/completedAt (gap Phase-07 #1) + `addGoal` cover/current + helpers `uploadGoalCover`/`deleteGoalCover` (UAT-1..5)
+- [ ] 07-01-PLAN.md — [BLOCKING] Backend: coluna `goals.image_url` + bucket `goal-covers` + 5 policies RLS owner-only; verificação RLS live + apply via Supabase MCP/SQL Editor (autonomous:false) (UAT-1/2/5)
+- [ ] 07-02-PLAN.md — ~16 capas preset SVG bespoke em `assets/covers/*.svg` (paleta tint, zero-tooling) (UAT-1)
+- [ ] 07-03-PLAN.md — Store: `normalizeGoal` mapeia cover/completed/completedAt (gap Phase-07 #1) + `addGoal` cover/current + helpers `uploadGoalCover`/`deleteGoalCover` (UAT-1..5)
 
-**Wave 2** *(depende de 08-03)*
+**Wave 2** *(depende de 07-03)*
 
-- [ ] 08-04-PLAN.md — Barra de controles (busca + filtro segmentado Todas/Ativas/Concluídas + Nova meta) + Capítulo III "Já atingidas" populado por `completed` (UAT-3/7)
+- [ ] 07-04-PLAN.md — Barra de controles (busca + filtro segmentado Todas/Ativas/Concluídas + Nova meta) + Capítulo III "Já atingidas" populado por `completed` (UAT-3/7)
 
-**Wave 3** *(depende de 08-04, 08-02)*
+**Wave 3** *(depende de 07-04, 07-02)*
 
-- [ ] 08-05-PLAN.md — Hero próprio `met-hero` (D3) + redesign `vcard` (capa/scrim/overlay/corpo) + `resolveCoverUrl` + montar `AportarModal` (gap Phase-07 #2) + Atualizar saldo inline + Marcar como concluída (UAT-4/6/7)
+- [ ] 07-05-PLAN.md — Hero próprio `met-hero` (D3) + redesign `vcard` (capa/scrim/overlay/corpo) + `resolveCoverUrl` + montar `AportarModal` (gap Phase-07 #2) + Atualizar saldo inline + Marcar como concluída (UAT-4/6/7)
 
-**Wave 4** *(depende de 08-05, 08-03, 08-01, 08-02)*
+**Wave 4** *(depende de 07-05, 07-03, 07-01, 07-02)*
 
-- [ ] 08-06-PLAN.md — Seletor de capa (Galeria/Enviar foto) nos modais + campos Valor atual/Status + limpeza de Storage no editar/excluir (UAT-1/2/5)
-
----
-
-## PARTE 5 — ROADMAP COMERCIAL (⏳ M6)
-
-| # | Item | Skill | Quando |
-|---|---|---|---|
-| C1 | Landing page | `imagegen-frontend-web` | ao comercializar |
-| C2 | FAQ / central de ajuda | `faq-page` | usuários externos |
-| C3 | Redesign visual completo | `redesign-existing-projects` | pós-feedback F&F |
-| C4 | WhatsApp (Meta Cloud API recomendada) | — | após WRITE estável |
-| C5 | Monetização (preço único → mensal) | — | a definir |
-| C6 | **[doc blueprint]** GTM: ASO + marketing de conteúdo (canais de aquisição além de F&F) | — | pós F&F |
-| C7 | **[doc blueprint]** Validar pricing via A/B (Gratuito / Essencial R$89,9 / Premium R$149,9) | — | base de usuários |
-| C8 | **[doc blueprint]** Gamificação / micro-incentivos p/ retenção do registro manual | — | pós-onboarding |
-| C9 | **[doc blueprint]** Onboarding guiado + trial p/ reduzir fricção do registro manual | — | — |
-
-> Origem C6–C9: `docs/planejamento/Relatórios_ideIA/fidesmoney-ideia-blueprint.md` (viabilidade 64/100; maior risco = fricção do registro manual). Estratégico/negócio, não fase de código.
-
-## DÍVIDAS TÉCNICAS RASTREADAS
-
-| Dívida | Origem | Risco | Onde resolve |
-|---|---|---|---|
-| `faturaAbertaPorCartao` mistura faturas | v6 | **Alto** — UX de pagamento incorreta | Fase M4 (ativa) |
-| Ambiguidade fechamento vs vencimento na rotulagem | v11 | Médio — confunde usuário | Fase M4 (decisão aberta) |
-| `fides-diario.*` dead code | v15 | Baixo — peso morto | Phase 03 |
-| `supabase/schema.sql` desatualizado (MCP é a verdade) | v9 | Médio — drift | B10 |
-| Roxo off-brand hardcoded | v15 | Baixo — identidade | Phase 03 |
+- [ ] 07-06-PLAN.md — Seletor de capa (Galeria/Enviar foto) nos modais + campos Valor atual/Status + limpeza de Storage no editar/excluir (UAT-1/2/5)
