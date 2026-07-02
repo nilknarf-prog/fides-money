@@ -428,7 +428,25 @@ function CriarMetaModal({ open, onConfirm, onClose }) {
 
 // ─── Modal: Ajustar plano (edição completa da meta) ───────────
 function AjustarPlanoModal({ open, meta, onConfirm, onClose }) {
+  const { userId, uploadGoalCover, deleteGoalCover } = useFides();
+  const toast = window.FidesUI.useToast();
+
+  // ─── Local state (declarado antes de qualquer early return — Rules of Hooks) ───
+  const [coverTab,    setCoverTab]    = React.useState('galeria');
+  const [coverValue,  setCoverValue]  = React.useState(null);
+  const [uploading,   setUploading]   = React.useState(false);
+  const [statusValue, setStatusValue] = React.useState(false);
   const { rendered, closing, requestClose } = window.FidesUI.useModalClose(open, onClose);
+
+  React.useEffect(() => {
+    if (open && meta) {
+      setCoverTab('galeria');
+      setCoverValue(meta.cover || null);
+      setUploading(false);
+      setStatusValue(!!meta.completed);
+    }
+  }, [open, meta && meta.id]);
+
   if (!rendered) return null;
   if (!meta) return null;
   const TINTS = ['#2D5A3D','#2C5282','#B45309','#7C3AED','#0F766E','#9B2C2C','#0891B2','#BE185D'];
@@ -447,6 +465,7 @@ function AjustarPlanoModal({ open, meta, onConfirm, onClose }) {
           className="fds-modal-body"
           onSubmit={e => {
             e.preventDefault();
+            if (uploading) return;
             const fd = new FormData(e.target);
             onConfirm({
               nome:      fd.get('nome')      || meta.nome,
@@ -455,6 +474,8 @@ function AjustarPlanoModal({ open, meta, onConfirm, onClose }) {
               alvo:      parseFloat(fd.get('alvo')) || meta.alvo,
               prazo:     fd.get('prazo')     || null,
               tint:      fd.get('tint')      || meta.tint,
+              cover:     coverValue,
+              completed: statusValue,
             });
             requestClose();
           }}
@@ -474,6 +495,15 @@ function AjustarPlanoModal({ open, meta, onConfirm, onClose }) {
             <span>Descrição</span>
             <input className="fds-input" name="descricao" defaultValue={meta.descricao} placeholder="Ex: Férias de julho 2027"/>
           </label>
+
+          <CoverPicker
+            value={coverValue} onChange={setCoverValue}
+            tab={coverTab} onTabChange={setCoverTab}
+            uploading={uploading} onUploadingChange={setUploading}
+            userId={userId} uploadGoalCover={uploadGoalCover} deleteGoalCover={deleteGoalCover}
+            toast={toast}
+          />
+
           <div className="fds-modal-row two">
             <label className="fds-field">
               <span>Valor alvo (R$)</span>
@@ -483,6 +513,13 @@ function AjustarPlanoModal({ open, meta, onConfirm, onClose }) {
               <span>Prazo</span>
               <input className="fds-input" name="prazo" type="date" min={new Date().toISOString().slice(0,10)} defaultValue={meta.prazo || ''}/>
             </label>
+          </div>
+          <div className="fds-field">
+            <span>Status</span>
+            <div className="fds-seg fds-seg-2">
+              <button type="button" className={!statusValue ? 'on' : ''} onClick={() => setStatusValue(false)}>Ativa</button>
+              <button type="button" className={statusValue ? 'on' : ''} onClick={() => setStatusValue(true)}>Concluída</button>
+            </div>
           </div>
           <div className="fds-field">
             <span>Cor</span>
@@ -498,8 +535,10 @@ function AjustarPlanoModal({ open, meta, onConfirm, onClose }) {
             </div>
           </div>
           <div className="fds-modal-foot" style={{ display: 'flex', justifyContent: 'flex-end', gap: 8, padding: '12px 0 0' }}>
-            <button type="button" className="fds-btn-ghost" onClick={requestClose}>Cancelar</button>
-            <button type="submit" className="fds-btn-primary"><Icon.Check size={13}/> Salvar alterações</button>
+            <button type="button" className="fds-btn-ghost" onClick={requestClose} disabled={uploading}>Cancelar</button>
+            <button type="submit" className="fds-btn-primary" disabled={uploading} style={{ opacity: uploading ? 0.6 : 1 }}>
+              <Icon.Check size={13}/> Salvar alterações
+            </button>
           </div>
         </form>
       </div>
@@ -921,7 +960,7 @@ function SaldoInlineEditor({ meta, onConfirm }) {
 
 // ─── MetasStudio ──────────────────────────────────────────────
 function MetasStudio({ onAdd, onNav }) {
-  const { transactions, monthTransactions, selectedMonth, monthLabel, isEmpty, goals, accounts, addGoal, updateGoal, deleteGoal } = useFides();
+  const { transactions, monthTransactions, selectedMonth, monthLabel, isEmpty, goals, accounts, addGoal, updateGoal, deleteGoal, deleteGoalCover } = useFides();
   const today = new Date();
 
   // ─── Local state (declared unconditionally, before any early return — Rules of Hooks) ───
@@ -1010,20 +1049,39 @@ function MetasStudio({ onAdd, onNav }) {
       <AjustarPlanoModal
         open={!!editTarget}
         meta={editTarget}
-        onConfirm={(patch) => updateGoal(editTarget.id, {
-          name: patch.nome,
-          target: Number(patch.alvo) || 0,
-          target_date: patch.prazo || null,
-          description: patch.descricao || '',
-          emoji: patch.emoji,
-          tint: patch.tint,
-        })}
+        onConfirm={(patch) => {
+          const wasCompleted = !!editTarget.completed;
+          const isCompleted  = !!patch.completed;
+          let completedAt = editTarget.completedAt || null;
+          if (isCompleted && !wasCompleted) completedAt = new Date().toISOString();
+          if (!isCompleted) completedAt = null;
+
+          updateGoal(editTarget.id, {
+            name: patch.nome,
+            target: Number(patch.alvo) || 0,
+            target_date: patch.prazo || null,
+            description: patch.descricao || '',
+            emoji: patch.emoji,
+            tint: patch.tint,
+            image_url: patch.cover || null,
+            completed: isCompleted,
+            completed_at: completedAt,
+          });
+
+          // Capa antiga era um upload próprio (não preset) e foi trocada → limpa do Storage
+          const oldPath = coverStoragePath(editTarget.cover);
+          if (oldPath && patch.cover !== editTarget.cover) deleteGoalCover(oldPath);
+        }}
         onClose={() => setEditTarget(null)}
       />
       <MetConfirmDeleteModal
         open={!!deleteTarget}
         nome={deleteTarget?.nome}
-        onConfirm={() => deleteGoal(deleteTarget.id)}
+        onConfirm={() => {
+          deleteGoal(deleteTarget.id);
+          const path = coverStoragePath(deleteTarget.cover);
+          if (path) deleteGoalCover(path);
+        }}
         onCancel={() => setDeleteTarget(null)}
       />
       <AportarModal
