@@ -26,8 +26,9 @@ Entra sobre a base da Phase 07 (CRUD Metas wiring). Toca frontend (`assets/fides
 ### D3 — Hero
 - Hero **exclusivo da área de Metas** (`met-hero`). Classe própria. **NÃO** reutilizar/mesclar/herdar o hero inicial da home (`stu-hero`). Backdrop = colagem sutil (mask) das capas para diferenciar do hero da home.
 
-### D4 — Fonte dos presets
-- **Capas bespoke geradas** (texturas/gradientes na paleta tint), bundladas em `assets/covers/*.webp`, servidas estáticas pela Vercel (sem CSP/rede externa). ~16 capas temáticas. Referenciadas por key `preset:<id>`.
+### D4 — Fonte dos presets  *(resolvido pós-pesquisa 2026-07-02: SVG, não .webp)*
+- **Capas bespoke geradas** (texturas/gradientes na paleta tint), bundladas em `assets/covers/`, servidas estáticas pela Vercel (sem CSP/rede externa). ~16 capas temáticas. Referenciadas por key `preset:<id>`.
+- **Formato = `.svg`** (revisão de D4): o ambiente não tem encoder `.webp` (sem `cwebp`/`imagemagick`). SVG gradiente/textura é zero-tooling, nítido em qualquer DPI, minúsculo, editável e on-brand. Mesmo contrato `preset:<id>`; muda só a extensão (`assets/covers/<id>.svg`).
 
 ### D5 — Modelo de status
 - **Ativa / Concluída** reusando a coluna `completed` (boolean) já existente. **Sem coluna nova de status** nesta fase. Filtro e pill derivam de `completed`.
@@ -49,7 +50,7 @@ Entra sobre a base da Phase 07 (CRUD Metas wiring). Toca frontend (`assets/fides
 
 ### Backend Supabase (sensível — security review obrigatória)
 - **Migração schema**: `alter table public.goals add column image_url text;` (nullable). Guarda `preset:<id>` OU URL pública do Storage. Espelhar em `supabase/schema.sql`.
-- **Storage bucket `goal-covers`**: leitura pública (capas não sensíveis — confirmar); escrita/update/delete só do dono (`auth.uid()` = pasta `user_id/`), policies RLS por path prefix; validação content-type imagem, tamanho ≤ 5MB, extensões jpg/png/webp, nome saneado (sem path traversal).
+- **Storage bucket `goal-covers`**: leitura **pública confirmada** (capas não sensíveis; objetos com nome UUID não-listáveis, listing gated por RLS — client usa `getPublicUrl`); escrita/update/delete só do dono (`auth.uid()` = pasta `user_id/`), policies RLS por path prefix; validação content-type imagem, tamanho ≤ 5MB, extensões jpg/png/webp, nome saneado (sem path traversal).
 - Nome de objeto = `user_id/<uuid>.<ext>` (evita colisão + traversal).
 - Upload usa client Supabase autenticado (anon key + sessão), **nunca** `service_role`. Sem chaves hardcoded.
 
@@ -58,6 +59,14 @@ Entra sobre a base da Phase 07 (CRUD Metas wiring). Toca frontend (`assets/fides
 - Tint dirige barra + scrim + acento do card mesmo com foto → sistema de cor sobrevive.
 - Manrope + sage-paper (#F4F5F1) + verde floresta (#2D5A3D). `tokens.css` = primeiro CSS carregado (CLAUDE.md).
 - React via Babel-standalone: **Rules of Hooks** — hooks declarados antes de qualquer early return (já causou bug na Phase 07).
+
+### Resoluções pós-pesquisa (2026-07-02) & gaps herdados da Phase 07
+- **D4 → SVG** (acima): presets em `.svg`, não `.webp`.
+- **Bucket `goal-covers` → leitura pública** confirmada (nomes UUID; write/delete owner-only).
+- **Verificação RLS ao vivo (checkpoint humano):** `supabase/schema.sql` pode estar defasado (ROADMAP B10) e o MCP Supabase precisou de auth na pesquisa. A 1ª onda deve incluir um `checkpoint:human-verify` para confirmar RLS de `goals` ao vivo (MCP autenticado ou Supabase Dashboard) antes/junto de aplicar a migração + as policies do bucket.
+- **GAP Phase 07 #1 — `normalizeGoal` não mapeia `completed`/`completed_at`** (string ausente em `fides-store.jsx`/`fides-metas.jsx`): D5 (filtro Ativas/Concluídas + Capítulo III "Já atingidas") é no-op silencioso sem isso. **Corrigir nesta fase** (mapear + ligar o "Marcar como concluída" a `updateGoal`).
+- **GAP Phase 07 #2 — `AportarModal` é dead code**: componente completo (`fides-metas.jsx:89-181`) nunca montado; botão "Aportar" abre `EmBreveModal` (`:957`). D6 exige montá-lo e ligar a `updateGoal({ current })`. **Corrigir nesta fase.**
+- **`.stu-hero` é classe compartilhada** (Dashboard/Contas/Metas — `fides-studio.jsx:216`, `fides-contas.jsx:720`, `fides-metas.jsx:825`): D3 → renomear só o wrapper externo em `fides-metas.jsx` p/ `met-hero` + novo bloco CSS em `fides-metas.css`; **não** tocar `.stu-hero` em `fides-studio.css`.
 
 ### Claude's Discretion
 - Estrutura interna dos componentes React (`vcard`, barra de controles, seletor de capa) desde que respeite classes/identidade acima.
@@ -99,7 +108,7 @@ goals(
 ```
 
 ### Presets
-- ~16 capas bespoke `.webp` na paleta tint, em `assets/covers/`, servidas estáticas (sem rede externa / CSP). Key `preset:<id>`.
+- ~16 capas bespoke **`.svg`** (gradiente/textura) na paleta tint, em `assets/covers/`, servidas estáticas (sem rede externa / CSP). Key `preset:<id>`. (Formato SVG resolvido pós-pesquisa — ver D4.)
 
 ### Success Criteria (UAT — do spec §8)
 1. Criar meta escolhendo capa da galeria → card renderiza com a capa; persiste no reload.
