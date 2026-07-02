@@ -1,0 +1,17 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 186" preserveAspectRatio="xMidYMid slice">
+  <defs>
+    <linearGradient id="natureza-bg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#4A8B5C"/>
+      <stop offset="55%" stop-color="#2D5A3D"/>
+      <stop offset="100%" stop-color="#123227"/>
+    </linearGradient>
+    <linearGradient id="natureza-shadow" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="38%" stop-color="#0F1A14" stop-opacity="0"/>
+      <stop offset="100%" stop-color="#0F1A14" stop-opacity="0.46"/>
+    </linearGradient>
+  </defs>
+  <rect width="400" height="186" fill="url(#natureza-bg)"/>
+  <path d="M0 130 L70 74 L120 108 L170 56 L230 112 L290 70 L340 104 L400 80 V186 H0 Z" fill="#F4F5F1" opacity="0.14"/>
+  <path d="M0 154 L90 112 L160 140 L240 100 L320 136 L400 116 V186 H0 Z" fill="#F4F5F1" opacity="0.1"/>
+  <rect width="400" height="186" fill="url(#natureza-shadow)"/>
+</svg>

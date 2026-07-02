@@ -1,0 +1,21 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 186" preserveAspectRatio="xMidYMid slice">
+  <defs>
+    <linearGradient id="negocio-bg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#2C5282"/>
+      <stop offset="60%" stop-color="#16233B"/>
+      <stop offset="100%" stop-color="#0F1A14"/>
+    </linearGradient>
+    <linearGradient id="negocio-shadow" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="35%" stop-color="#0F1A14" stop-opacity="0"/>
+      <stop offset="100%" stop-color="#0F1A14" stop-opacity="0.5"/>
+    </linearGradient>
+  </defs>
+  <rect width="400" height="186" fill="url(#negocio-bg)"/>
+  <g fill="#F4F5F1" opacity="0.28">
+    <rect x="170" y="100" width="20" height="46"/>
+    <rect x="198" y="80" width="20" height="66"/>
+    <rect x="226" y="60" width="20" height="86"/>
+    <rect x="254" y="38" width="20" height="108"/>
+  </g>
+  <rect width="400" height="186" fill="url(#negocio-shadow)"/>
+</svg>

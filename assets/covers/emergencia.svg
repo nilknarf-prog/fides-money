@@ -1,0 +1,16 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 186" preserveAspectRatio="xMidYMid slice">
+  <defs>
+    <linearGradient id="emergencia-bg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#9B2C2C"/>
+      <stop offset="55%" stop-color="#B45309"/>
+      <stop offset="100%" stop-color="#2E1710"/>
+    </linearGradient>
+    <linearGradient id="emergencia-shadow" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="38%" stop-color="#0F1A14" stop-opacity="0"/>
+      <stop offset="100%" stop-color="#0F1A14" stop-opacity="0.46"/>
+    </linearGradient>
+  </defs>
+  <rect width="400" height="186" fill="url(#emergencia-bg)"/>
+  <path d="M200 40 L236 54 V96 Q236 128 200 144 Q164 128 164 96 V54 Z" fill="#F4F5F1" opacity="0.28"/>
+  <rect width="400" height="186" fill="url(#emergencia-shadow)"/>
+</svg>

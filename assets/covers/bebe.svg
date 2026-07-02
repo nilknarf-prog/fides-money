@@ -1,0 +1,24 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 186" preserveAspectRatio="xMidYMid slice">
+  <defs>
+    <linearGradient id="bebe-bg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#0891B2"/>
+      <stop offset="45%" stop-color="#BE185D"/>
+      <stop offset="100%" stop-color="#3A1F33"/>
+    </linearGradient>
+    <linearGradient id="bebe-shadow" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="38%" stop-color="#0F1A14" stop-opacity="0"/>
+      <stop offset="100%" stop-color="#0F1A14" stop-opacity="0.46"/>
+    </linearGradient>
+  </defs>
+  <rect width="400" height="186" fill="url(#bebe-bg)"/>
+  <g fill="#F4F5F1" opacity="0.55">
+    <circle cx="90" cy="46" r="3"/>
+    <circle cx="140" cy="30" r="2.4"/>
+    <circle cx="230" cy="40" r="3.2"/>
+    <circle cx="300" cy="60" r="2.2"/>
+    <circle cx="340" cy="34" r="2.6"/>
+    <circle cx="60" cy="80" r="2"/>
+  </g>
+  <circle cx="200" cy="60" r="34" fill="#F4F5F1" opacity="0.18"/>
+  <rect width="400" height="186" fill="url(#bebe-shadow)"/>
+</svg>

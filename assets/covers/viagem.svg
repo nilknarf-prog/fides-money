@@ -1,0 +1,23 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 186" preserveAspectRatio="xMidYMid slice">
+  <defs>
+    <linearGradient id="viagem-bg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#0891B2"/>
+      <stop offset="55%" stop-color="#2C5282"/>
+      <stop offset="100%" stop-color="#1F4029"/>
+    </linearGradient>
+    <radialGradient id="viagem-sun" cx="80%" cy="20%" r="40%">
+      <stop offset="0%" stop-color="#F4F5F1" stop-opacity="0.5"/>
+      <stop offset="100%" stop-color="#F4F5F1" stop-opacity="0"/>
+    </radialGradient>
+    <linearGradient id="viagem-shadow" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="42%" stop-color="#0F1A14" stop-opacity="0"/>
+      <stop offset="100%" stop-color="#0F1A14" stop-opacity="0.45"/>
+    </linearGradient>
+  </defs>
+  <rect width="400" height="186" fill="url(#viagem-bg)"/>
+  <circle cx="320" cy="40" r="60" fill="url(#viagem-sun)"/>
+  <path d="M20 60 Q140 10 380 70" fill="none" stroke="#F4F5F1" stroke-width="1.6" stroke-dasharray="2 8" opacity="0.55"/>
+  <path d="M0 128 Q65 108 135 126 T270 120 T400 130 V186 H0 Z" fill="#F4F5F1" opacity="0.08"/>
+  <path d="M0 150 Q75 132 150 148 T290 142 T400 152 V186 H0 Z" fill="#F4F5F1" opacity="0.1"/>
+  <rect width="400" height="186" fill="url(#viagem-shadow)"/>
+</svg>
