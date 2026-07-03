@@ -1217,8 +1217,7 @@ function MetasStudio({ onAdd, onNav }) {
 
           {/* ─── Capítulo I · Em curso ─── */}
           <ChapterMark roman="I" title="Em curso"
-                       caption={`${goals.length} metas com aporte regular`}
-                       action={<button className="stu-link" onClick={() => setCriarOpen(true)}><Icon.Plus size={12}/> Nova meta</button>}/>
+                       caption={`${goals.length} metas com aporte regular`}/>
           {metasFiltradas.length === 0 ? (
             <div className="stu-card met-done" data-od-id="met-grid-empty">
               <div className="met-done-empty">Nenhuma meta encontrada para essa busca.</div>
