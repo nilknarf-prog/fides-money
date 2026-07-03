@@ -327,7 +327,7 @@ Plans:
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
 | 07 - CRUD Metas | 3/3 | Complete   | 2026-07-01 |
-| 08 - Metas vision-board | 7/8 | In Progress|  |
+| 08 - Metas vision-board | 8/8 | Complete   | 2026-07-03 |
 | 09 - Transações power tools + analytics | 0/5 | Planejado (waves 1→3) | — |
 
 ### Phase 7: Metas vision-board redesign
@@ -359,5 +359,5 @@ Plans:
 **Gap closure (pós-08-UAT — 4 de 6 gaps; 2 needs_research deferidos)**
 
 - [x] 08-07-PLAN.md — **wave 1** · UI polish (presentation-only): guardar Infinity→"sem prazo" em todas exibições de meses (GAP-INFINITY); remover CTA "Nova meta" duplicado/vazado (GAP-DUP-NOVA); EmojiPicker grid curado hand-rolled (sem npm) nos modais Criar/Ajustar (GAP-EMOJI)
-- [ ] 08-08-PLAN.md — **wave 2** (depends_on 08-07 por sobreposição de fides-metas.jsx) · [BLOCKER] conclusão de meta diagnose-first: instrumentar runtime (chrome-devtools + Supabase MCP) → (condicional) migração/policy LIVE blocking-human → conclusão manual end-to-end + auto-conclusão a >=alvo, sem auto-reabertura (GAP-CONCLUSAO)
+- [x] 08-08-PLAN.md — **wave 2** (depends_on 08-07 por sobreposição de fides-metas.jsx) · [BLOCKER] conclusão de meta diagnose-first: instrumentar runtime (chrome-devtools + Supabase MCP) → (condicional) migração/policy LIVE blocking-human → conclusão manual end-to-end + auto-conclusão a >=alvo, sem auto-reabertura (GAP-CONCLUSAO)
 - Deferidos p/ passada research-gated: capas fotos reais CC0; metas-exemplo pré-criadas (ambos needs_research)

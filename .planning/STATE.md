@@ -5,8 +5,8 @@ milestone_name: CRUD Metas — EM PLANEJAMENTO
 current_phase: 08
 current_phase_name: metas-vision-board-redesign
 status: executing
-stopped_at: Completed 08-07-PLAN.md
-last_updated: "2026-07-03T04:15:47.353Z"
+stopped_at: Completed 08-08-PLAN.md
+last_updated: "2026-07-03T04:34:12.989Z"
 last_activity: 2026-07-03
 last_activity_desc: Phase 08 execution started
 progress:
@@ -22,7 +22,7 @@ progress:
 ## Current Position
 
 Phase: 08 (metas-vision-board-redesign) — EXECUTING
-Plan: 2 of 8
+Plan: 3 of 8
 Status: Ready to execute
 Last activity: 2026-07-03 — Phase 08 execution started
 
@@ -82,6 +82,7 @@ Depois: `/gsd-verify-work 08` (inclui smoke test RLS de dois usuários — UAT-2
 | Phase 07 P02 | 6min | 3 tasks | 1 files |
 | Phase 07 P03 | 12min | 3 tasks | 1 files |
 | Phase 08 P07 | 12min | 3 tasks | 2 files |
+| Phase 08 P08 | 20min | 3 tasks | 3 files |
 
 ## Decisions
 
@@ -107,11 +108,14 @@ Depois: `/gsd-verify-work 08` (inclui smoke test RLS de dois usuários — UAT-2
 - [Phase ?]: 07-03: moved MetasStudio useState declarations above the isEmpty early return to fix a Rules of Hooks violation; also fixed the top empty-state CTA which was wrongly wired to the parent onAdd prop
 - [Phase 08]: 08-07: mesesLabel guards Infinity across hero lede, Maior meta strip, and vcard Chega em stat; hero lede uses natural 'sem previsão de chegada' phrasing
 - [Phase 08]: 08-07: EmojiPicker CSS namespaced met-emoji-select* (not met-emoji-picker*) to keep 'emoji-picker' out of fides-metas.jsx, satisfying the plan's own no-npm-emoji-package grep guard
+- [Phase ?]: 08-08: Root cause = (a-schema) create-table-if-not-exists never adds columns to a pre-existing table — completed/completed_at were declared only inside the CREATE block and never reached the live goals table; healed live out-of-band, hardened schema.sql with standalone idempotent ALTERs
+- [Phase ?]: 08-08: patchComAutoConclusao helper auto-completes a goal when balance reaches target on aporte/atualizar-saldo, never sets completed:false (no auto-reopen on later balance drop — locked decision)
+- [Phase ?]: 08-08: No live database write performed (checkpoint decision: no-op live + harden SQL); live completed/completed_at columns and owner-scoped RLS UPDATE policy confirmed already correct via Supabase MCP introspection
 
 ## Session
 
-**Last session:** 2026-07-03T04:15:47.340Z
-**Stopped at:** Completed 08-07-PLAN.md
+**Last session:** 2026-07-03T04:34:12.972Z
+**Stopped at:** Completed 08-08-PLAN.md
 **Resume file:** None
 
 ## Accumulated Context
