@@ -4,16 +4,16 @@ milestone: v1.1
 milestone_name: CRUD Metas — EM PLANEJAMENTO
 current_phase: 08
 current_phase_name: metas-vision-board-redesign
-status: executing
-stopped_at: Completed 08-08-PLAN.md
+status: awaiting-uat
+stopped_at: "Phase 08 code-complete (8/8 plans) + DB/security review CLEAN + pushed — verification human_needed, awaiting /gsd-verify-work 08"
 last_updated: "2026-07-03T04:34:12.989Z"
 last_activity: 2026-07-03
-last_activity_desc: Phase 08 execution started
+last_activity_desc: "Phase 08 gap-closure: 08-07 UI polish + 08-08 completion blocker (diagnose→harden SQL→auto-conclusão); reviews CLEAN; pushed"
 progress:
   total_phases: 3
   completed_phases: 1
   total_plans: 8
-  completed_plans: 3
+  completed_plans: 8
   percent: 33
 ---
 
@@ -21,10 +21,10 @@ progress:
 
 ## Current Position
 
-Phase: 08 (metas-vision-board-redesign) — EXECUTING
-Plan: 3 of 8
-Status: Ready to execute
-Last activity: 2026-07-03 — Phase 08 execution started
+Phase: 08 (metas-vision-board-redesign) — CODE-COMPLETE, awaiting human UAT
+Plan: 8 of 8 code-complete (all SUMMARYs) — gap-closure 08-07 + 08-08 done, reviewed CLEAN, pushed
+Status: verification human_needed — re-run /gsd-verify-work 08 on the deployed app to close 4 runtime truths
+Last activity: 2026-07-03 — 08-07 (UI polish) + 08-08 (completion blocker) executed; DB+security review CLEAN; pushed to main
 
 ## Project Reference
 
@@ -57,14 +57,19 @@ Items acknowledged and deferred at milestone close on 2026-07-01:
 
 ## Next Action
 
-**BLOQUEADO — checkpoint humano (08-01 Task 2):** aplicar ao banco Supabase LIVE, nesta ordem:
+**Phase 08 code-complete + deployed — rodar UAT humano:** `/gsd-verify-work 08`
 
-1. Confirmar RLS de `public.goals` ENABLED + policy `goals: próprio usuário` (`auth.uid() = user_id`) — Dashboard → Authentication → Policies (ou MCP).
-2. `alter table public.goals add column if not exists image_url text;` (SQL Editor / MCP apply_migration).
-3. Aplicar `supabase/goal-covers-storage.sql` (bucket `goal-covers` + 4 policies owner-scoped). Se apply_migration reclamar das colunas do bucket → criar bucket via Dashboard → Storage (public, 5MB, jpeg/png/webp) e só as policies via SQL Editor.
-4. Confirmar bucket + 4 policies em Storage → Policies.
+Gap-closure feito e revisado (DB + security CLEAN, safe to push):
+- **08-07** (UI polish): `mesesLabel` mata "Infinity meses"; um só CTA "Nova meta"; `EmojiPicker` hand-rolled nos modais Criar/Ajustar.
+- **08-08** (blocker conclusão): diagnose-first via Supabase MCP → root cause = drift de schema (`create table if not exists` nunca adiciona coluna a tabela pré-existente; `completed`/`completed_at` só existiam no bloco CREATE). Colunas JÁ estão LIVE + RLS owner-scoped OK → **nenhum write LIVE feito** (decisão: no-op live + harden SQL). `schema.sql` + novo `goals-completed-fix.sql` com ALTERs idempotentes; helper `patchComAutoConclusao` (auto-conclui a >=alvo, sem auto-reabertura).
 
-Depois: `/gsd-verify-work 08` (inclui smoke test RLS de dois usuários — UAT-2/5). Sinal de retomada: "aplicado".
+**4 verdades runtime a fechar na UAT (precisam do app deployado + sessão logada):**
+1. `EmojiPicker` abre/seleciona/persiste nos dois modais (sem warning "Rendered more hooks…").
+2. "Marcar como concluída" reflete end-to-end (pill/filtro/Cap III) e persiste após refresh — Teste 7/8 do 08-UAT.
+3. Aportar/Atualizar saldo a >=alvo auto-conclui com o mesmo reflexo.
+4. Sem "Infinity meses" em nenhum ponto; só um CTA "Nova meta".
+
+VERIFICATION: `.planning/phases/08-metas-vision-board-redesign/08-VERIFICATION.md` (human_needed, 5/9 static-verified).
 
 ## Performance Metrics
 
