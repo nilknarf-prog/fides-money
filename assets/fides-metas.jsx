@@ -70,6 +70,20 @@ function mesesLabel(mesesAteFim) {
   return `${n} ${n === 1 ? 'mês' : 'meses'}`;
 }
 
+// Auto-conclusão (D5): monta o patch de updateGoal a partir do novo saldo.
+// Quando o saldo atinge/ultrapassa o alvo e a meta ainda não está concluída,
+// soma completed+completed_at ao patch. NUNCA seta completed:false — conclusão
+// é marco/evento, não estado derivado; queda de saldo depois de concluída não
+// reabre a meta (decisão travada, ver 08-08-PLAN.md).
+function patchComAutoConclusao(meta, novoAtual) {
+  const patch = { current: novoAtual };
+  if (novoAtual >= meta.alvo && !meta.completed) {
+    patch.completed = true;
+    patch.completed_at = new Date().toISOString();
+  }
+  return patch;
+}
+
 // Deriva o path (dentro do bucket goal-covers) a partir da URL pública, para
 // permitir deleteGoalCover(path). Presets/null não têm objeto no Storage.
 function coverStoragePath(url) {
@@ -1160,7 +1174,7 @@ function MetasStudio({ onAdd, onNav }) {
       <AportarModal
         open={!!aportarTarget}
         meta={aportarTarget}
-        onConfirm={(valor) => updateGoal(aportarTarget.id, { current: aportarTarget.atual + valor })}
+        onConfirm={(valor) => updateGoal(aportarTarget.id, patchComAutoConclusao(aportarTarget, aportarTarget.atual + valor))}
         onClose={() => setAportarTarget(null)}
       />
 
@@ -1369,7 +1383,7 @@ function MetasStudio({ onAdd, onNav }) {
                     <div className="vcard-actions">
                       <SaldoInlineEditor
                         meta={m}
-                        onConfirm={(novoValor) => updateGoal(m.id, { current: novoValor })}
+                        onConfirm={(novoValor) => updateGoal(m.id, patchComAutoConclusao(m, novoValor))}
                       />
                       <div className="vcard-actions-row">
                         <button
