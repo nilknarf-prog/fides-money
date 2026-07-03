@@ -1,0 +1,37 @@
+-- ═════════════════════════════════════════════════════════════════════════
+-- FIX: public.goals.completed / completed_at — drift de schema (Phase 08-08)
+-- ═════════════════════════════════════════════════════════════════════════
+-- Root cause (diagnóstico Task 1, 08-08-PLAN.md): `create table if not exists
+-- public.goals (...)` em supabase/schema.sql declara `completed`/`completed_at`
+-- SOMENTE dentro do bloco CREATE. Contra uma tabela `goals` já existente, o
+-- `if not exists` do CREATE TABLE é um no-op — ele NUNCA adiciona colunas a
+-- uma tabela pré-existente. Só `image_url` recebeu um ALTER standalone
+-- (schema.sql:94) + migração própria; completed/completed_at nunca tiveram
+-- o ALTER equivalente, então nunca chegaram ao banco LIVE por essa via.
+--
+-- Efeito em runtime: o código cliente (normalizeGoal, updateGoal, derivação
+-- de pill/filtro/Capítulo III) sempre esteve correto — o PATCH /goals com
+-- completed/completed_at batia numa tabela sem essas colunas.
+--
+-- Estado no momento deste commit: introspecção live via Supabase MCP (Task 1)
+-- confirmou que completed (boolean not null default false) e completed_at
+-- (timestamptz nullable) JÁ EXISTEM na tabela live (adicionadas fora de banda,
+-- após o UAT que reportou o blocker, antes deste diagnóstico) — ou seja, o fix
+-- de dados já está em vigor no banco. Este arquivo é o hardening: fecha a
+-- armadilha de drift do schema.sql para que qualquer replay futuro (nova
+-- instância, disaster recovery, ambiente de teste) não reproduza o mesmo bug.
+--
+-- Sem apply live neste commit (decisão do checkpoint blocking-human da Task 2:
+-- "No-op live + harden SQL"). Estas ALTERs são as MESMAS já espelhadas em
+-- supabase/schema.sql (idempotentes, seguras para re-rodar a qualquer momento
+-- caso um ambiente precise do backfill).
+--
+-- RLS: a policy de UPDATE em public.goals ("goals: próprio usuário",
+-- `for all using (auth.uid() = user_id)`) JÁ é owner-scoped e permite o UPDATE
+-- do dono normalmente (with_check nulo cai no using() para UPDATE — padrão
+-- Postgres/PostgREST). Ela está correta e é INTENCIONALMENTE deixada
+-- inalterada — nenhuma alteração de policy neste arquivo.
+-- ─────────────────────────────────────────────────────────────────────────
+
+alter table public.goals add column if not exists completed    boolean not null default false;
+alter table public.goals add column if not exists completed_at  timestamptz;

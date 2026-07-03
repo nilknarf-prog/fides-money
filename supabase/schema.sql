@@ -93,6 +93,13 @@ create table if not exists public.goals (
 -- ficam null → fallback gradiente tint no app (sem backfill).
 alter table public.goals add column if not exists image_url text;
 
+-- Defensive idempotent ALTERs: `create table if not exists` above does NOT add columns
+-- to an already-existing table. completed/completed_at were declared only in the create
+-- block, so they never reached the pre-existing live goals table — the Phase-08 completion
+-- bug. These standalone ALTERs make the schema self-healing on any future replay.
+alter table public.goals add column if not exists completed    boolean not null default false;
+alter table public.goals add column if not exists completed_at  timestamptz;
+
 -- ─────────────────────────────────────────────
 -- TABELA: user_categories
 -- Categorias customizadas por usuário (defaults ficam hardcoded no app).
