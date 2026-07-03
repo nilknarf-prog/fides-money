@@ -60,6 +60,16 @@ function resolveCoverUrl(cover) {
   return cover; // já é URL pública do Storage
 }
 
+// Guarda Infinity → 'sem prazo' em toda exibição textual derivada de mesesAteFim
+// (meta sem prazo/aporte não tem mesesAteFim finito). Usado no hero, na strip
+// "Maior meta" e na stat "Chega em" do vcard — a apresentação de meses nunca
+// concatena a palavra sem passar por aqui.
+function mesesLabel(mesesAteFim) {
+  if (!Number.isFinite(mesesAteFim)) return 'sem prazo';
+  const n = mesesAteFim;
+  return `${n} ${n === 1 ? 'mês' : 'meses'}`;
+}
+
 // Deriva o path (dentro do bucket goal-covers) a partir da URL pública, para
 // permitir deleteGoalCover(path). Presets/null não têm objeto no Storage.
 function coverStoragePath(url) {
@@ -1134,8 +1144,10 @@ function MetasStudio({ onAdd, onNav }) {
               <strong className="stu-num">{fmtBRL(totalAlvo)}</strong> de alvo —{' '}
               <strong className="stu-num">{Math.round(pctMedio * 100)}% do caminho</strong> já foi.
               Você reserva <strong className="stu-num">{fmtBRL(totalAporte)}</strong> por mês para isso.
-              A próxima a chegar é <strong className="stu-num">{proxima?.nome}</strong>, em{' '}
-              <span className="stu-pos">{proxima?.mesesAteFim} {proxima?.mesesAteFim === 1 ? 'mês' : 'meses'}</span>.
+              A próxima a chegar é <strong className="stu-num">{proxima?.nome}</strong>
+              {Number.isFinite(proxima?.mesesAteFim)
+                ? <>, em <span className="stu-pos">{mesesLabel(proxima?.mesesAteFim)}</span></>
+                : <>, sem previsão de chegada</>}.
             </p>
             <div className="stu-hero-strip" data-od-id="met-hero-strip">
               <div className="stu-metric">
@@ -1158,7 +1170,7 @@ function MetasStudio({ onAdd, onNav }) {
                 <div className="stu-metric-lbl">Maior meta</div>
                 <div className="stu-metric-val">{maior?.nome.split(' ').slice(0, 2).join(' ')}</div>
                 <div className="stu-metric-tag">
-                  <Icon.Goal size={11}/> {fmtBRL(maior?.alvo)} · {maior?.mesesAteFim} meses
+                  <Icon.Goal size={11}/> {fmtBRL(maior?.alvo)} · {mesesLabel(maior?.mesesAteFim)}
                 </div>
               </div>
               <div className="stu-metric-sep"/>
@@ -1222,7 +1234,7 @@ function MetasStudio({ onAdd, onNav }) {
                   ]
                 : [
                     { lbl: 'Aporte mensal', val: fmtBRL(m.contribuicao) },
-                    { lbl: 'Chega em',      val: m.mesesAteFim === Infinity ? '—' : `${m.mesesAteFim} ${m.mesesAteFim === 1 ? 'mês' : 'meses'}`, sub: m.fimLabel },
+                    { lbl: 'Chega em',      val: mesesLabel(m.mesesAteFim), sub: m.fimLabel },
                   ];
               return (
                 <div className="vcard" key={m.id}>
