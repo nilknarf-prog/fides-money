@@ -174,6 +174,69 @@ function CoverPicker({ value, onChange, tab, onTabChange, uploading, onUploading
   );
 }
 
+// ─── EmojiPicker — seletor visual de emoji (grid curado hand-rolled) ──
+// SEM npm/<script> de terceiro — restrição Babel-standalone (sem build step).
+// Controlado por value/onChange; usado por CriarMetaModal/AjustarPlanoModal.
+// Componente isolado: seus próprios hooks (estado de aberto) ficam no seu
+// próprio topo, sem early return — Rules of Hooks intactas.
+const EMOJI_OPTIONS = [
+  '🎯', '✈️', '🏠', '🚗', '💰', '🎓', '💍', '👶',
+  '🏥', '🏖️', '🌴', '💻', '🎁', '🎉', '📈', '🚨',
+  '🛟', '🏦', '💳', '🐷', '⛰️', '🏝️', '📱', '🎮',
+  '📷', '🚲', '⛵', '🛋️', '🐶', '⚽', '🎸', '📚',
+];
+
+function EmojiPicker({ value, onChange }) {
+  const [open, setOpen] = React.useState(false);
+  const ref = React.useRef(null);
+
+  React.useEffect(() => {
+    if (!open) return;
+    const handler = (e) => {
+      if (ref.current && !ref.current.contains(e.target)) setOpen(false);
+    };
+    document.addEventListener('mousedown', handler);
+    document.addEventListener('touchstart', handler, { passive: true });
+    return () => {
+      document.removeEventListener('mousedown', handler);
+      document.removeEventListener('touchstart', handler);
+    };
+  }, [open]);
+
+  return (
+    <div className="fds-field met-emoji-select" ref={ref}>
+      <span>Emoji</span>
+      <button
+        type="button"
+        className="met-emoji-select-trigger"
+        onClick={() => setOpen(v => !v)}
+        aria-haspopup="true"
+        aria-expanded={open}
+        style={{ touchAction: 'manipulation', WebkitTapHighlightColor: 'transparent' }}
+      >
+        {value || '🎯'}
+      </button>
+      {open && (
+        <div className="met-emoji-select-grid" role="listbox">
+          {EMOJI_OPTIONS.map(e => (
+            <button
+              type="button"
+              key={e}
+              className={'met-emoji-select-opt' + (value === e ? ' selected' : '')}
+              onClick={() => { onChange(e); setOpen(false); }}
+              aria-label={e}
+              aria-pressed={value === e}
+              style={{ touchAction: 'manipulation', WebkitTapHighlightColor: 'transparent' }}
+            >
+              {e}
+            </button>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
 // ─── MetDotsMenu — dropdown contextual das metas ──────────────
 function MetDotsMenu({ items }) {
   const [open, setOpen] = React.useState(false);
@@ -331,6 +394,7 @@ function CriarMetaModal({ open, onConfirm, onClose }) {
   const [coverTab,   setCoverTab]   = React.useState('galeria');
   const [coverValue, setCoverValue] = React.useState(null);
   const [uploading,  setUploading]  = React.useState(false);
+  const [emojiValue, setEmojiValue] = React.useState('🎯');
   const { rendered, closing, requestClose } = window.FidesUI.useModalClose(open, onClose);
 
   React.useEffect(() => {
@@ -338,6 +402,7 @@ function CriarMetaModal({ open, onConfirm, onClose }) {
       setCoverTab('galeria');
       setCoverValue(null);
       setUploading(false);
+      setEmojiValue('🎯');
     }
   }, [open]);
 
@@ -375,10 +440,8 @@ function CriarMetaModal({ open, onConfirm, onClose }) {
           style={{ display: 'flex', flexDirection: 'column', gap: 14 }}
         >
           <div style={{ display: 'grid', gridTemplateColumns: '52px 1fr', gap: 12 }}>
-            <label className="fds-field">
-              <span>Emoji</span>
-              <input className="fds-input" name="emoji" maxLength={2} style={{ textAlign: 'center', fontSize: 20 }}/>
-            </label>
+            <EmojiPicker value={emojiValue} onChange={setEmojiValue}/>
+            <input type="hidden" name="emoji" value={emojiValue}/>
             <label className="fds-field">
               <span>Nome da meta</span>
               <input className="fds-input" name="nome" required/>
@@ -446,6 +509,7 @@ function AjustarPlanoModal({ open, meta, onConfirm, onClose }) {
   const [coverValue,  setCoverValue]  = React.useState(null);
   const [uploading,   setUploading]   = React.useState(false);
   const [statusValue, setStatusValue] = React.useState(false);
+  const [emojiValue,  setEmojiValue]  = React.useState('🎯');
   const { rendered, closing, requestClose } = window.FidesUI.useModalClose(open, onClose);
 
   React.useEffect(() => {
@@ -454,6 +518,7 @@ function AjustarPlanoModal({ open, meta, onConfirm, onClose }) {
       setCoverValue(meta.cover || null);
       setUploading(false);
       setStatusValue(!!meta.completed);
+      setEmojiValue(meta.emoji || '🎯');
     }
   }, [open, meta && meta.id]);
 
@@ -492,10 +557,8 @@ function AjustarPlanoModal({ open, meta, onConfirm, onClose }) {
           style={{ display: 'flex', flexDirection: 'column', gap: 14 }}
         >
           <div style={{ display: 'grid', gridTemplateColumns: '52px 1fr', gap: 12 }}>
-            <label className="fds-field">
-              <span>Emoji</span>
-              <input className="fds-input" name="emoji" defaultValue={meta.emoji} maxLength={2} style={{ textAlign: 'center', fontSize: 20 }}/>
-            </label>
+            <EmojiPicker value={emojiValue} onChange={setEmojiValue}/>
+            <input type="hidden" name="emoji" value={emojiValue}/>
             <label className="fds-field">
               <span>Nome da meta</span>
               <input className="fds-input" name="nome" defaultValue={meta.nome} required/>

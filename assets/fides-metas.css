@@ -580,6 +580,41 @@ input[type=radio]:checked + .met-tint-swatch { box-shadow: 0 0 0 3px white, 0 0 
   .fds-studio .met-cover-picker-grid { grid-template-columns: repeat(3, 1fr); }
 }
 
+/* ─── EmojiPicker — grid curado hand-rolled (Criar/Ajustar) ─────── */
+.fds-studio .met-emoji-select { position: relative; }
+.fds-studio .met-emoji-select-trigger {
+  width: 52px; height: 42px;
+  border: 1px solid var(--border); border-radius: 10px;
+  background: var(--card-soft);
+  font-size: 20px; text-align: center;
+  cursor: pointer; padding: 0;
+  transition: border-color 0.12s, background 0.12s;
+  touch-action: manipulation; -webkit-tap-highlight-color: transparent;
+}
+.fds-studio .met-emoji-select-trigger:hover { border-color: var(--accent); background: var(--card); }
+.fds-studio .met-emoji-select-grid {
+  position: absolute; z-index: 20; top: calc(100% + 6px); left: 0;
+  display: grid; grid-template-columns: repeat(6, 1fr); gap: 4px;
+  width: 236px; max-height: 200px; overflow-y: auto;
+  padding: 8px; border-radius: 12px;
+  background: var(--card); border: 1px solid var(--border);
+  box-shadow: 0 1px 0 rgba(15,26,20,.06), 0 12px 32px -12px rgba(45,90,61,.28);
+}
+.fds-studio .met-emoji-select-opt {
+  width: 34px; height: 34px;
+  display: flex; align-items: center; justify-content: center;
+  border: 2px solid transparent; border-radius: 8px;
+  background: transparent; font-size: 17px;
+  cursor: pointer; padding: 0;
+  transition: background 0.12s, border-color 0.12s, transform 0.12s;
+  touch-action: manipulation; -webkit-tap-highlight-color: transparent;
+}
+.fds-studio .met-emoji-select-opt:hover { background: var(--card-soft); transform: scale(1.08); }
+.fds-studio .met-emoji-select-opt.selected { border-color: var(--accent); background: var(--accent-soft); }
+@media (max-width: 480px) {
+  .fds-studio .met-emoji-select-grid { width: 208px; grid-template-columns: repeat(5, 1fr); left: -4px; }
+}
+
 /* ─── SimularPanel ───────────────────────────────────────── */
 .fds-studio .met-simul-origem {
   display: flex; flex-direction: column; gap: 3px;
