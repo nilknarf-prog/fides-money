@@ -326,7 +326,7 @@ Plans:
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
 | 07 - CRUD Metas | 3/3 | Complete   | 2026-07-01 |
-| 08 - Metas vision-board | 5/6 | Código completo — aguarda apply LIVE de 08-01 (checkpoint humano) | — |
+| 08 - Metas vision-board | 6/8 | Executado; 08-UAT achou gaps → 08-07 (UI) + 08-08 (blocker conclusão) planejados | — |
 | 09 - Transações power tools + analytics | 0/5 | Planejado (waves 1→3) | — |
 
 ### Phase 7: Metas vision-board redesign
@@ -334,7 +334,7 @@ Plans:
 **Goal:** A área de Metas vira um "vision board": cards com capa (galeria de ~16 presets SVG bespoke OU upload próprio), busca por nome/descrição, filtro por status (Ativa/Concluída via `completed`) e update inline (Aportar com projeção + Atualizar saldo direto) — tudo persistido em `goals.image_url` + bucket Storage `goal-covers` com RLS owner-only — mantendo a identidade editorial Fides (hero próprio `met-hero`, capítulos I/II/III, sistema de tint por meta). Fecha 2 gaps herdados da Phase 07: `normalizeGoal` passa a mapear `completed`/`image_url`, e o `AportarModal` (dead code) é montado.
 **Requirements**: UAT-1…UAT-7 (design spec §8 — sem REQ-IDs formais; PRD Express Path)
 **Depends on:** Phase 6
-**Plans:** 6 plans (waves 1→4)
+**Plans:** 8 plans (waves 1→4 + gap-closure pós-UAT)
 
 Plans:
 **Wave 1** *(fundação — arquivos distintos, em paralelo)*
@@ -354,3 +354,9 @@ Plans:
 **Wave 4** *(depende de 07-05, 07-03, 07-01, 07-02)*
 
 - [x] 07-06-PLAN.md (disco: 08-06) — Seletor de capa (Galeria/Enviar foto) nos modais + campos Valor atual/Status + limpeza de Storage no editar/excluir — 0264389/6b7612a (código pronto; persistência real depende do apply de 08-01) (UAT-1/2/5)
+
+**Gap closure (pós-08-UAT — 4 de 6 gaps; 2 needs_research deferidos)**
+
+- [ ] 08-07-PLAN.md — **wave 1** · UI polish (presentation-only): guardar Infinity→"sem prazo" em todas exibições de meses (GAP-INFINITY); remover CTA "Nova meta" duplicado/vazado (GAP-DUP-NOVA); EmojiPicker grid curado hand-rolled (sem npm) nos modais Criar/Ajustar (GAP-EMOJI)
+- [ ] 08-08-PLAN.md — **wave 2** (depends_on 08-07 por sobreposição de fides-metas.jsx) · [BLOCKER] conclusão de meta diagnose-first: instrumentar runtime (chrome-devtools + Supabase MCP) → (condicional) migração/policy LIVE blocking-human → conclusão manual end-to-end + auto-conclusão a >=alvo, sem auto-reabertura (GAP-CONCLUSAO)
+- Deferidos p/ passada research-gated: capas fotos reais CC0; metas-exemplo pré-criadas (ambos needs_research)
