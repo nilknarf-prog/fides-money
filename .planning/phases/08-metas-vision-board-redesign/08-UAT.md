@@ -10,7 +10,14 @@ prereqs:
 
 ## Current Test
 
-[testing paused — 1 blocked (test 8) + 7 gaps para 08-07]
+[retest 7/2/8 após redeploy — blocker de regressão white-screen root-caused + corrigido 2026-07-03]
+
+<!-- Retest 08-08: marcar concluída → PÁGINA EM BRANCO (regressão). Root cause: fides-metas.jsx:1517 usava
+     Icon.Trophy (Icon global = fides-data.jsx, sem chave Trophy) em vez de MetIcon.Trophy (local). React
+     "Element type is invalid" → white-screen sempre que metasConcluidas.length>0; persiste no refresh pois a
+     meta completed vem do DB. Mascarava conclusão manual E auto-conclusão a 100% (ambas wired e corretas).
+     FIX: Icon.Trophy → MetIcon.Trophy (1 linha). Retestar 7/2/8 + auto-conclusão após deploy. -->
+
 
 ## Tests
 

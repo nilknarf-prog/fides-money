@@ -1514,7 +1514,7 @@ function MetasStudio({ onAdd, onNav }) {
                     <div className="met-done-date">
                       {m.completedAt ? `Concluída em ${new Date(m.completedAt).toLocaleDateString('pt-BR')}` : '—'}
                     </div>
-                    <div className="met-done-tag"><Icon.Trophy size={11}/> Concluída</div>
+                    <div className="met-done-tag"><MetIcon.Trophy size={11}/> Concluída</div>
                   </div>
                 ))}
               </div>
