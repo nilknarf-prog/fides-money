@@ -69,6 +69,15 @@ function ymShortLabel(ym) {
   return (TX_MONTHS_LBL[idx] || '') + ' ' + (parts[0] || '');
 }
 
+// csvSafeCell: neutraliza CSV-injection (T-09-CSV, finding #1 [HIGH] do
+// 09-REVIEWS). Qualquer celula user-controlled que comece com =, +, -, @ e'
+// interpretada como formula pelo Excel/LibreOffice ao abrir o CSV — prefixa
+// com aspa simples para forcar leitura como texto, sem descartar o dado.
+function csvSafeCell(s) {
+  var str = String(s == null ? '' : s);
+  return /^[=+\-@]/.test(str) ? ("'" + str) : str;
+}
+
 // ─── Modal de filtros avancados (bottom sheet) ──────────────────
 function TxAdvFiltersModal({ open, onClose, filters, onApply, categories, accounts, cards }) {
   var initial = filters || { categoriasSelected: [], contasSelected: [], recurring: 'all' };
@@ -473,12 +482,12 @@ function Transacoes({ variant, onAdd }) {
     } else {
       const headers = ['Data','Descrição','Categoria','Conta','Valor','Status','Recorrência'];
       const rows = filtered.map(t => {
-        const catLabel = categories[t.cat]?.label || t.cat || '';
-        const acctName = accounts.find(a => a.id === t.acct)?.name || t.acct || '';
+        const catLabel = csvSafeCell(categories[t.cat]?.label || t.cat || '');
+        const acctName = csvSafeCell(accounts.find(a => a.id === t.acct)?.name || t.acct || '');
         const valFmt = t.val.toFixed(2).replace('.', ',');
         return [
           t.d || '',
-          `"${(t.desc || '').replace(/"/g, '""')}"`,
+          `"${csvSafeCell(t.desc || '').replace(/"/g, '""')}"`,
           catLabel, acctName, valFmt, t.status || '', t.recur || ''
         ].join(';');
       });
@@ -486,10 +495,11 @@ function Transacoes({ variant, onAdd }) {
       const blob = new Blob(['﻿' + csv], { type: 'text/csv;charset=utf-8;' });
       const url = URL.createObjectURL(blob);
       const a = document.createElement('a');
-      a.href = url; a.download = `fides-extrato-${selectedMonth}.csv`; a.click();
+      const fileScope = rangeMode ? `${fromYM}_a_${toYM}` : selectedMonth;
+      a.href = url; a.download = `fides-extrato-${fileScope}.csv`; a.click();
       URL.revokeObjectURL(url);
     }
-  }, [filtered, categories, selectedMonth]);
+  }, [filtered, categories, accounts, selectedMonth, rangeMode, fromYM, toYM]);
 
   // ── Importar extrato (CSV ou OFX) ────────────────────────────
   const handleImport = React.useCallback((fmt = 'csv') => {
