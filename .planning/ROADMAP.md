@@ -334,9 +334,22 @@ Plans:
   4. **IMP-02:** Reimportar um arquivo já importado não cria duplicatas (dedupe por `description`+`value`+`date` contra o existente); linhas usam o `mês`/fatura correto por data e resolvem `card_id` quando a conta é cartão.
   5. **UX-03/UX-04:** botão "Cartão" no masthead filtra crédito sem abrir Filtros avançados; no modo Período toda categoria da legenda tem barra e o valor por categoria aparece no hover/tap.
 
-**Notas de escopo:** FAT-01 é P1 (bug de confiança — dado no banco está correto, só a exibição erra). IMP-01/02 é débito P2 (incidente real: 196 txs duplicadas revertidas manualmente via SQL no UAT). UX-03/04 é P3 (polish). Fonte completa da diagnose: `.planning/phases/09-transacoes-power-tools-analytics/09-FOLLOWUPS.md`. Se grande demais, dividir: 10a = FAT-01 (fix + regressão); 10b = import hardening; 10c = UX.
+**Notas de escopo:** FAT-01 é P1 (bug de confiança — dado no banco está correto, só a exibição erra). IMP-01/02 é débito P2 (incidente real: 196 txs duplicadas revertidas manualmente via SQL no UAT). UX-03/04 é P3 (polish). Fonte completa da diagnose: `.planning/phases/09-transacoes-power-tools-analytics/09-FOLLOWUPS.md`. **Escopo travado em FASE ÚNICA por D-01 (CONTEXT.md)** — a nota de split (10a/10b/10c) está SUPERSEDED; a fase é organizada em ondas por prioridade (Onda 1 FAT-01 → Onda 2 import → Onda 3 UX).
 **UI hint**: yes (masthead + widget Período)
-**Plans**: not started
+**Plans**: 3 plans (ondas 1→2→3, sequenciais)
+
+Plans:
+**Onda 1 · FAT-01 (P1)**
+
+- [ ] 10-01-PLAN.md — FAT-01: helper `computeFaturaDates` (fides-data.jsx) + `faturasDoCartao`/`faturasDoCartaoCompleto` consomem o helper (remove o mesF divergente) + regressão closing<due (D-02/03/04/05)
+
+**Onda 2 · Import hardening (P2)** *(depende de 10-01 — prioridade)*
+
+- [ ] 10-02-PLAN.md — IMP-01/IMP-02: `dedupeKey`/`buildDedupeIndex`/`resolveRowForImport` + `handleImport` parse-then-preview + `ImportPreviewModal` (preview/seleção/confirmação, dedupe, mês por linha, card_id resolvido) (D-06..D-12)
+
+**Onda 3 · UX (P3)** *(depende de 10-02 — mesmo arquivo)*
+
+- [ ] 10-03-PLAN.md — UX-03/UX-04: chip "Cartão" no masthead + Donut do modo Período com hover/tap (centro dinâmico) + legenda textual completa
 
 ---
 
@@ -347,7 +360,7 @@ Plans:
 | 07 - CRUD Metas | 3/3 | Complete   | 2026-07-01 |
 | 08 - Metas vision-board | 8/8 | Complete   | 2026-07-03 |
 | 09 - Transações power tools + analytics | 5/5 | Complete    | 2026-07-04 |
-| 10 - Fatura cartão + hardening import | 0/? | ⏳ Not started | — |
+| 10 - Fatura cartão + hardening import | 0/3 | ⏳ Planned | — |
 
 ### Phase 7: Metas vision-board redesign
 
