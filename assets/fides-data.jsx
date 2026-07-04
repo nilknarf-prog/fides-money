@@ -63,6 +63,29 @@ function mesFaturaFor(dStr, card, year = 2026) {
   return ymOf(y, monthClose);
 }
 
+// Fonte única de derivação de dtFechamento/dtVencimento de uma fatura
+// (D-02/D-03) — usada por faturasDoCartao e faturasDoCartaoCompleto em
+// fides-store.jsx. mesFatura = mês em que a fatura FECHA (convenção de
+// mesFaturaFor acima). Cartão com diaVencimento >= diaFechamento vence no
+// mesmo mês; caso contrário (ex.: Bradesco fecha 19/vence 1), vence no mês
+// seguinte.
+function computeFaturaDates(mesFatura, card) {
+  const [yy, mm] = mesFatura.split('-');
+  const ano = parseInt(yy, 10);
+  const mes = parseInt(mm, 10) - 1; // 0-based — mês em que a fatura FECHA (D-02)
+
+  const diaF = parseInt(card.diaFechamento, 10) || 5;
+  const diaV = parseInt(card.diaVencimento, 10) || parseInt(card.due, 10) || 10;
+
+  const dtFechamento = new Date(ano, mes, diaF);
+  // D-03: vence no mesmo mês do fechamento se diaV >= diaF, senão mês seguinte
+  const dtVencimento = diaV >= diaF
+    ? new Date(ano, mes, diaV)
+    : new Date(ano, mes + 1, diaV);
+
+  return { dtFechamento, dtVencimento };
+}
+
 // Verifica se uma conta/cartão id é cartão de crédito (vs débito)
 const isCardId = (acctId) => CARDS.some(c => c.id === acctId);
 
