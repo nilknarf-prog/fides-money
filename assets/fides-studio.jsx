@@ -41,9 +41,26 @@ function FidesStudioShell({ initialPage = 'dashboard' }) {
   const [active, setActive] = React.useState(initialPage);
   const [lastView, setLastView] = React.useState('dashboard');
   const [modalOpen, setModalOpen] = React.useState(false);
+  const [paletteOpen, setPaletteOpen] = React.useState(false);
   const { addTransaction, addTransactions, categoryModalOpen, closeCategoryModal } = useFides();
 
   React.useEffect(() => { setActive(initialPage); }, [initialPage]);
+
+  // Atalho global Cmd/Ctrl+K — abre o palette de qualquer página do studio.
+  React.useEffect(() => {
+    function onKeyDown(e) {
+      if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === 'k') {
+        e.preventDefault();
+        setPaletteOpen(true);
+      }
+    }
+    document.addEventListener('keydown', onKeyDown);
+    return () => document.removeEventListener('keydown', onKeyDown);
+  }, []);
+
+  // Auto-fecha o palette em QUALQUER navegação (sidebar, masthead, back, ou o
+  // próprio onNav do palette) — finding #4 do 09-REVIEWS.
+  React.useEffect(() => { setPaletteOpen(false); }, [active]);
 
   const goPerfil = React.useCallback(() => {
     if (active === 'perfil') {
@@ -59,7 +76,8 @@ function FidesStudioShell({ initialPage = 'dashboard' }) {
       <div className="fds-shell">
         <SidebarSlim active={active} onNav={setActive} onGear={goPerfil}/>
         <main className="fds-main">
-          <StudioMasthead onAdd={() => setModalOpen(true)} onGear={goPerfil} active={active}/>
+          <StudioMasthead onAdd={() => setModalOpen(true)} onGear={goPerfil} active={active}
+                          onOpenSearch={() => setPaletteOpen(true)}/>
           {active === 'dashboard'  && <DashboardStudio onAdd={() => setModalOpen(true)} onNav={setActive}/>}
           {active === 'transacoes' && <TransacoesStudio onAdd={() => setModalOpen(true)}/>}
           {active === 'orcamento'  && <OrcamentoStudio onAdd={() => setModalOpen(true)}/>}
@@ -77,6 +95,7 @@ function FidesStudioShell({ initialPage = 'dashboard' }) {
                           }}
                           variant="v3"/>
       <CategoriaModal open={categoryModalOpen} onClose={closeCategoryModal}/>
+      <CommandPalette open={paletteOpen} onClose={() => setPaletteOpen(false)} onNav={setActive}/>
       <FidesAssistant/>
       <FidesAssistantFAB/>
       <window.FidesUI.ToastViewport />
@@ -309,7 +328,7 @@ function SidebarSlim({ active, onNav, onGear }) {
 }
 
 // ─── Editorial masthead ───────────────────────────────────────
-function StudioMasthead({ onAdd, onGear, active }) {
+function StudioMasthead({ onAdd, onGear, active, onOpenSearch }) {
   const { selectedMonth, setSelectedMonth, prevMonth, monthLabel, openAssistant, monthTransactions, mode } = useFides();
 
   async function handleLogout() {
@@ -478,7 +497,7 @@ function StudioMasthead({ onAdd, onGear, active }) {
         </div>
       </div>
       <div className="stu-mast-r">
-        <div className="stu-mast-search">
+        <div className="stu-mast-search" onClick={onOpenSearch} style={{ cursor: 'pointer' }}>
           <Icon.Search size={14} style={{ opacity: 0.5 }}/>
           <input placeholder="Buscar transações, contas, categorias…" readOnly/>
           <kbd className="fds-kbd">⌘K</kbd>
