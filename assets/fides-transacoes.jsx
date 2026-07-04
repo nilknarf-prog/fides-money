@@ -132,6 +132,25 @@ function parseBRNumber(s) {
   return parseFloat(str);
 }
 
+// splitCsvLine: tokenizer que respeita campos entre aspas (WR-02). O export do
+// app envolve `desc` em aspas justamente porque pode conter o separador `;`
+// (ex.: descrição com ponto-e-vírgula). Um `line.split(sep)` cru deslocaria
+// todas as colunas seguintes (val/status/recur). Trata o campo entre aspas como
+// atômico e desescapa `""` → `"`, espelhando o formato exportado.
+function splitCsvLine(line, sep) {
+  var out = [], cur = '', inQ = false;
+  for (var i = 0; i < line.length; i++) {
+    var ch = line[i];
+    if (ch === '"') {
+      if (inQ && line[i + 1] === '"') { cur += '"'; i++; }
+      else inQ = !inQ;
+    } else if (ch === sep && !inQ) { out.push(cur); cur = ''; }
+    else cur += ch;
+  }
+  out.push(cur);
+  return out.map(function (c) { return c.trim(); });
+}
+
 // parseCsvRows / parseOfxRows: extraem as linhas do arquivo em objetos puros,
 // SEM gravar nada (IMP-01) — a gravação só acontece na confirmação do
 // ImportPreviewModal, via handleImportConfirm. `date` (YYYY-MM-DD) é montada
@@ -145,7 +164,7 @@ function parseCsvRows(text, categories) {
   var rows = [];
   var errors = 0;
   lines.slice(1).forEach(function(line, i) {
-    var cols = line.split(sep).map(function(c) { return c.replace(/^"|"$/g, '').trim(); });
+    var cols = splitCsvLine(line, sep);
     var d = cols[0], desc = cols[1], cat = cols[2], acctNameRaw = cols[3], valStr = cols[4], status = cols[5], recur = cols[6];
     if (!desc || !valStr) { errors++; return; }
     var valRaw = parseBRNumber(valStr);
