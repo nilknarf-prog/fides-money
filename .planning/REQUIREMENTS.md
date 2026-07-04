@@ -20,8 +20,8 @@
 - [x] **FAT-01**: Fatura de cartão exibe fechamento/vencimento/status corretos para qualquer config de dias (inclui `closing_day > due_day`, ex. Bradesco fecha 19/vence 1), sem regressão para `closing_day < due_day`
 - [x] **IMP-01**: Import de CSV/OFX abre preview com seleção e exige confirmação antes de gravar (cancelar não grava nada)
 - [x] **IMP-02**: Import faz dedupe (`description`+`value`+`date` normalizado), usa mês/fatura correto por linha e resolve `card_id` quando a conta é cartão
-- [ ] **UX-03**: Botão rápido "Cartão" no masthead de Transações filtra crédito sem abrir Filtros avançados
-- [ ] **UX-04**: Modo Período — toda categoria da legenda tem barra e o valor por categoria aparece no hover/tap
+- [x] **UX-03**: Botão rápido "Cartão" no masthead de Transações filtra crédito sem abrir Filtros avançados
+- [x] **UX-04**: Modo Período — toda categoria da legenda tem barra e o valor por categoria aparece no hover/tap
 
 ## Future Requirements (deferred)
 

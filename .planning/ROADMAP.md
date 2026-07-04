@@ -336,7 +336,7 @@ Plans:
 
 **Notas de escopo:** FAT-01 é P1 (bug de confiança — dado no banco está correto, só a exibição erra). IMP-01/02 é débito P2 (incidente real: 196 txs duplicadas revertidas manualmente via SQL no UAT). UX-03/04 é P3 (polish). Fonte completa da diagnose: `.planning/phases/09-transacoes-power-tools-analytics/09-FOLLOWUPS.md`. **Escopo travado em FASE ÚNICA por D-01 (CONTEXT.md)** — a nota de split (10a/10b/10c) está SUPERSEDED; a fase é organizada em ondas por prioridade (Onda 1 FAT-01 → Onda 2 import → Onda 3 UX).
 **UI hint**: yes (masthead + widget Período)
-**Plans**: 2/3 plans executed
+**Plans**: 3/3 plans complete
 
 Plans:
 **Onda 1 · FAT-01 (P1)**
@@ -349,7 +349,7 @@ Plans:
 
 **Onda 3 · UX (P3)** *(depende de 10-02 — mesmo arquivo)*
 
-- [ ] 10-03-PLAN.md — UX-03/UX-04: chip "Cartão" no masthead + Donut do modo Período com hover/tap (centro dinâmico) + legenda textual completa
+- [x] 10-03-PLAN.md — UX-03/UX-04: chip "Cartão" no masthead + Donut do modo Período com hover/tap (centro dinâmico) + legenda textual completa
 
 ---
 
@@ -360,7 +360,7 @@ Plans:
 | 07 - CRUD Metas | 3/3 | Complete   | 2026-07-01 |
 | 08 - Metas vision-board | 8/8 | Complete   | 2026-07-03 |
 | 09 - Transações power tools + analytics | 5/5 | Complete    | 2026-07-04 |
-| 10 - Fatura cartão + hardening import | 2/3 | In Progress|  |
+| 10 - Fatura cartão + hardening import | 3/3 | Complete   | 2026-07-04 |
 
 ### Phase 7: Metas vision-board redesign
 
