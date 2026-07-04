@@ -1263,20 +1263,7 @@ function FidesProvider({ children }) {
     hoje.setHours(0, 0, 0, 0);
 
     const mapped = faturas.map(fat => {
-      const [yy, mm] = fat.mesFatura.split('-');
-      const ano = parseInt(yy, 10);
-      const mes = parseInt(mm, 10) - 1; // 0-based index
-
-      const diaF = parseInt(card.diaFechamento, 10) || 5;
-      const diaV = parseInt(card.diaVencimento, 10) || parseInt(card.due, 10) || 10;
-      
-      let mesF = mes;
-      if (diaF > diaV) {
-        mesF = mes - 1;
-      }
-
-      const dtFechamento = new Date(ano, mesF, diaF);
-      const dtVencimento = new Date(ano, mes, diaV);
+      const { dtFechamento, dtVencimento } = computeFaturaDates(fat.mesFatura, card);
 
       let status = 'aberta';
       if (hoje > dtVencimento) {
@@ -1332,20 +1319,7 @@ function FidesProvider({ children }) {
     hoje.setHours(0, 0, 0, 0);
 
     const mapped = faturas.map(fat => {
-      const [yy, mm] = fat.mesFatura.split('-');
-      const ano = parseInt(yy, 10);
-      const mes = parseInt(mm, 10) - 1; // 0-based index
-
-      const diaF = parseInt(card.diaFechamento, 10) || 5;
-      const diaV = parseInt(card.diaVencimento, 10) || parseInt(card.due, 10) || 10;
-
-      let mesF = mes;
-      if (diaF > diaV) {
-        mesF = mes - 1;
-      }
-
-      const dtFechamento = new Date(ano, mesF, diaF);
-      const dtVencimento = new Date(ano, mes, diaV);
+      const { dtFechamento, dtVencimento } = computeFaturaDates(fat.mesFatura, card);
 
       const paga = fat.txsAbertas.length === 0;
       let status = 'aberta';
