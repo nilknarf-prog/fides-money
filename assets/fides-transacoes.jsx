@@ -605,6 +605,10 @@ function Transacoes({ variant, onAdd }) {
   // Sort labels para a UI
   const SORT_LABELS = { data: 'Data', categoria: 'Categoria', conta: 'Conta', valor: 'Valor' };
 
+  // Paginacao — total de paginas derivado de 'sorted' (todo o filtro), nao de 'pagedSorted'
+  const totalPages = Math.max(1, Math.ceil(sorted.length / pageSize));
+  const isGroupedSort = sortBy === 'categoria' || sortBy === 'conta';
+
   return (
     <div className="fds-page fds-tx-v2" data-od-id="transacoes">
       {/* ─── Header: ano + meses + acoes ─── */}
@@ -661,6 +665,21 @@ function Transacoes({ variant, onAdd }) {
                     {sortOrder === 'desc' ? '↓' : '↑'}
                   </span>
                 )}
+              </button>
+            );
+          })}
+        </div>
+
+        <span className="fds-tx-v2-sort-label fds-tx-v2-pagesize-label">Itens por página</span>
+        <div className="fds-tx-v2-pagesize" role="group" aria-label="Itens por página">
+          {[20, 50, 100].map(function(n) {
+            var on = pageSize === n;
+            return (
+              <button key={n} type="button"
+                      className={'fds-tx-v2-sort-pill' + (on ? ' on' : '')}
+                      aria-pressed={on}
+                      onClick={function() { setPageSize(n); }}>
+                {n}
               </button>
             );
           })}
@@ -744,6 +763,11 @@ function Transacoes({ variant, onAdd }) {
                 <span className="fds-tx-v2-bulk">
                   <span className="fds-tx-v2-bulk-count">
                     {selectedIds.size} selecionada{selectedIds.size > 1 ? 's' : ''}
+                    {totalPages > 1 && (
+                      <span className="fds-tx-v2-bulk-scope">
+                        {' '}— "selecionar todas" cobre o filtro inteiro ({sorted.length}), não só a página
+                      </span>
+                    )}
                   </span>
                   <button type="button" className="fds-tx-v2-bulk-act"
                           onPointerUp={bulkMarkPaid}>
@@ -766,7 +790,7 @@ function Transacoes({ variant, onAdd }) {
                 </span>
               ) : (
                 <span className="fds-tx-v2-list-count">
-                  <strong>{filtered.length}</strong> de {baseList.length} em {lbl.long}
+                  <strong>{pagedSorted.length}</strong> de {sorted.length} nesta página · {lbl.long}
                 </span>
               )}
             </div>
@@ -777,6 +801,12 @@ function Transacoes({ variant, onAdd }) {
               </strong>
             </div>
           </div>
+
+          {isGroupedSort && totalPages > 1 && (
+            <div className="fds-tx-v2-scope-note">
+              Totais de grupo refletem só a página atual ({page + 1} de {totalPages}).
+            </div>
+          )}
 
           {/* Picker de categoria do bulk (inline) */}
           {bulkCatPicker && selectedIds.size > 0 && (
@@ -941,6 +971,24 @@ function Transacoes({ variant, onAdd }) {
               </span>
               <button type="button" className="fds-tx-v2-clear-link" onClick={clearAllFilters}>
                 Limpar filtros
+              </button>
+            </div>
+          )}
+
+          {totalPages > 1 && (
+            <div className="fds-tx-v2-pagenav">
+              <button type="button" className="fds-tx-v2-pagenav-btn"
+                      disabled={page === 0}
+                      onClick={function() { setPage(function(p) { return Math.max(0, p - 1); }); }}>
+                <Icon.Left size={14}/> Anterior
+              </button>
+              <span className="fds-tx-v2-pagenav-label">
+                Página {page + 1} de {totalPages}
+              </span>
+              <button type="button" className="fds-tx-v2-pagenav-btn"
+                      disabled={page >= totalPages - 1}
+                      onClick={function() { setPage(function(p) { return Math.min(totalPages - 1, p + 1); }); }}>
+                Próxima <Icon.Right size={14}/>
               </button>
             </div>
           )}

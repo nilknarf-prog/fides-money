@@ -155,6 +155,16 @@
   opacity: 0.9;
 }
 
+.fds-tx-v2-pagesize-label {
+  margin-top: 2px;
+}
+
+.fds-tx-v2-pagesize {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
 /* ═══════ Filtros ═══════ */
 .fds-tx-v2-filters {
   display: flex;
@@ -283,6 +293,21 @@
 .fds-tx-v2-bulk-count {
   font-weight: 600;
   font-size: var(--fs-sm);
+}
+
+.fds-tx-v2-bulk-scope {
+  font-weight: 400;
+  color: var(--muted);
+}
+
+/* Nota de escopo — totais de grupo refletem so a pagina atual */
+.fds-tx-v2-scope-note {
+  padding: 8px 14px;
+  background: var(--warn-soft);
+  color: var(--warn);
+  font-size: var(--fs-xs);
+  font-weight: 600;
+  border-bottom: 1px solid var(--border);
 }
 
 .fds-tx-v2-bulk-act {
@@ -647,6 +672,52 @@
   padding: 4px 8px;
   min-height: 32px;
   touch-action: manipulation;
+}
+
+/* ═══════ Navegacao de pagina ═══════ */
+.fds-tx-v2-pagenav {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 14px;
+  background: var(--card);
+  border-top: 1px solid var(--border);
+}
+
+.fds-tx-v2-pagenav-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 40px;
+  padding: 8px 14px;
+  background: var(--card-soft);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-pill);
+  font-size: var(--fs-sm);
+  font-weight: 600;
+  color: var(--ink-2);
+  cursor: pointer;
+  font-family: inherit;
+  touch-action: manipulation;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.fds-tx-v2-pagenav-btn:hover:not(:disabled) {
+  border-color: var(--border-strong);
+  color: var(--ink);
+}
+
+.fds-tx-v2-pagenav-btn:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+.fds-tx-v2-pagenav-label {
+  font-size: var(--fs-sm);
+  font-weight: 600;
+  color: var(--muted);
+  font-variant-numeric: tabular-nums;
 }
 
 /* ═══════ Empty state ═══════ */
