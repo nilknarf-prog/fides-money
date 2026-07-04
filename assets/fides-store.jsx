@@ -1057,12 +1057,30 @@ function FidesProvider({ children }) {
     const [y, m] = ym.split('-').map(s => parseInt(s, 10));
     return { short: `${meses[m - 1]} · ${y}`, long: `${mesesLongos[m - 1]} de ${y}` };
   };
+  // monthsInRange: array de 'YYYY-MM' inclusivo de fromYM até toYM (base TX-03/TX-04).
+  function monthsInRange(fromYM, toYM) {
+    const out = [];
+    let [y, m] = fromYM.split('-').map(Number);
+    const [ey, em] = toYM.split('-').map(Number);
+    while (y < ey || (y === ey && m <= em)) {
+      out.push(`${y}-${String(m).padStart(2, '0')}`);
+      m++; if (m > 12) { m = 1; y++; }
+    }
+    return out;
+  }
 
   // ─── Derived state ────────────────────────────────────────────
 
   const monthTransactions = React.useMemo(() =>
     transactions.filter(t => txMonth(t) === selectedMonth),
   [transactions, selectedMonth]);
+
+  // rangeTransactions: superset de monthTransactions para múltiplos meses (TX-04).
+  // Sem filtrar is_transfer/val — a lista mostra tudo, igual a monthTransactions.
+  const rangeTransactions = React.useCallback((fromYM, toYM) => {
+    const months = new Set(monthsInRange(fromYM, toYM));
+    return transactions.filter(t => months.has(txMonth(t)));
+  }, [transactions]);
 
   // Lote 4D — receitas virtuais derivadas de recorrência
   const virtualRecurringRevenue = React.useMemo(() => {
@@ -1113,6 +1131,23 @@ function FidesProvider({ children }) {
       return { key, val, label: c.label, tint: c.tint, emoji: c.emoji };
     }).sort((a, b) => b.val - a.val);
   }, [monthTransactions, categories]);
+
+  // spendByCategoryRange: derivação paralela a spendByCategory, reprocessa
+  // transactions completo sobre um range [fromYM, toYM] (TX-03). Não altera
+  // spendByCategory (consumida por DashboardStudio e fides-claude.jsx).
+  const spendByCategoryRange = React.useCallback((fromYM, toYM) => {
+    const months = new Set(monthsInRange(fromYM, toYM));
+    const map = {};
+    transactions.forEach(t => {
+      if (t.val < 0 && !t.isTransfer && months.has(txMonth(t))) {
+        map[t.cat] = (map[t.cat] || 0) + Math.abs(t.val);
+      }
+    });
+    return Object.entries(map).map(([key, val]) => {
+      const c = categories[key] || { label: key, tint: '#888', emoji: '🏷️' };
+      return { key, val, label: c.label, tint: c.tint, emoji: c.emoji };
+    }).sort((a, b) => b.val - a.val);
+  }, [transactions, categories]);
 
   // Uso vs limite por categoria para o mes selecionado. Regra de leitura:
   // limite do mes especifico (byMonth[selectedMonth]) tem prioridade sobre o
