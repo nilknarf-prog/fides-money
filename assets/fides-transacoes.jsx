@@ -230,7 +230,7 @@ function TxAdvFiltersModal({ open, onClose, filters, onApply, categories, accoun
 
 // ─── Componente principal ──────────────────────────────────────
 function Transacoes({ variant, onAdd }) {
-  const { monthTransactions, rangeTransactions, transactions, categories, selectedMonth, setSelectedMonth, monthLabel, addTransaction, updateTransaction, deleteTransaction, accounts, cards } = useFides();
+  const { monthTransactions, rangeTransactions, spendByCategoryRange, transactions, categories, selectedMonth, setSelectedMonth, monthLabel, addTransaction, updateTransaction, deleteTransaction, accounts, cards } = useFides();
   const [sortBy, setSortBy] = React.useState('data');         // data | categoria | conta | valor
   const [sortOrder, setSortOrder] = React.useState('desc');    // desc | asc
   const [collapsedGroups, setCollapsedGroups] = React.useState(new Set());
@@ -303,6 +303,13 @@ function Transacoes({ variant, onAdd }) {
   const rangeList = React.useMemo(function() {
     return rangeTransactions(fromYM, toYM);
   }, [rangeTransactions, fromYM, toYM]);
+
+  // rangeSpend: idem, memoiza spendByCategoryRange(fromYM, toYM) (TX-03). Ja
+  // exclui is_transfer e receitas na derivacao do store — nenhum filtro extra
+  // necessario aqui.
+  const rangeSpend = React.useMemo(function() {
+    return spendByCategoryRange(fromYM, toYM);
+  }, [spendByCategoryRange, fromYM, toYM]);
 
   const baseList = rangeMode ? rangeList : monthTransactions;
   const flow = baseList.filter(function(t) { return !t.isTransfer; });
@@ -782,6 +789,34 @@ function Transacoes({ variant, onAdd }) {
           </div>
         )}
       </section>
+
+      {/* ─── Analytics cross-month (TX-03) ─── */}
+      {rangeMode && (
+        <section className="fds-card fds-tx-v2-analytics" data-od-id="tx-analytics">
+          <header className="fds-tx-v2-analytics-head">
+            <div>
+              <h3 className="fds-tx-v2-analytics-title">Gasto por categoria</h3>
+              <span className="fds-muted">{rangeLabel}</span>
+            </div>
+            <div className="fds-tx-v2-analytics-total">
+              {fmtBRL(rangeSpend.reduce(function(s, d) { return s + d.val; }, 0))}
+            </div>
+          </header>
+
+          {rangeSpend.length > 0 ? (
+            <div className="fds-tx-v2-analytics-body">
+              <div className="fds-donut-wrap">
+                <Donut data={rangeSpend} size={160} thickness={20}/>
+              </div>
+              <div className="fds-tx-v2-analytics-chart">
+                <CategoryChart data={rangeSpend} height={220}/>
+              </div>
+            </div>
+          ) : (
+            <p className="fds-muted">Nenhuma despesa no período selecionado.</p>
+          )}
+        </section>
+      )}
 
       {/* ─── Organizacao (sort pills) ─── */}
       <section className="fds-card fds-tx-v2-sort" data-od-id="tx-organizar">
