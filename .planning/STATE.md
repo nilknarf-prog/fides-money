@@ -4,17 +4,17 @@ milestone: v1.1
 milestone_name: CRUD Metas — EM PLANEJAMENTO
 current_phase: 09
 current_phase_name: transacoes-power-tools-analytics
-status: executing
+status: verifying
 stopped_at: Completed 09-04-PLAN.md
-last_updated: "2026-07-04T01:00:51.497Z"
+last_updated: "2026-07-04T01:17:58.690Z"
 last_activity: 2026-07-03
 last_activity_desc: Phase 09 execution started
 progress:
   total_phases: 3
-  completed_phases: 1
+  completed_phases: 2
   total_plans: 8
-  completed_plans: 7
-  percent: 33
+  completed_plans: 8
+  percent: 67
 ---
 
 # Project State
@@ -23,7 +23,7 @@ progress:
 
 Phase: 09 (transacoes-power-tools-analytics) — EXECUTING
 Plan: 5 of 5
-Status: Ready to execute
+Status: Phase complete — ready for verification
 Last activity: 2026-07-03 — Phase 09 execution started
 
 ## Project Reference
@@ -94,6 +94,7 @@ VERIFICATION: `.planning/phases/08-metas-vision-board-redesign/08-VERIFICATION.m
 | Phase 09 P02 | ~15min | 2 tasks | 2 files |
 | Phase 09 P03 | 7min | 3 tasks | 2 files |
 | Phase 09 P04 | 12min | 3 tasks | 2 files |
+| Phase 09 P05 | ~15min | 3 tasks | 2 files |
 
 ## Decisions
 
@@ -133,10 +134,13 @@ VERIFICATION: `.planning/phases/08-metas-vision-board-redesign/08-VERIFICATION.m
 - [Phase 09-04]: rangeList/rangeSpend memoizados no consumidor via React.useMemo(deps=[fn, fromYM, toYM]) porque o store expoe rangeTransactions/spendByCategoryRange como React.useCallback, nao useMemo
 - [Phase 09-04]: baseList alternavel (rangeMode ? rangeList : monthTransactions) — cadeia filtered/sorted/pagedSorted/grouped/totals/chipCounts ja deriva de baseList, sem duplicar logica
 - [Phase 09-04]: painel de analytics cross-month (Donut/CategoryChart) so renderiza em rangeMode; custom range usa input type=month nativo
+- [Phase 09-05]: Nome do arquivo CSV inclui o intervalo (fides-extrato-{fromYM}_a_{toYM}.csv) quando rangeMode ativo
+- [Phase 09-05]: Cor do preview de limite (TX-08) usa projectedStatus proprio (over/warn/ok sobre projectedSpent/limit), nao usage.status
+- [Phase 09-05]: fromYM/toYM hidratados via readTxState() com fallback a rangeFromPreset(selectedMonth, rangePreset ja hidratado)
 
 ## Session
 
-**Last session:** 2026-07-04T01:00:51.476Z
+**Last session:** 2026-07-04T01:15:44.425Z
 **Stopped at:** Completed 09-04-PLAN.md
 **Resume file:** None
 
