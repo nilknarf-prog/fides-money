@@ -320,6 +320,24 @@ Plans:
 
 - [x] 09-05-PLAN.md — TX-05/TX-06/TX-08: export CSV audit + fix CSV-injection; persistência `fides:tx.state`; preview de limite no Nova Transação
 
+### Phase 10: Correção fatura cartão + hardening de importação
+
+**Goal:** A fatura de cartão exibe fechamento/vencimento corretos para qualquer configuração de dias (incluindo `closing_day > due_day`, ex. Bradesco fecha 19 / vence 1), sem regressão para cartões `closing_day < due_day`; e a importação de CSV/OFX deixa de duplicar dados silenciosamente — passa a ter preview/seleção/confirmação + dedupe. Descoberto no UAT da Fase 09 (`09-FOLLOWUPS.md`).
+**Requirements**: FAT-01 (fatura fechamento/vencimento corretos), IMP-01 (preview + seleção + confirmação no import), IMP-02 (dedupe + mês/fatura correto por linha + card_id resolvido), UX-03 (botão rápido "Cartão" no masthead), UX-04 (modo Período — barras por cor + valor/categoria no hover/tap)
+**Depends on:** Phase 9
+**Key files**: `assets/fides-store.jsx` (`faturasDoCartao` :1265-1293, `faturasDoCartaoCompleto` :1334-1365), `assets/fides-data.jsx` (`mesFaturaFor` :52-64), `assets/fides-transacoes.jsx` (`handleImport` :554, masthead filtros, widget Período) — **domínio de cartão sensível: rodar database/security review**
+**Success Criteria** (what must be TRUE):
+
+  1. **FAT-01:** Para o cartão Bradesco (fecha 19 / vence 1), a fatura com compras de 19/06→11/07 exibe "fecha 19/07 · vence 01/08 · aberta" (não "vence 01/07 · vencida"); a fatura de junho paga permanece paga. Convenção de "mês da fatura" unificada entre `mesFaturaFor` e `faturasDoCartao*`.
+  2. **FAT-01 (regressão):** Um cartão com `closing_day < due_day` (fecha e vence no mesmo mês) continua com datas corretas — o fix não inverte esse caso.
+  3. **IMP-01:** Importar CSV/OFX abre um modal de preview com as linhas detectadas, permite selecionar todas/individuais e exige confirmação antes de gravar — cancelar não grava nada.
+  4. **IMP-02:** Reimportar um arquivo já importado não cria duplicatas (dedupe por `description`+`value`+`date` contra o existente); linhas usam o `mês`/fatura correto por data e resolvem `card_id` quando a conta é cartão.
+  5. **UX-03/UX-04:** botão "Cartão" no masthead filtra crédito sem abrir Filtros avançados; no modo Período toda categoria da legenda tem barra e o valor por categoria aparece no hover/tap.
+
+**Notas de escopo:** FAT-01 é P1 (bug de confiança — dado no banco está correto, só a exibição erra). IMP-01/02 é débito P2 (incidente real: 196 txs duplicadas revertidas manualmente via SQL no UAT). UX-03/04 é P3 (polish). Fonte completa da diagnose: `.planning/phases/09-transacoes-power-tools-analytics/09-FOLLOWUPS.md`. Se grande demais, dividir: 10a = FAT-01 (fix + regressão); 10b = import hardening; 10c = UX.
+**UI hint**: yes (masthead + widget Período)
+**Plans**: not started
+
 ---
 
 ### Progress Table
@@ -328,7 +346,8 @@ Plans:
 |-------|----------------|--------|-----------|
 | 07 - CRUD Metas | 3/3 | Complete   | 2026-07-01 |
 | 08 - Metas vision-board | 8/8 | Complete   | 2026-07-03 |
-| 09 - Transações power tools + analytics | 5/5 | Complete   | 2026-07-04 |
+| 09 - Transações power tools + analytics | 5/5 | Complete    | 2026-07-04 |
+| 10 - Fatura cartão + hardening import | 0/? | ⏳ Not started | — |
 
 ### Phase 7: Metas vision-board redesign
 

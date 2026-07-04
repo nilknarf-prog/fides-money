@@ -2,29 +2,29 @@
 gsd_state_version: 1.0
 milestone: v1.1
 milestone_name: CRUD Metas — EM PLANEJAMENTO
-current_phase: 09
-current_phase_name: transacoes-power-tools-analytics
-status: awaiting-uat
-stopped_at: Phase 09 code-complete (5/5 plans, sequential-on-main #683) + VERIFICATION human_needed (8/8 static) — awaiting /gsd-verify-work 9
-last_updated: "2026-07-04T01:29:00.000Z"
-last_activity: 2026-07-03
-last_activity_desc: Phase 09 executed 5/5 plans; VERIFICATION 8/8 static-verified, human_needed (runtime truths need UAT)
+current_phase: 10
+status: ready-to-plan
+stopped_at: Phase 09 verified (UAT 7/7). Phase 10 added to ROADMAP — ready to /gsd-plan-phase 10
+last_updated: "2026-07-04T03:10:00.000Z"
+last_activity: 2026-07-04
+last_activity_desc: Phase 09 UAT 7/7 complete + verified; Phase 10 (fatura fix + import hardening) added to roadmap
 progress:
-  total_phases: 3
-  completed_phases: 2
-  total_plans: 5
-  completed_plans: 5
-  percent: 67
+  total_phases: 4
+  completed_phases: 3
+  total_plans: 8
+  completed_plans: 8
+  percent: 75
+current_phase_name: correcao-fatura-cartao-hardening-import
 ---
 
 # Project State
 
 ## Current Position
 
-Phase: 09 (transacoes-power-tools-analytics) — CODE-COMPLETE, awaiting human UAT
-Plan: 5 of 5 code-complete (all SUMMARYs) — VERIFICATION 8/8 static-verified, human_needed
-Status: awaiting-uat — run /gsd-verify-work 9 on the deployed app to close 7 runtime truths (⌘K, filtro Cartões, paginação 20/50/100, modo range + analytics cross-month, CSV seguro, persistência localStorage, preview de limite)
-Last activity: 2026-07-03 — Phase 09 executed 5/5 plans (sequential on main, #683 degrade); VERIFICATION human_needed
+Phase: 10 (correcao-fatura-cartao-hardening-import) — ready to plan
+Plan: Not started
+Status: ready-to-plan — Phase 09 fechada (UAT 7/7). Phase 10 no roadmap: FAT-01 (fatura fechamento/vencimento corretos, P1), IMP-01/02 (import preview+dedupe, P2), UX-03/04 (P3). Fonte: 09-FOLLOWUPS.md. Rodar /gsd-plan-phase 10.
+Last activity: 2026-07-04 — Phase 09 UAT 7/7 + verified; Phase 10 added
 
 ## Project Reference
 
