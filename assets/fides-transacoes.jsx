@@ -78,6 +78,28 @@ function csvSafeCell(s) {
   return /^[=+\-@]/.test(str) ? ("'" + str) : str;
 }
 
+// ─── Persistencia page-local (TX-06) ────────────────────────────
+// fides:tx.state guarda so preferencias de visualizacao de Transacoes
+// (sort/filtro/pageSize/range) — NUNCA o selectedMonth global, que e'
+// compartilhado por Dashboard/Orcamento/PlnMesInsights (finding #2 do
+// 09-REVIEWS). JSON.parse/localStorage sempre dentro de try/catch (T-09-LS —
+// dado corrompido nao pode quebrar o app).
+var TX_STATE_KEY = 'fides:tx.state';
+function readTxState() {
+  try {
+    return JSON.parse(localStorage.getItem(TX_STATE_KEY)) || {};
+  } catch (_) {
+    return {};
+  }
+}
+function writeTxState(obj) {
+  try {
+    localStorage.setItem(TX_STATE_KEY, JSON.stringify(obj));
+  } catch (_) {
+    // localStorage indisponivel/quota excedida — falha silenciosa, sem quebrar o app
+  }
+}
+
 // ─── Modal de filtros avancados (bottom sheet) ──────────────────
 function TxAdvFiltersModal({ open, onClose, filters, onApply, categories, accounts, cards }) {
   var initial = filters || { categoriasSelected: [], contasSelected: [], recurring: 'all' };
@@ -240,8 +262,11 @@ function TxAdvFiltersModal({ open, onClose, filters, onApply, categories, accoun
 // ─── Componente principal ──────────────────────────────────────
 function Transacoes({ variant, onAdd }) {
   const { monthTransactions, rangeTransactions, spendByCategoryRange, transactions, categories, selectedMonth, setSelectedMonth, monthLabel, addTransaction, updateTransaction, deleteTransaction, accounts, cards } = useFides();
-  const [sortBy, setSortBy] = React.useState('data');         // data | categoria | conta | valor
-  const [sortOrder, setSortOrder] = React.useState('desc');    // desc | asc
+  // ─── Persistencia page-local (TX-06): todos os useState abaixo que compoem
+  // o snapshot persistido usam lazy initializer lendo readTxState(), com
+  // fallback ao default anterior. NUNCA hidrata/restaura selectedMonth (global).
+  const [sortBy, setSortBy] = React.useState(function() { var s = readTxState(); return s.sortBy || 'data'; });         // data | categoria | conta | valor
+  const [sortOrder, setSortOrder] = React.useState(function() { var s = readTxState(); return s.sortOrder || 'desc'; });    // desc | asc
   const [collapsedGroups, setCollapsedGroups] = React.useState(new Set());
   const toggleGroup = React.useCallback(function(name) {
     setCollapsedGroups(function(prev) {
@@ -250,30 +275,36 @@ function Transacoes({ variant, onAdd }) {
       return next;
     });
   }, []);
-  const [filterType, setFilterType] = React.useState('todas'); // todas | receitas | despesas | pendentes
+  const [filterType, setFilterType] = React.useState(function() { var s = readTxState(); return s.filterType || 'todas'; }); // todas | receitas | despesas | pendentes
   const [search, setSearch] = React.useState('');
   const [selectedIds, setSelectedIds] = React.useState(new Set()); // Set<tx._id>
   const [advFilterOpen, setAdvFilterOpen] = React.useState(false);
-  const [advFilters, setAdvFilters] = React.useState({
-    categoriasSelected: [],
-    contasSelected: [],
-    recurring: 'all',
+  const [advFilters, setAdvFilters] = React.useState(function() {
+    var s = readTxState();
+    return s.advFilters || {
+      categoriasSelected: [],
+      contasSelected: [],
+      recurring: 'all',
+    };
   });
   const [bulkCatPicker, setBulkCatPicker] = React.useState(false);
   const [editingTx, setEditingTx] = React.useState(null);
-  const [pageSize, setPageSize] = React.useState(20); // 20 | 50 | 100
+  const [pageSize, setPageSize] = React.useState(function() { var s = readTxState(); return s.pageSize || 20; }); // 20 | 50 | 100
   const [page, setPage] = React.useState(0);
 
   // ─── Range mode (TX-03/TX-04): [fromYM, toYM] alimenta lista e analytics ─
-  const [rangeMode, setRangeMode] = React.useState(false); // false = mes unico (comportamento atual)
-  const [rangePreset, setRangePreset] = React.useState('3m'); // 3m | 6m | 12m | ano | custom
-  // fromYM/toYM SEMPRE React.useState com lazy init via rangeFromPreset — nunca
-  // undefined no 1o render (monthsInRange faz fromYM.split('-') no store).
+  const [rangeMode, setRangeMode] = React.useState(function() { var s = readTxState(); return !!s.rangeMode; }); // false = mes unico (comportamento atual)
+  const [rangePreset, setRangePreset] = React.useState(function() { var s = readTxState(); return s.rangePreset || '3m'; }); // 3m | 6m | 12m | ano | custom
+  // fromYM/toYM SEMPRE React.useState com lazy init via readTxState() (fallback
+  // rangeFromPreset) — nunca undefined no 1o render (monthsInRange faz
+  // fromYM.split('-') no store).
   const [fromYM, setFromYM] = React.useState(function() {
-    return rangeFromPreset(selectedMonth, '3m')[0];
+    var s = readTxState();
+    return s.fromYM || rangeFromPreset(selectedMonth, rangePreset)[0];
   });
   const [toYM, setToYM] = React.useState(function() {
-    return rangeFromPreset(selectedMonth, '3m')[1];
+    var s = readTxState();
+    return s.toYM || rangeFromPreset(selectedMonth, rangePreset)[1];
   });
 
   // Unico effect que escreve fromYM/toYM: sincroniza com o preset (nao-custom)
@@ -285,6 +316,24 @@ function Transacoes({ variant, onAdd }) {
       setToYM(r[1]);
     }
   }, [rangePreset, selectedMonth]);
+
+  // Unico effect que persiste o snapshot page-local (TX-06). Escopo
+  // deliberadamente restrito a visualizacao (sort/filtro/pageSize/range) —
+  // NUNCA inclui selectedMonth (mutaria/restauraria o mes global, proibido
+  // pelo finding #2 do 09-REVIEWS).
+  React.useEffect(function() {
+    writeTxState({
+      sortBy: sortBy,
+      sortOrder: sortOrder,
+      filterType: filterType,
+      advFilters: advFilters,
+      pageSize: pageSize,
+      rangeMode: rangeMode,
+      rangePreset: rangePreset,
+      fromYM: fromYM,
+      toYM: toYM,
+    });
+  }, [sortBy, sortOrder, filterType, advFilters, pageSize, rangeMode, rangePreset, fromYM, toYM]);
 
   const refConfirm = window.FidesUI.useConfirm();
   const confirmAction = refConfirm.confirm;
