@@ -202,7 +202,16 @@ function FidesProvider({ children }) {
       value:        Number(tx.val) || 0,
       category:     tx.cat || 'outros',
       account:      tx.acct || '',
-      date:         `${yyyy}-${mm}-${dd}`,
+      // WR-01: preserva a `date` de compra já resolvida (ano incluído, vinda do
+      // arquivo em resolveRowForImport) em vez de reconstruí-la a partir do ano
+      // de `tx.mes` (mês da FATURA). Para cartões o mês da fatura pode cair no
+      // ano seguinte (compra 28/12/2025, fatura 2026-01), e reconstruir daria
+      // `2026-12-28` — ano/mês errados, quebrando o dedupeKey no re-import
+      // (classe do incidente das 196 duplicatas). Só reconstrói se não houver
+      // uma `date` YYYY-MM-DD válida.
+      date:         (tx.date && /^\d{4}-\d{2}-\d{2}$/.test(tx.date))
+                      ? tx.date
+                      : `${yyyy}-${mm}-${dd}`,
       month:        (function() {
         if (cardIdSet && cardIdSet.has(tx.acct)) {
           const card = (liveCards || []).find(c => c.id === tx.acct);
