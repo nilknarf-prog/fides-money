@@ -165,6 +165,73 @@
   flex-wrap: wrap;
 }
 
+/* ═══════ Escopo: mes unico vs periodo (TX-03/TX-04) ═══════ */
+.fds-tx-v2-range {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 14px;
+}
+
+.fds-tx-v2-range-toggle {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.fds-tx-v2-range-toggle-pills {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.fds-tx-v2-range-body {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding-top: 10px;
+  border-top: 1px solid var(--border);
+}
+
+.fds-tx-v2-range-presets {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.fds-tx-v2-range-label {
+  font-size: var(--fs-sm);
+  font-weight: 600;
+  color: var(--ink);
+  font-variant-numeric: tabular-nums;
+}
+
+.fds-tx-v2-range-custom {
+  display: flex;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.fds-tx-v2-range-custom-field {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  font-size: var(--fs-xs);
+  font-weight: 600;
+  color: var(--muted);
+}
+
+.fds-tx-v2-range-custom-field input[type="month"] {
+  min-height: 44px;
+  padding: 8px 12px;
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  font-size: var(--fs-sm);
+  color: var(--ink);
+  font-family: inherit;
+}
+
 /* ═══════ Filtros ═══════ */
 .fds-tx-v2-filters {
   display: flex;
@@ -951,6 +1018,23 @@
 
   .fds-tx-v2-sort-label {
     flex-shrink: 0;
+  }
+
+  .fds-tx-v2-range-toggle {
+    flex-direction: row;
+    align-items: center;
+    gap: 16px;
+  }
+
+  .fds-tx-v2-range-body {
+    flex-direction: row;
+    align-items: center;
+    justify-content: space-between;
+    border-top: none;
+    padding-top: 0;
+    border-left: 1px solid var(--border);
+    padding-left: 16px;
+    margin-left: 4px;
   }
 }
 

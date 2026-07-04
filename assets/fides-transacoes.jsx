@@ -42,6 +42,33 @@ function acctNameOf(id, accounts, cards) {
   return null;
 }
 
+// rangeFromPreset: deriva [fromYM, toYM] a partir do mes ancora (selectedMonth)
+// e de um preset (TX-03/TX-04). 'custom' nao usa este helper — o usuario edita
+// fromYM/toYM diretamente. Nunca retorna undefined (base para lazy useState).
+function rangeFromPreset(selectedMonth, preset) {
+  var parts = String(selectedMonth || '').split('-');
+  var y = parseInt(parts[0], 10) || new Date().getFullYear();
+  var m = parseInt(parts[1], 10) || 1;
+
+  if (preset === 'ano') {
+    return [y + '-01', y + '-12'];
+  }
+
+  var back = preset === '12m' ? 11 : preset === '6m' ? 5 : 2; // default '3m'
+  var sy = y, sm = m - back;
+  while (sm < 1) { sm += 12; sy -= 1; }
+  var from = sy + '-' + String(sm).padStart(2, '0');
+  return [from, selectedMonth];
+}
+
+// ymShortLabel: 'YYYY-MM' -> 'Mmm YYYY' reusando TX_MONTHS_LBL (idioma dos
+// tabs de mes), para exibir o rotulo do intervalo de range no lugar de lbl.long.
+function ymShortLabel(ym) {
+  var parts = String(ym || '').split('-');
+  var idx = (parseInt(parts[1], 10) || 1) - 1;
+  return (TX_MONTHS_LBL[idx] || '') + ' ' + (parts[0] || '');
+}
+
 // ─── Modal de filtros avancados (bottom sheet) ──────────────────
 function TxAdvFiltersModal({ open, onClose, filters, onApply, categories, accounts, cards }) {
   var initial = filters || { categoriasSelected: [], contasSelected: [], recurring: 'all' };
@@ -227,6 +254,29 @@ function Transacoes({ variant, onAdd }) {
   const [editingTx, setEditingTx] = React.useState(null);
   const [pageSize, setPageSize] = React.useState(20); // 20 | 50 | 100
   const [page, setPage] = React.useState(0);
+
+  // ─── Range mode (TX-03/TX-04): [fromYM, toYM] alimenta lista e analytics ─
+  const [rangeMode, setRangeMode] = React.useState(false); // false = mes unico (comportamento atual)
+  const [rangePreset, setRangePreset] = React.useState('3m'); // 3m | 6m | 12m | ano | custom
+  // fromYM/toYM SEMPRE React.useState com lazy init via rangeFromPreset — nunca
+  // undefined no 1o render (monthsInRange faz fromYM.split('-') no store).
+  const [fromYM, setFromYM] = React.useState(function() {
+    return rangeFromPreset(selectedMonth, '3m')[0];
+  });
+  const [toYM, setToYM] = React.useState(function() {
+    return rangeFromPreset(selectedMonth, '3m')[1];
+  });
+
+  // Unico effect que escreve fromYM/toYM: sincroniza com o preset (nao-custom)
+  // ou com o mes ancora. Em 'custom' o usuario edita via setFromYM/setToYM direto.
+  React.useEffect(function() {
+    if (rangePreset !== 'custom') {
+      var r = rangeFromPreset(selectedMonth, rangePreset);
+      setFromYM(r[0]);
+      setToYM(r[1]);
+    }
+  }, [rangePreset, selectedMonth]);
+
   const refConfirm = window.FidesUI.useConfirm();
   const confirmAction = refConfirm.confirm;
   const ConfirmHost = refConfirm.ConfirmHost;
@@ -240,6 +290,10 @@ function Transacoes({ variant, onAdd }) {
     : { short: String(lblRaw || selectedMonth), long: String(lblRaw || selectedMonth) };
 
   const currentMonthIdx = parseInt(selectedMonth.split('-')[1], 10) - 1;
+
+  // Rotulo do intervalo ativo, usado no controle de range (Task 2 vai reusar
+  // isto nos contadores da lista quando rangeMode estiver ativo).
+  const rangeLabel = ymShortLabel(fromYM) + ' – ' + ymShortLabel(toYM);
 
   const baseList = monthTransactions;
   const flow = baseList.filter(function(t) { return !t.isTransfer; });
@@ -646,6 +700,78 @@ function Transacoes({ variant, onAdd }) {
             <Icon.Export size={14}/> Exportar
           </button>
         </div>
+      </section>
+
+      {/* ─── Escopo: mes unico vs periodo (TX-03/TX-04) ─── */}
+      <section className="fds-card fds-tx-v2-range" data-od-id="tx-range">
+        <div className="fds-tx-v2-range-toggle">
+          <span className="fds-tx-v2-sort-label">Escopo</span>
+          <div className="fds-tx-v2-range-toggle-pills" role="group" aria-label="Escopo de mês">
+            <button type="button"
+                    className={'fds-tx-v2-sort-pill' + (!rangeMode ? ' on' : '')}
+                    aria-pressed={!rangeMode}
+                    onClick={function() { setRangeMode(false); }}>
+              Mês único
+            </button>
+            <button type="button"
+                    className={'fds-tx-v2-sort-pill' + (rangeMode ? ' on' : '')}
+                    aria-pressed={rangeMode}
+                    onClick={function() { setRangeMode(true); }}>
+              Período
+            </button>
+          </div>
+        </div>
+
+        {rangeMode && (
+          <div className="fds-tx-v2-range-body">
+            <div className="fds-tx-v2-range-presets" role="group" aria-label="Preset de período">
+              {[
+                { k: '3m', l: '3m' },
+                { k: '6m', l: '6m' },
+                { k: '12m', l: '12m' },
+                { k: 'ano', l: 'Ano' },
+                { k: 'custom', l: 'Custom' },
+              ].map(function(p) {
+                var on = rangePreset === p.k;
+                return (
+                  <button key={p.k} type="button"
+                          className={'fds-tx-v2-sort-pill' + (on ? ' on' : '')}
+                          aria-pressed={on}
+                          onClick={function() { setRangePreset(p.k); }}>
+                    {p.l}
+                  </button>
+                );
+              })}
+            </div>
+
+            {rangePreset === 'custom' ? (
+              <div className="fds-tx-v2-range-custom">
+                <label className="fds-tx-v2-range-custom-field">
+                  <span>De</span>
+                  <input type="month" value={fromYM}
+                         onChange={function(e) {
+                           var v = e.target.value;
+                           if (!v) return;
+                           setFromYM(v);
+                           if (v > toYM) setToYM(v);
+                         }}/>
+                </label>
+                <label className="fds-tx-v2-range-custom-field">
+                  <span>Até</span>
+                  <input type="month" value={toYM}
+                         onChange={function(e) {
+                           var v = e.target.value;
+                           if (!v) return;
+                           setToYM(v);
+                           if (v < fromYM) setFromYM(v);
+                         }}/>
+                </label>
+              </div>
+            ) : (
+              <span className="fds-tx-v2-range-label">{rangeLabel}</span>
+            )}
+          </div>
+        )}
       </section>
 
       {/* ─── Organizacao (sort pills) ─── */}
