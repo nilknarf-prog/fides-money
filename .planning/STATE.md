@@ -4,16 +4,16 @@ milestone: v1.1
 milestone_name: CRUD Metas — EM PLANEJAMENTO
 current_phase: 09
 current_phase_name: transacoes-power-tools-analytics
-status: verifying
-stopped_at: Completed 09-04-PLAN.md
-last_updated: "2026-07-04T01:17:58.690Z"
+status: awaiting-uat
+stopped_at: Phase 09 code-complete (5/5 plans, sequential-on-main #683) + VERIFICATION human_needed (8/8 static) — awaiting /gsd-verify-work 9
+last_updated: "2026-07-04T01:29:00.000Z"
 last_activity: 2026-07-03
-last_activity_desc: Phase 09 execution started
+last_activity_desc: Phase 09 executed 5/5 plans; VERIFICATION 8/8 static-verified, human_needed (runtime truths need UAT)
 progress:
   total_phases: 3
   completed_phases: 2
-  total_plans: 8
-  completed_plans: 8
+  total_plans: 5
+  completed_plans: 5
   percent: 67
 ---
 
@@ -21,10 +21,10 @@ progress:
 
 ## Current Position
 
-Phase: 09 (transacoes-power-tools-analytics) — EXECUTING
-Plan: 5 of 5
-Status: Phase complete — ready for verification
-Last activity: 2026-07-03 — Phase 09 execution started
+Phase: 09 (transacoes-power-tools-analytics) — CODE-COMPLETE, awaiting human UAT
+Plan: 5 of 5 code-complete (all SUMMARYs) — VERIFICATION 8/8 static-verified, human_needed
+Status: awaiting-uat — run /gsd-verify-work 9 on the deployed app to close 7 runtime truths (⌘K, filtro Cartões, paginação 20/50/100, modo range + analytics cross-month, CSV seguro, persistência localStorage, preview de limite)
+Last activity: 2026-07-03 — Phase 09 executed 5/5 plans (sequential on main, #683 degrade); VERIFICATION human_needed
 
 ## Project Reference
 
