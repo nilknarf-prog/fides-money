@@ -230,7 +230,7 @@ function TxAdvFiltersModal({ open, onClose, filters, onApply, categories, accoun
 
 // ─── Componente principal ──────────────────────────────────────
 function Transacoes({ variant, onAdd }) {
-  const { monthTransactions, transactions, categories, selectedMonth, setSelectedMonth, monthLabel, addTransaction, updateTransaction, deleteTransaction, accounts, cards } = useFides();
+  const { monthTransactions, rangeTransactions, transactions, categories, selectedMonth, setSelectedMonth, monthLabel, addTransaction, updateTransaction, deleteTransaction, accounts, cards } = useFides();
   const [sortBy, setSortBy] = React.useState('data');         // data | categoria | conta | valor
   const [sortOrder, setSortOrder] = React.useState('desc');    // desc | asc
   const [collapsedGroups, setCollapsedGroups] = React.useState(new Set());
@@ -291,11 +291,20 @@ function Transacoes({ variant, onAdd }) {
 
   const currentMonthIdx = parseInt(selectedMonth.split('-')[1], 10) - 1;
 
-  // Rotulo do intervalo ativo, usado no controle de range (Task 2 vai reusar
-  // isto nos contadores da lista quando rangeMode estiver ativo).
+  // Rotulo do intervalo ativo, usado no controle de range e nos contadores
+  // da lista quando rangeMode esta ativo.
   const rangeLabel = ymShortLabel(fromYM) + ' – ' + ymShortLabel(toYM);
+  const scopeLabel = rangeMode ? rangeLabel : lbl.long;
 
-  const baseList = monthTransactions;
+  // rangeList: memoizado no consumidor (Pitfall 4) — o store expoe
+  // rangeTransactions como React.useCallback (nao useMemo), entao o
+  // consumidor precisa cachear por [fromYM, toYM] para nao recomputar a
+  // cada render.
+  const rangeList = React.useMemo(function() {
+    return rangeTransactions(fromYM, toYM);
+  }, [rangeTransactions, fromYM, toYM]);
+
+  const baseList = rangeMode ? rangeList : monthTransactions;
   const flow = baseList.filter(function(t) { return !t.isTransfer; });
 
   // ─── Filtragem ─────────────────────────────────────────────
@@ -916,7 +925,7 @@ function Transacoes({ variant, onAdd }) {
                 </span>
               ) : (
                 <span className="fds-tx-v2-list-count">
-                  <strong>{pagedSorted.length}</strong> de {sorted.length} nesta página · {lbl.long}
+                  <strong>{pagedSorted.length}</strong> de {sorted.length} nesta página · {scopeLabel}
                 </span>
               )}
             </div>
@@ -1093,7 +1102,7 @@ function Transacoes({ variant, onAdd }) {
           {hasAnyFilter && filtered.length < baseList.length && (
             <div className="fds-tx-v2-list-foot">
               <span className="fds-muted">
-                Mostrando <strong>{filtered.length}</strong> de {baseList.length} em {lbl.long}
+                Mostrando <strong>{filtered.length}</strong> de {baseList.length} em {scopeLabel}
               </span>
               <button type="button" className="fds-tx-v2-clear-link" onClick={clearAllFilters}>
                 Limpar filtros
