@@ -225,6 +225,8 @@ function Transacoes({ variant, onAdd }) {
   });
   const [bulkCatPicker, setBulkCatPicker] = React.useState(false);
   const [editingTx, setEditingTx] = React.useState(null);
+  const [pageSize, setPageSize] = React.useState(20); // 20 | 50 | 100
+  const [page, setPage] = React.useState(0);
   const refConfirm = window.FidesUI.useConfirm();
   const confirmAction = refConfirm.confirm;
   const ConfirmHost = refConfirm.ConfirmHost;
@@ -322,15 +324,22 @@ function Transacoes({ variant, onAdd }) {
     return copy;
   }, [filtered, sortBy, sortOrder, categories, safeAccounts, safeCards]);
 
-  // ─── Agrupamento por categoria ou conta ────────────────────
+  // ─── Paginacao (sobre 'sorted', antes do agrupamento) ──────
+  React.useEffect(function() { setPage(0); }, [filtered, sortBy, sortOrder, pageSize]);
+
+  const pagedSorted = React.useMemo(function() {
+    return sorted.slice(page * pageSize, (page + 1) * pageSize);
+  }, [sorted, page, pageSize]);
+
+  // ─── Agrupamento por categoria ou conta (sobre a pagina atual) ─
   const grouped = React.useMemo(function() {
     if (sortBy === 'data' || sortBy === 'valor') {
-      return sorted.map(function(t) { return { type: 'tx', data: t }; });
+      return pagedSorted.map(function(t) { return { type: 'tx', data: t }; });
     }
 
     var groups = {};
     var order = [];
-    sorted.forEach(function(t) {
+    pagedSorted.forEach(function(t) {
       var key;
       if (sortBy === 'categoria') {
         key = (categories[t.cat] && categories[t.cat].label) || t.cat || 'Outros';
@@ -352,7 +361,7 @@ function Transacoes({ variant, onAdd }) {
       });
     });
     return result;
-  }, [sorted, sortBy, categories, safeAccounts, safeCards]);
+  }, [pagedSorted, sortBy, categories, safeAccounts, safeCards]);
 
   // ── Exportar extrato (CSV ou OFX) ────────────────────────────
   const handleExport = React.useCallback((fmt = 'csv') => {
