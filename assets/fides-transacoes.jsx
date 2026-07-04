@@ -842,6 +842,23 @@ function Transacoes({ variant, onAdd }) {
                  + (advFilters.recurring !== 'all' ? 1 : 0);
   const hasAnyFilter = filterType !== 'todas' || !!search || advCount > 0;
 
+  // Chip "Cartao" (UX-03): atalho de masthead que alterna TODOS os ids de
+  // cartao dentro de advFilters.contasSelected — mesmo estado de filtro por
+  // conta ja existente (nenhum estado novo), so exposto fora do modal de
+  // Filtros avancados. Analogo a TxAdvFiltersModal.toggleAllCards.
+  const cardIds = safeCards.map(function(c) { return c.id; });
+  const allCardsActive = cardIds.length > 0 && cardIds.every(function(id) {
+    return advFilters.contasSelected.indexOf(id) >= 0;
+  });
+  function toggleCardChip() {
+    setAdvFilters(function(prev) {
+      var next = allCardsActive
+        ? prev.contasSelected.filter(function(id) { return cardIds.indexOf(id) < 0; })
+        : Array.from(new Set(prev.contasSelected.concat(cardIds)));
+      return Object.assign({}, prev, { contasSelected: next });
+    });
+  }
+
   // Sort labels para a UI
   const SORT_LABELS = { data: 'Data', categoria: 'Categoria', conta: 'Conta', valor: 'Valor' };
 
@@ -1045,6 +1062,14 @@ function Transacoes({ variant, onAdd }) {
               </button>
             );
           })}
+          {safeCards.length > 0 && (
+            <button type="button"
+                    className={'fds-chip' + (allCardsActive ? ' on' : '')}
+                    aria-pressed={allCardsActive}
+                    onClick={toggleCardChip}>
+              <Icon.Card size={13}/> Cartão
+            </button>
+          )}
           <span className="fds-chip-sep" aria-hidden="true"/>
           <button type="button"
                   className={'fds-chip fds-tx-v2-chip-adv' + (advCount > 0 ? ' on' : '')}
