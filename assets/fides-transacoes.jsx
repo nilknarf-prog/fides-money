@@ -411,6 +411,10 @@ function Transacoes({ variant, onAdd }) {
   const [importPreview, setImportPreview] = React.useState(null);
   const [pageSize, setPageSize] = React.useState(function() { var s = readTxState(); return s.pageSize || 20; }); // 20 | 50 | 100
   const [page, setPage] = React.useState(0);
+  // activeSlice (UX-04): fatia ativa do Donut do modo Periodo, para o centro
+  // dinamico. Declarado incondicional no topo (Rules of Hooks) — nunca dentro
+  // do bloco {rangeMode && ...}.
+  const [activeSlice, setActiveSlice] = React.useState(null);
 
   // ─── Range mode (TX-03/TX-04): [fromYM, toYM] alimenta lista e analytics ─
   const [rangeMode, setRangeMode] = React.useState(function() { var s = readTxState(); return !!s.rangeMode; }); // false = mes unico (comportamento atual)
@@ -488,6 +492,12 @@ function Transacoes({ variant, onAdd }) {
   const rangeSpend = React.useMemo(function() {
     return spendByCategoryRange(fromYM, toYM);
   }, [spendByCategoryRange, fromYM, toYM]);
+  // rangeTotal (UX-04): total do periodo, usado no cabecalho e no centro
+  // dinamico do Donut ("Total" quando nenhuma fatia esta ativa) + no % de
+  // cada fatia da legenda completa.
+  const rangeTotal = React.useMemo(function() {
+    return rangeSpend.reduce(function(s, d) { return s + d.val; }, 0);
+  }, [rangeSpend]);
 
   const baseList = rangeMode ? rangeList : monthTransactions;
   const flow = baseList.filter(function(t) { return !t.isTransfer; });
@@ -986,17 +996,43 @@ function Transacoes({ variant, onAdd }) {
               <span className="fds-muted">{rangeLabel}</span>
             </div>
             <div className="fds-tx-v2-analytics-total">
-              {fmtBRL(rangeSpend.reduce(function(s, d) { return s + d.val; }, 0))}
+              {fmtBRL(rangeTotal)}
             </div>
           </header>
 
           {rangeSpend.length > 0 ? (
             <div className="fds-tx-v2-analytics-body">
               <div className="fds-donut-wrap">
-                <Donut data={rangeSpend} size={160} thickness={20}/>
+                <Donut data={rangeSpend} size={160} thickness={20} onActiveSlice={setActiveSlice}/>
+                <div className="fds-donut-center">
+                  {activeSlice ? <>
+                    <div className="fds-donut-label">{activeSlice.label}</div>
+                    <div className="fds-donut-value">{fmtBRL(activeSlice.val, { compact: true })}</div>
+                    <div className="fds-donut-label">{Math.round((activeSlice.val / rangeTotal) * 100)}%</div>
+                  </> : <>
+                    <div className="fds-donut-label">Total</div>
+                    <div className="fds-donut-value">{fmtBRL(rangeTotal, { compact: true })}</div>
+                  </>}
+                </div>
               </div>
               <div className="fds-tx-v2-analytics-chart">
                 <CategoryChart data={rangeSpend} height={220}/>
+                {/* Legenda textual completa (UX-04, Pitfall 4): CategoryChart
+                    trunca em top-7 mas o Donut desenha TODAS as fatias — sem
+                    esta lista, cor/fatia do Donut fica sem correspondencia
+                    visivel. Lista TODAS as categorias de rangeSpend. */}
+                <div className="fds-cats-list">
+                  {rangeSpend.map(function(c) {
+                    return (
+                      <div className="fds-cat-row" key={c.key}>
+                        <CategoryAvatar cat={c.key} size={22}/>
+                        <span className="fds-cat-lbl">{c.label}</span>
+                        <span className="fds-cat-pct">{rangeTotal > 0 ? Math.round((c.val / rangeTotal) * 100) : 0}%</span>
+                        <span className="fds-cat-val">{fmtBRL(c.val)}</span>
+                      </div>
+                    );
+                  })}
+                </div>
               </div>
             </div>
           ) : (
