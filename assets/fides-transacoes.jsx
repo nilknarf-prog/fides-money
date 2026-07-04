@@ -78,6 +78,123 @@ function csvSafeCell(s) {
   return /^[=+\-@]/.test(str) ? ("'" + str) : str;
 }
 
+// ─── Import: dedupe + resolução de destino (IMP-01/IMP-02, D-09..D-12) ──
+// dedupeKey: chave normalizada description+value+date (D-09) — dia exato,
+// sem tolerância (D-10). Usada tanto sobre transações já existentes
+// (buildDedupeIndex) quanto sobre linhas recém-parseadas do CSV/OFX (mesmo
+// formato YYYY-MM-DD dos dois lados, para a comparação bater).
+function dedupeKey(tx) {
+  var desc = String((tx && tx.desc) || '').trim().toLowerCase().replace(/\s+/g, ' ');
+  var cents = Math.round(Math.abs(Number(tx && tx.val)) * 100);
+  var day = String((tx && tx.date) || '').slice(0, 10);
+  return desc + '|' + cents + '|' + day;
+}
+
+function buildDedupeIndex(transactions) {
+  return new Set((transactions || []).map(dedupeKey));
+}
+
+// resolveRowForImport: resolve o mês/fatura e a conta/cartão de destino POR
+// LINHA (D-11/D-12) — espelha o padrão FIX-EDIT-MES do EditTxModal.handleSave
+// em lote. Nunca depende do fallback implícito do txToRow (Pitfall 6 do
+// RESEARCH.md, que só recalcula mês em modo live) — o mês já sai calculado.
+function resolveRowForImport(row, destAcctId, cards) {
+  var cardIdSet = new Set((cards || []).map(function(c) { return c.id; }));
+  var isCard = cardIdSet.has(destAcctId);
+  var mes = row.mesFromCsv;
+  if (isCard) {
+    var card = (cards || []).find(function(c) { return c.id === destAcctId; });
+    if (card) {
+      var mesCalc = window.mesFaturaFor(row.d, card, row.ano);
+      if (mesCalc) mes = mesCalc;
+    }
+  }
+  return Object.assign({}, row, {
+    acct: destAcctId,
+    mes: mes,
+    card_id: isCard ? destAcctId : undefined,
+  });
+}
+
+// parseCsvRows / parseOfxRows: extraem as linhas do arquivo em objetos puros,
+// SEM gravar nada (IMP-01) — a gravação só acontece na confirmação do
+// ImportPreviewModal, via handleImportConfirm. `date` (YYYY-MM-DD) é montada
+// a partir do próprio arquivo (nunca de selectedMonth) para o dedupe (D-09) e
+// para resolveRowForImport casarem no mesmo formato.
+function parseCsvRows(text, categories) {
+  var lines = String(text || '').split(/\r?\n/).filter(Boolean);
+  if (lines.length < 2) return { rows: [], errors: 0 };
+  var sep = lines[0].includes(';') ? ';' : ',';
+  var nowY = new Date().getFullYear();
+  var rows = [];
+  var errors = 0;
+  lines.slice(1).forEach(function(line, i) {
+    var cols = line.split(sep).map(function(c) { return c.replace(/^"|"$/g, '').trim(); });
+    var d = cols[0], desc = cols[1], cat = cols[2], acctNameRaw = cols[3], valStr = cols[4], status = cols[5], recur = cols[6];
+    if (!desc || !valStr) { errors++; return; }
+    var valRaw = parseFloat(valStr.replace(',', '.'));
+    if (isNaN(valRaw)) { errors++; return; }
+    var catEntry = Object.entries(categories || {}).find(function(entry) {
+      return (entry[1].label || '').toLowerCase() === (cat || '').toLowerCase();
+    });
+    var catKey = catEntry ? catEntry[0] : 'outros';
+    var parts = String(d || '').split('/');
+    var dd = String(parts[0] || new Date().getDate()).padStart(2, '0');
+    var mm = String(parts[1] || (new Date().getMonth() + 1)).padStart(2, '0');
+    var ano = parseInt(parts[2], 10) || nowY;
+    rows.push({
+      _key: i,
+      desc: desc,
+      val: valRaw,
+      cat: catKey,
+      d: dd + '/' + mm,
+      ano: ano,
+      date: ano + '-' + mm + '-' + dd,
+      mesFromCsv: ano + '-' + mm,
+      acctNameRaw: acctNameRaw || '',
+      status: status === 'pago' ? 'pago' : 'pendente',
+      recur: recur || null,
+    });
+  });
+  return { rows: rows, errors: errors };
+}
+
+function parseOfxRows(text) {
+  var blocks = String(text || '').match(/<STMTTRN>[\s\S]*?<\/STMTTRN>/gi) || [];
+  var getTag = function(block, tag) {
+    var m = block.match(new RegExp('<' + tag + '>([^<\n\r]+)', 'i'));
+    return m ? m[1].trim() : '';
+  };
+  var nowY = new Date().getFullYear();
+  var rows = [];
+  var errors = 0;
+  blocks.forEach(function(block, i) {
+    var memo = getTag(block, 'MEMO') || getTag(block, 'NAME') || '';
+    var amtStr = getTag(block, 'TRNAMT');
+    var dtRaw = getTag(block, 'DTPOSTED');
+    if (!memo || !amtStr) { errors++; return; }
+    var amt = parseFloat(amtStr.replace(',', '.'));
+    if (isNaN(amt)) { errors++; return; }
+    var yyyy = dtRaw.slice(0, 4) || String(nowY);
+    var mm = dtRaw.slice(4, 6) || '01';
+    var dd = dtRaw.slice(6, 8) || '01';
+    rows.push({
+      _key: i,
+      desc: memo,
+      val: amt,
+      cat: 'outros',
+      d: dd + '/' + mm,
+      ano: parseInt(yyyy, 10),
+      date: yyyy + '-' + mm + '-' + dd,
+      mesFromCsv: yyyy + '-' + mm,
+      acctNameRaw: '',
+      status: 'pendente',
+      recur: null,
+    });
+  });
+  return { rows: rows, errors: errors };
+}
+
 // ─── Persistencia page-local (TX-06) ────────────────────────────
 // fides:tx.state guarda so preferencias de visualizacao de Transacoes
 // (sort/filtro/pageSize/range) — NUNCA o selectedMonth global, que e'
@@ -261,7 +378,7 @@ function TxAdvFiltersModal({ open, onClose, filters, onApply, categories, accoun
 
 // ─── Componente principal ──────────────────────────────────────
 function Transacoes({ variant, onAdd }) {
-  const { monthTransactions, rangeTransactions, spendByCategoryRange, transactions, categories, selectedMonth, setSelectedMonth, monthLabel, addTransaction, updateTransaction, deleteTransaction, accounts, cards } = useFides();
+  const { monthTransactions, rangeTransactions, spendByCategoryRange, transactions, categories, selectedMonth, setSelectedMonth, monthLabel, addTransaction, addTransactions, updateTransaction, deleteTransaction, accounts, cards } = useFides();
   // ─── Persistencia page-local (TX-06): todos os useState abaixo que compoem
   // o snapshot persistido usam lazy initializer lendo readTxState(), com
   // fallback ao default anterior. NUNCA hidrata/restaura selectedMonth (global).
@@ -289,6 +406,9 @@ function Transacoes({ variant, onAdd }) {
   });
   const [bulkCatPicker, setBulkCatPicker] = React.useState(false);
   const [editingTx, setEditingTx] = React.useState(null);
+  // importPreview: { rows, fmt, errors } | null — controla o ImportPreviewModal
+  // (IMP-01). Declarado incondicional no topo do componente (Rules of Hooks).
+  const [importPreview, setImportPreview] = React.useState(null);
   const [pageSize, setPageSize] = React.useState(function() { var s = readTxState(); return s.pageSize || 20; }); // 20 | 50 | 100
   const [page, setPage] = React.useState(0);
 
@@ -550,7 +670,12 @@ function Transacoes({ variant, onAdd }) {
     }
   }, [filtered, categories, accounts, selectedMonth, rangeMode, fromYM, toYM]);
 
-  // ── Importar extrato (CSV ou OFX) ────────────────────────────
+  // ── Importar extrato (CSV ou OFX) — parse-then-preview (IMP-01/IMP-02) ──
+  // Nunca grava nesta etapa (D-06): só parseia o arquivo, calcula as flags de
+  // dedupe (D-09/D-10) e abre o ImportPreviewModal via setImportPreview. A
+  // gravação em lote só acontece na confirmação (handleImportConfirm), via
+  // addTransactions. Parou de forçar o mês global no import (bug D-11) — o
+  // mês de cada linha é resolvido por linha em resolveRowForImport.
   const handleImport = React.useCallback((fmt = 'csv') => {
     const input = document.createElement('input');
     input.type = 'file';
@@ -561,65 +686,51 @@ function Transacoes({ variant, onAdd }) {
       const reader = new FileReader();
       reader.onload = (ev) => {
         const text = ev.target.result;
-        if (fmt === 'ofx') {
-          const blocks = text.match(/<STMTTRN>[\s\S]*?<\/STMTTRN>/gi) || [];
-          if (blocks.length === 0) { window.FidesUI.toast.error('Nenhuma transação encontrada no arquivo OFX.'); return; }
-          const getTag = (block, tag) => {
-            const m = block.match(new RegExp(`<${tag}>([^<\n\r]+)`, 'i'));
-            return m ? m[1].trim() : '';
-          };
-          let imported = 0, errors = 0;
-          blocks.forEach(block => {
-            const memo   = getTag(block, 'MEMO') || getTag(block, 'NAME') || '';
-            const amtStr = getTag(block, 'TRNAMT');
-            const dtRaw  = getTag(block, 'DTPOSTED');
-            if (!memo || !amtStr) { errors++; return; }
-            const amt = parseFloat(amtStr.replace(',', '.'));
-            if (isNaN(amt)) { errors++; return; }
-            const yyyy = dtRaw.slice(0, 4) || selectedMonth.split('-')[0];
-            const mm   = dtRaw.slice(4, 6) || selectedMonth.split('-')[1] || '01';
-            const dd   = dtRaw.slice(6, 8) || '01';
-            addTransaction({
-              desc: memo, val: amt, cat: 'outros',
-              acct: safeAccounts[0]?.id,
-              d: `${dd}/${mm}`,
-              status: 'pendente', recur: null,
-              mes: `${yyyy}-${mm}`,
-            });
-            imported++;
-          });
-          window.FidesUI.toast.success(`${imported} transação(ões) importada(s)${errors > 0 ? `, ${errors} bloco(s) ignorado(s)` : ''}.`);
-        } else {
-          const lines = text.split(/\r?\n/).filter(Boolean);
-          if (lines.length < 2) { window.FidesUI.toast.error('CSV vazio ou sem dados.'); return; }
-          const sep = lines[0].includes(';') ? ';' : ',';
-          let imported = 0, errors = 0;
-          lines.slice(1).forEach(line => {
-            const cols = line.split(sep).map(c => c.replace(/^"|"$/g, '').trim());
-            const [d, desc, cat, acctName, valStr, status, recur] = cols;
-            if (!desc || !valStr) { errors++; return; }
-            const valRaw = parseFloat(valStr.replace(',', '.'));
-            if (isNaN(valRaw)) { errors++; return; }
-            const acctObj = safeAccounts.find(a => a.name.toLowerCase() === (acctName || '').toLowerCase());
-            const catKey  = Object.entries(categories).find(
-              ([, v]) => v.label.toLowerCase() === (cat || '').toLowerCase()
-            )?.[0] || 'outros';
-            addTransaction({
-              desc, val: valRaw, cat: catKey,
-              acct: acctObj?.id || safeAccounts[0]?.id,
-              d: d || new Date().toLocaleDateString('pt-BR'),
-              status: status === 'pago' ? 'pago' : 'pendente',
-              recur: recur || null, mes: selectedMonth,
-            });
-            imported++;
-          });
-          window.FidesUI.toast.success(`${imported} transação(ões) importada(s)${errors > 0 ? `, ${errors} linha(s) ignorada(s)` : ''}.`);
+        const parsed = fmt === 'ofx' ? parseOfxRows(text) : parseCsvRows(text, categories);
+        if (parsed.rows.length === 0) {
+          window.FidesUI.toast.error(
+            parsed.errors > 0
+              ? `Nenhuma transação válida encontrada (${parsed.errors} linha(s) inválida(s)).`
+              : 'Nenhuma transação encontrada no arquivo.'
+          );
+          return;
         }
+        const existing = buildDedupeIndex(transactions);
+        const rows = parsed.rows.map(row => ({
+          ...row,
+          _isDuplicate: existing.has(dedupeKey(row)),
+        }));
+        setImportPreview({ rows, fmt, errors: parsed.errors });
       };
       reader.readAsText(file, 'UTF-8');
     };
     input.click();
-  }, [categories, addTransaction, selectedMonth]);
+  }, [categories, transactions]);
+
+  // Confirmação do ImportPreviewModal: grava só as linhas marcadas, resolvendo
+  // mês/fatura e conta/cartão POR LINHA (D-11/D-12) antes da gravação em lote
+  // via addTransactions (Pitfall 6 — nunca depender só do fallback do
+  // txToRow, que só recalcula mês em modo live).
+  const handleImportConfirm = React.useCallback(async (selectedRows, destAcctId) => {
+    const payloads = selectedRows.map(row => {
+      const resolved = resolveRowForImport(row, destAcctId, safeCards);
+      return {
+        desc: resolved.desc,
+        val: resolved.val,
+        cat: resolved.cat,
+        acct: resolved.acct,
+        d: resolved.d,
+        date: resolved.date,
+        status: resolved.status,
+        recur: resolved.recur,
+        mes: resolved.mes,
+        card_id: resolved.card_id,
+      };
+    });
+    await addTransactions(payloads);
+    setImportPreview(null);
+    window.FidesUI.toast.success(`${payloads.length} transação(ões) importada(s).`);
+  }, [addTransactions, safeCards]);
 
   // ─── Totais (sobre 'filtered') ────────────────────────────
   const totals = React.useMemo(function() {
