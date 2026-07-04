@@ -5,15 +5,15 @@ milestone_name: CRUD Metas — EM PLANEJAMENTO
 current_phase: 09
 current_phase_name: transacoes-power-tools-analytics
 status: executing
-stopped_at: Completed 09-02-PLAN.md
-last_updated: "2026-07-04T00:18:02.555Z"
+stopped_at: Completed 09-03-PLAN.md
+last_updated: "2026-07-04T00:38:00.351Z"
 last_activity: 2026-07-03
 last_activity_desc: Phase 09 execution started
 progress:
   total_phases: 3
   completed_phases: 1
   total_plans: 8
-  completed_plans: 5
+  completed_plans: 6
   percent: 33
 ---
 
@@ -22,7 +22,7 @@ progress:
 ## Current Position
 
 Phase: 09 (transacoes-power-tools-analytics) — EXECUTING
-Plan: 3 of 5
+Plan: 4 of 5
 Status: Ready to execute
 Last activity: 2026-07-03 — Phase 09 execution started
 
@@ -92,6 +92,7 @@ VERIFICATION: `.planning/phases/08-metas-vision-board-redesign/08-VERIFICATION.m
 | Phase 08 P08 | 20min | 3 tasks | 3 files |
 | Phase 09 P01 | 8min | 2 tasks | 1 files |
 | Phase 09 P02 | ~15min | 2 tasks | 2 files |
+| Phase 09 P03 | 7min | 3 tasks | 2 files |
 
 ## Decisions
 
@@ -124,11 +125,14 @@ VERIFICATION: `.planning/phases/08-metas-vision-board-redesign/08-VERIFICATION.m
 - [Phase 09]: 09-02: CommandPalette reusa shell .fds-modal-backdrop/.fds-modal (sem CSS de overlay novo, so posicionamento via .stu-cmdk-backdrop)
 - [Phase 09]: 09-02: resultados de transacao usam t._id (campo real de normalizeTx), nao t.id
 - [Phase 09]: 09-02: busca cobre transacoes + contas/cartoes/categorias navegaveis, resolvendo Open Question 3 do 09-RESEARCH
+- [Phase ?]: 09-03: TxAdvFiltersModal mantem o mesmo contasSelected para contas/cartoes (sem novo estado); atalho selecionar-todos-cartoes e' toggle de grupo
+- [Phase ?]: 09-03: paginacao (pagedSorted) roda sobre sorted antes do agrupamento; grouped agrupa so a fatia paginada, evitando quebrar totais de categoria/conta
+- [Phase ?]: 09-03: toggleSelectAll/selTxs seguem operando sobre sorted inteiro (bulk-action); UI sinaliza explicitamente quando ha mais de 1 pagina
 
 ## Session
 
-**Last session:** 2026-07-04T00:18:02.535Z
-**Stopped at:** Completed 09-02-PLAN.md
+**Last session:** 2026-07-04T00:38:00.328Z
+**Stopped at:** Completed 09-03-PLAN.md
 **Resume file:** None
 
 ## Accumulated Context
