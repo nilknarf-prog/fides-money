@@ -1404,6 +1404,8 @@ function FidesProvider({ children }) {
     // Derived
     monthTransactions, prevMonthTransactions, virtualRecurringRevenue,
     spendByCategory, budgetGroups, faturasPorCartao, faturaAbertaPorCartao, faturasDoCartao, faturasDoCartaoCompleto,
+    // Range analytics (TX-03/TX-04 foundation)
+    spendByCategoryRange, rangeTransactions,
     // UI toggles
     categoryModalOpen,
     assistantOpen,
@@ -1453,6 +1455,8 @@ function useFides() {
     faturasDoCartao: () => [],
     faturasDoCartaoCompleto: () => [],
     virtualRecurringRevenue: [],
+    spendByCategoryRange: () => [],
+    rangeTransactions: () => [],
     openCategoryModal: () => {}, closeCategoryModal: () => {},
     openAssistant: () => {}, closeAssistant: () => {},
     assistantOpen: false, categoryModalOpen: false,
