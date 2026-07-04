@@ -1031,6 +1031,40 @@
   background: var(--card-soft);
 }
 
+/* ═══════ Preview de limite no modal Nova Transação (TX-08) ═══════ */
+.fds-tx-limit-preview {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 10px 12px;
+  border-radius: 10px;
+  font-size: var(--fs-ui);
+}
+
+.fds-tx-limit-preview.is-ok {
+  background: var(--ok-soft);
+  color: var(--ok);
+}
+
+.fds-tx-limit-preview.is-warn {
+  background: var(--warn-soft);
+  color: var(--warn);
+}
+
+.fds-tx-limit-preview.is-over {
+  background: var(--bad-soft);
+  color: var(--bad);
+}
+
+.fds-tx-limit-preview-line strong {
+  font-variant-numeric: tabular-nums;
+}
+
+.fds-tx-limit-preview-note {
+  font-size: var(--fs-xs, 11px);
+  opacity: 0.75;
+}
+
 /* ═══════ Responsive ═══════ */
 @media (min-width: 768px) {
   .fds-tx-v2-header {

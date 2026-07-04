@@ -1446,7 +1446,7 @@ function EditTxModal({ tx, onClose }) {
 
 // ─── Modal: Nova Transação ────────────────────────────────────
 function NovaTransacaoModal({ open, onClose, onSave, variant }) {
-  const { categories, openCategoryModal, accounts, cards, transferFunds, addTransaction, addTransactions } = useFides();
+  const { categories, openCategoryModal, accounts, cards, transferFunds, addTransaction, addTransactions, categoryUsage } = useFides();
   const toast = window.FidesUI.useToast();
   const { rendered, closing, requestClose } = window.FidesUI.useModalClose(open, onClose);
   const today = new Date();
@@ -1506,6 +1506,20 @@ function NovaTransacaoModal({ open, onClose, onSave, variant }) {
     const parts = String(d).split('/');
     return parts[0] && parts[1] ? `${parts[0].padStart(2,'0')}/${parts[1].padStart(2,'0')}` : todayStr.slice(0,5);
   };
+
+  // Preview de limite da categoria selecionada (TX-08) — variaveis derivadas
+  // simples, sem hooks novos (Rules of Hooks). categoryUsage e' do mes
+  // corrente (selectedMonth do store); parcelas futuras nao sao avaliadas
+  // aqui (Pitfall 3 do 09-RESEARCH).
+  const usage = categoryUsage.find((u) => u.cat_key === cat);
+  const numVal = parseVal(val);
+  const projectedSpent = (usage && usage.spent || 0) + (kind === 'despesa' ? numVal : 0);
+  const projectedRemaining = (usage && usage.limit != null) ? usage.limit - projectedSpent : null;
+  const projectedPct = (usage && usage.limit) ? (projectedSpent / usage.limit) * 100 : null;
+  const projectedStatus = projectedRemaining == null ? null
+    : projectedRemaining < 0 ? 'over'
+    : (projectedPct != null && projectedPct >= 80) ? 'warn'
+    : 'ok';
 
   const canSave = kind === 'transferencia'
     ? (acct && toAcct && acct !== toAcct && parseVal(val) > 0)
@@ -1714,6 +1728,16 @@ function NovaTransacaoModal({ open, onClose, onSave, variant }) {
             </label>
             )}
           </div>
+
+          {/* Preview de limite da categoria selecionada (TX-08) */}
+          {kind !== 'transferencia' && usage && usage.limit != null && (
+            <div className={"fds-tx-limit-preview is-" + projectedStatus}>
+              <div className="fds-tx-limit-preview-line">
+                após esta transação: <strong>{fmtBRL(projectedRemaining)}</strong> restante de {fmtBRL(usage.limit)}
+              </div>
+              <div className="fds-tx-limit-preview-note">limite do mês atual — parcelas futuras não avaliadas</div>
+            </div>
+          )}
 
           {/* Transferência: contas de origem e destino */}
           {kind === 'transferencia' && (
