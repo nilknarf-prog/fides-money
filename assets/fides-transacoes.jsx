@@ -1346,10 +1346,169 @@ function Transacoes({ variant, onAdd }) {
       <ConfirmHost />
 
       {editingTx && <EditTxModal tx={editingTx} onClose={function() { setEditingTx(null); }}/>}
+
+      {importPreview && (
+        <ImportPreviewModal
+          preview={importPreview}
+          accounts={safeAccounts}
+          cards={safeCards}
+          onCancel={() => setImportPreview(null)}
+          onConfirm={handleImportConfirm}
+        />
+      )}
     </div>
   );
 }
 
+// ─── Modal: Revisar importação (IMP-01/IMP-02, D-06/D-07/D-08) ────────────
+// Preview + seleção + confirmação: nada é gravado até o usuário confirmar —
+// Cancelar/fechar/backdrop não grava nada (D-06). Linhas novas vêm marcadas
+// por default; duplicatas vêm desmarcadas + badge "já importada", nunca
+// ocultas (D-07/D-08). TODOS os hooks ficam incondicionais no topo do
+// componente (Pitfall 3 — Rules of Hooks, já causou bug real na Phase
+// 07/MetasStudio) — nenhum useState dentro do .map() de linhas.
+function ImportPreviewModal({ preview, accounts, cards, onCancel, onConfirm }) {
+  const { categories } = useFides();
+  const safeAccounts = accounts || [];
+  const safeCards = cards || [];
+  const rows = preview.rows || [];
+
+  // Set inicial calculado UMA vez na abertura (não recalculado por render):
+  // linhas novas marcadas, duplicatas desmarcadas (D-07/D-08).
+  const [selected, setSelected] = React.useState(() => new Set(
+    rows.filter(r => !r._isDuplicate).map(r => r._key)
+  ));
+  // Destino sugerido: casa acctNameRaw de alguma linha com uma conta/cartão
+  // existente; senão, a primeira conta; senão, o primeiro cartão.
+  const [destAcct, setDestAcct] = React.useState(() => {
+    for (const r of rows) {
+      const raw = String(r.acctNameRaw || '').toLowerCase().trim();
+      if (!raw) continue;
+      const matchAcct = safeAccounts.find(a => a.name.toLowerCase() === raw);
+      if (matchAcct) return matchAcct.id;
+      const matchCard = safeCards.find(c => c.name.toLowerCase() === raw);
+      if (matchCard) return matchCard.id;
+    }
+    return (safeAccounts[0] && safeAccounts[0].id) || (safeCards[0] && safeCards[0].id) || '';
+  });
+
+  const toggle = (key) => setSelected(prev => {
+    const next = new Set(prev);
+    if (next.has(key)) next.delete(key); else next.add(key);
+    return next;
+  });
+
+  const toggleAll = () => {
+    if (selected.size === rows.length) {
+      setSelected(new Set());
+    } else {
+      setSelected(new Set(rows.map(r => r._key)));
+    }
+  };
+
+  const allSelected = rows.length > 0 && selected.size === rows.length;
+  const noneSelected = selected.size === 0;
+  const semDestino = !destAcct;
+
+  return (
+    <div className="fds-modal-backdrop" onClick={onCancel}
+         style={{ position: 'fixed', inset: 0, zIndex: 200 }}>
+      <div className="fds-modal" style={{ maxWidth: 480 }}
+           onClick={e => e.stopPropagation()}>
+
+        <div className="fds-modal-head">
+          <div>
+            <div className="fds-modal-eyebrow">Importar {preview.fmt === 'ofx' ? 'OFX' : 'CSV'}</div>
+            <div className="fds-modal-title">Revisar importação</div>
+          </div>
+          <button className="fds-icon-btn" onClick={onCancel}><Icon.X size={16}/></button>
+        </div>
+
+        <div className="fds-modal-body">
+          {preview.errors > 0 && (
+            <div className="fds-tag warn">{preview.errors} linha(s) inválida(s) ignorada(s)</div>
+          )}
+
+          {semDestino ? (
+            <div style={{ color: 'var(--bad)', fontSize: 13 }}>
+              Você não tem contas ou cartões cadastrados. Adicione uma conta primeiro.
+            </div>
+          ) : (
+            <label className="fds-field">
+              <span>Importar para</span>
+              <select className="fds-select" value={destAcct} onChange={e => setDestAcct(e.target.value)}>
+                {safeAccounts.length > 0 && (
+                  <optgroup label="Contas">
+                    {safeAccounts.map(a => <option key={a.id} value={a.id}>{a.name}</option>)}
+                  </optgroup>
+                )}
+                {safeCards.length > 0 && (
+                  <optgroup label="Cartões">
+                    {safeCards.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
+                  </optgroup>
+                )}
+              </select>
+            </label>
+          )}
+
+          {/* Linha selecionar todos */}
+          <div className="pfm-select-all">
+            <button type="button" className="pfm-check-btn" onClick={toggleAll}>
+              <span className={`pfm-checkbox ${allSelected ? 'checked' : ''}`}>
+                {allSelected && <Icon.Check size={11}/>}
+              </span>
+              <span className="pfm-select-all-lbl">
+                {allSelected ? 'Desmarcar todas' : 'Selecionar todas'}
+              </span>
+            </button>
+            <span className="pfm-count">{selected.size} de {rows.length} serão importadas</span>
+          </div>
+
+          {/* Lista de linhas */}
+          <div className="pfm-list">
+            {rows.map(row => {
+              const catLbl = (categories[row.cat] && categories[row.cat].label) || row.cat || '';
+              const isSelected = selected.has(row._key);
+              const sign = row.val >= 0 ? '+' : '−';
+              return (
+                <button key={row._key}
+                        type="button"
+                        className={`pfm-item ${isSelected ? 'selected' : ''}`}
+                        onClick={() => toggle(row._key)}
+                        style={{ touchAction: 'manipulation', WebkitTapHighlightColor: 'transparent', minHeight: 44 }}>
+                  <span className={`pfm-checkbox ${isSelected ? 'checked' : ''}`}>
+                    {isSelected && <Icon.Check size={11}/>}
+                  </span>
+                  <span className="pfm-item-desc">
+                    {row.desc}
+                    {row._isDuplicate && <span className="fds-tag warn" style={{ marginLeft: 6 }}>já importada</span>}
+                  </span>
+                  <span className="pfm-item-d">{row.d} · {catLbl}</span>
+                  <span className="pfm-item-val">
+                    {sign}R$ {Math.abs(row.val).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
+                  </span>
+                </button>
+              );
+            })}
+          </div>
+        </div>
+
+        <div className="fds-modal-foot" style={{ display: 'flex', justifyContent: 'flex-end', gap: 8 }}>
+          <button className="fds-btn-ghost" onClick={onCancel}
+                  style={{ touchAction: 'manipulation', WebkitTapHighlightColor: 'transparent', minHeight: 44 }}>
+            Cancelar
+          </button>
+          <button className="fds-btn-primary"
+                  disabled={noneSelected || semDestino}
+                  onClick={() => onConfirm(rows.filter(r => selected.has(r._key)), destAcct)}
+                  style={{ touchAction: 'manipulation', WebkitTapHighlightColor: 'transparent', minHeight: 44 }}>
+            <Icon.Check size={13}/> Importar ({selected.size})
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
 
 // ─── TX KPI tile (compact) ────────────────────────────────────
 function TxKpi({ label, value, accent, delta, spark, kind, variant, pendingCount, onSeePending }) {
