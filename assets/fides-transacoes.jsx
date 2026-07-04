@@ -65,6 +65,22 @@ function TxAdvFiltersModal({ open, onClose, filters, onApply, categories, accoun
       : draft.contasSelected.concat([id]);
     setDraft(Object.assign({}, draft, { contasSelected: list }));
   }
+  function toggleAllCards() {
+    var cardIds = (cards || []).map(function(c) { return c.id; });
+    var allOn = cardIds.length > 0 && cardIds.every(function(id) {
+      return draft.contasSelected.indexOf(id) >= 0;
+    });
+    var list;
+    if (allOn) {
+      list = draft.contasSelected.filter(function(id) { return cardIds.indexOf(id) < 0; });
+    } else {
+      list = draft.contasSelected.slice();
+      cardIds.forEach(function(id) {
+        if (list.indexOf(id) < 0) list.push(id);
+      });
+    }
+    setDraft(Object.assign({}, draft, { contasSelected: list }));
+  }
   function clearAll() {
     var cleared = { categoriasSelected: [], contasSelected: [], recurring: 'all' };
     setDraft(cleared);
@@ -72,7 +88,11 @@ function TxAdvFiltersModal({ open, onClose, filters, onApply, categories, accoun
   }
 
   var catEntries = Object.entries(categories);
-  var allAccts = (accounts || []).concat(cards || []);
+  var safeAccountsList = accounts || [];
+  var safeCardsList = cards || [];
+  var allCardsSelected = safeCardsList.length > 0 && safeCardsList.every(function(c) {
+    return draft.contasSelected.indexOf(c.id) >= 0;
+  });
 
   return (
     <div className="fds-tx-adv-backdrop" onClick={onClose}>
@@ -104,9 +124,33 @@ function TxAdvFiltersModal({ open, onClose, filters, onApply, categories, accoun
           </section>
 
           <section className="fds-tx-adv-section">
-            <h3 className="fds-tx-adv-label">Contas e cartões</h3>
+            <h3 className="fds-tx-adv-label">Contas</h3>
             <div className="fds-tx-adv-chips">
-              {allAccts.map(function(a) {
+              {safeAccountsList.map(function(a) {
+                var on = draft.contasSelected.indexOf(a.id) >= 0;
+                return (
+                  <button key={a.id} type="button"
+                          className={'fds-chip' + (on ? ' on' : '')}
+                          onClick={function() { toggleAcct(a.id); }}>
+                    <span className="fds-tx-adv-acct-dot" style={{ background: a.color || 'var(--ink-3)' }}/>
+                    {a.name}
+                  </button>
+                );
+              })}
+            </div>
+          </section>
+
+          <section className="fds-tx-adv-section">
+            <div className="fds-tx-adv-label-row">
+              <h3 className="fds-tx-adv-label">Cartões</h3>
+              {safeCardsList.length > 0 && (
+                <button type="button" className="fds-tx-adv-selall" onClick={toggleAllCards}>
+                  {allCardsSelected ? 'Desmarcar todos os cartões' : 'Selecionar todos os cartões'}
+                </button>
+              )}
+            </div>
+            <div className="fds-tx-adv-chips">
+              {safeCardsList.map(function(a) {
                 var on = draft.contasSelected.indexOf(a.id) >= 0;
                 return (
                   <button key={a.id} type="button"

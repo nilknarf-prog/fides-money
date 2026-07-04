@@ -774,6 +774,31 @@
   color: var(--muted);
 }
 
+.fds-tx-adv-label-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.fds-tx-adv-selall {
+  background: transparent;
+  border: 0;
+  padding: 0;
+  font-size: var(--fs-xs);
+  font-weight: 600;
+  color: var(--accent);
+  cursor: pointer;
+  font-family: inherit;
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+
+.fds-tx-adv-selall:hover {
+  color: var(--ink);
+}
+
 .fds-tx-adv-chips {
   display: flex;
   flex-wrap: wrap;
