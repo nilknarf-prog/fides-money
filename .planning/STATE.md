@@ -2,18 +2,18 @@
 gsd_state_version: 1.0
 milestone: v1.1
 milestone_name: CRUD Metas — EM PLANEJAMENTO
-current_phase: 08
-current_phase_name: metas-vision-board-redesign
-status: awaiting-uat
-stopped_at: "Phase 08 code-complete (8/8 plans) + DB/security review CLEAN + pushed — verification human_needed, awaiting /gsd-verify-work 08"
-last_updated: "2026-07-03T04:34:12.989Z"
+current_phase: 09
+current_phase_name: transacoes-power-tools-analytics
+status: executing
+stopped_at: Completed 09-01-PLAN.md
+last_updated: "2026-07-04T00:05:00.828Z"
 last_activity: 2026-07-03
-last_activity_desc: "Phase 08 gap-closure: 08-07 UI polish + 08-08 completion blocker (diagnose→harden SQL→auto-conclusão); reviews CLEAN; pushed"
+last_activity_desc: Phase 09 execution started
 progress:
   total_phases: 3
   completed_phases: 1
   total_plans: 8
-  completed_plans: 8
+  completed_plans: 4
   percent: 33
 ---
 
@@ -21,17 +21,17 @@ progress:
 
 ## Current Position
 
-Phase: 08 (metas-vision-board-redesign) — CODE-COMPLETE, awaiting human UAT
-Plan: 8 of 8 code-complete (all SUMMARYs) — gap-closure 08-07 + 08-08 done, reviewed CLEAN, pushed
-Status: verification human_needed — re-run /gsd-verify-work 08 on the deployed app to close 4 runtime truths
-Last activity: 2026-07-03 — 08-07 (UI polish) + 08-08 (completion blocker) executed; DB+security review CLEAN; pushed to main
+Phase: 09 (transacoes-power-tools-analytics) — EXECUTING
+Plan: 2 of 5
+Status: Ready to execute
+Last activity: 2026-07-03 — Phase 09 execution started
 
 ## Project Reference
 
 See: .planning/PROJECT.md (updated 2026-07-01)
 
 **Core value:** Finanças pessoais por registro manual (fricção intencional → consciência); nunca número que impressiona mas engana.
-**Current focus:** Phase 08 — metas-vision-board-redesign
+**Current focus:** Phase 09 — transacoes-power-tools-analytics
 
 ## Phase Overview
 
@@ -60,10 +60,12 @@ Items acknowledged and deferred at milestone close on 2026-07-01:
 **Phase 08 code-complete + deployed — rodar UAT humano:** `/gsd-verify-work 08`
 
 Gap-closure feito e revisado (DB + security CLEAN, safe to push):
+
 - **08-07** (UI polish): `mesesLabel` mata "Infinity meses"; um só CTA "Nova meta"; `EmojiPicker` hand-rolled nos modais Criar/Ajustar.
 - **08-08** (blocker conclusão): diagnose-first via Supabase MCP → root cause = drift de schema (`create table if not exists` nunca adiciona coluna a tabela pré-existente; `completed`/`completed_at` só existiam no bloco CREATE). Colunas JÁ estão LIVE + RLS owner-scoped OK → **nenhum write LIVE feito** (decisão: no-op live + harden SQL). `schema.sql` + novo `goals-completed-fix.sql` com ALTERs idempotentes; helper `patchComAutoConclusao` (auto-conclui a >=alvo, sem auto-reabertura).
 
 **4 verdades runtime a fechar na UAT (precisam do app deployado + sessão logada):**
+
 1. `EmojiPicker` abre/seleciona/persiste nos dois modais (sem warning "Rendered more hooks…").
 2. "Marcar como concluída" reflete end-to-end (pill/filtro/Cap III) e persiste após refresh — Teste 7/8 do 08-UAT.
 3. Aportar/Atualizar saldo a >=alvo auto-conclui com o mesmo reflexo.
@@ -88,6 +90,7 @@ VERIFICATION: `.planning/phases/08-metas-vision-board-redesign/08-VERIFICATION.m
 | Phase 07 P03 | 12min | 3 tasks | 1 files |
 | Phase 08 P07 | 12min | 3 tasks | 2 files |
 | Phase 08 P08 | 20min | 3 tasks | 3 files |
+| Phase 09 P01 | 8min | 2 tasks | 1 files |
 
 ## Decisions
 
@@ -116,11 +119,12 @@ VERIFICATION: `.planning/phases/08-metas-vision-board-redesign/08-VERIFICATION.m
 - [Phase ?]: 08-08: Root cause = (a-schema) create-table-if-not-exists never adds columns to a pre-existing table — completed/completed_at were declared only inside the CREATE block and never reached the live goals table; healed live out-of-band, hardened schema.sql with standalone idempotent ALTERs
 - [Phase ?]: 08-08: patchComAutoConclusao helper auto-completes a goal when balance reaches target on aporte/atualizar-saldo, never sets completed:false (no auto-reopen on later balance drop — locked decision)
 - [Phase ?]: 08-08: No live database write performed (checkpoint decision: no-op live + harden SQL); live completed/completed_at columns and owner-scoped RLS UPDATE policy confirmed already correct via Supabase MCP introspection
+- [Phase 09]: 09-01: usou txMonth(t) (nao t.mes cru) para membership de mes em spendByCategoryRange/rangeTransactions, mantendo semantica de monthTransactions e mes de fatura do cartao
 
 ## Session
 
-**Last session:** 2026-07-03T04:34:12.972Z
-**Stopped at:** Completed 08-08-PLAN.md
+**Last session:** 2026-07-04T00:05:00.797Z
+**Stopped at:** Completed 09-01-PLAN.md
 **Resume file:** None
 
 ## Accumulated Context
