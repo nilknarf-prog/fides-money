@@ -116,6 +116,22 @@ function resolveRowForImport(row, destAcctId, cards) {
   });
 }
 
+// parseBRNumber: normaliza valor monetário aceitando tanto o formato agrupado
+// brasileiro (`1.450,00` → `.` é separador de milhar, `,` é decimal) quanto o
+// formato sem agrupamento do próprio export do app (`5417,00`) e o formato
+// ponto-decimal (`-12.50` / OFX `-54.17`). Só remove os pontos de milhar quando
+// AMBOS `.` e `,` estão presentes; caso contrário só converte a vírgula decimal.
+// Preserva o sinal negativo (CR-01 — evita corromper valores ≥ R$ 1.000).
+function parseBRNumber(s) {
+  var str = String(s == null ? '' : s).trim();
+  if (str.indexOf('.') >= 0 && str.indexOf(',') >= 0) {
+    str = str.replace(/\./g, '').replace(',', '.');
+  } else {
+    str = str.replace(',', '.');
+  }
+  return parseFloat(str);
+}
+
 // parseCsvRows / parseOfxRows: extraem as linhas do arquivo em objetos puros,
 // SEM gravar nada (IMP-01) — a gravação só acontece na confirmação do
 // ImportPreviewModal, via handleImportConfirm. `date` (YYYY-MM-DD) é montada
@@ -132,7 +148,7 @@ function parseCsvRows(text, categories) {
     var cols = line.split(sep).map(function(c) { return c.replace(/^"|"$/g, '').trim(); });
     var d = cols[0], desc = cols[1], cat = cols[2], acctNameRaw = cols[3], valStr = cols[4], status = cols[5], recur = cols[6];
     if (!desc || !valStr) { errors++; return; }
-    var valRaw = parseFloat(valStr.replace(',', '.'));
+    var valRaw = parseBRNumber(valStr);
     if (isNaN(valRaw)) { errors++; return; }
     var catEntry = Object.entries(categories || {}).find(function(entry) {
       return (entry[1].label || '').toLowerCase() === (cat || '').toLowerCase();
@@ -173,7 +189,7 @@ function parseOfxRows(text) {
     var amtStr = getTag(block, 'TRNAMT');
     var dtRaw = getTag(block, 'DTPOSTED');
     if (!memo || !amtStr) { errors++; return; }
-    var amt = parseFloat(amtStr.replace(',', '.'));
+    var amt = parseBRNumber(amtStr);
     if (isNaN(amt)) { errors++; return; }
     var yyyy = dtRaw.slice(0, 4) || String(nowY);
     var mm = dtRaw.slice(4, 6) || '01';
