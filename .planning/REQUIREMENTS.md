@@ -17,7 +17,7 @@
 
 > Não faziam parte do escopo v1.1 original; entraram via ROADMAP/CONTEXT da Fase 10 (fonte: `.planning/phases/09-transacoes-power-tools-analytics/09-FOLLOWUPS.md`). Registrados aqui para rastreabilidade. IMP-01/IMP-02 endereçam o hardening da importação antes deferida como IMPORT-01/IMPORT-02.
 
-- [ ] **FAT-01**: Fatura de cartão exibe fechamento/vencimento/status corretos para qualquer config de dias (inclui `closing_day > due_day`, ex. Bradesco fecha 19/vence 1), sem regressão para `closing_day < due_day`
+- [x] **FAT-01**: Fatura de cartão exibe fechamento/vencimento/status corretos para qualquer config de dias (inclui `closing_day > due_day`, ex. Bradesco fecha 19/vence 1), sem regressão para `closing_day < due_day`
 - [ ] **IMP-01**: Import de CSV/OFX abre preview com seleção e exige confirmação antes de gravar (cancelar não grava nada)
 - [ ] **IMP-02**: Import faz dedupe (`description`+`value`+`date` normalizado), usa mês/fatura correto por linha e resolve `card_id` quando a conta é cartão
 - [ ] **UX-03**: Botão rápido "Cartão" no masthead de Transações filtra crédito sem abrir Filtros avançados

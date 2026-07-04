@@ -3,17 +3,17 @@ gsd_state_version: 1.0
 milestone: v1.1
 milestone_name: CRUD Metas — EM PLANEJAMENTO
 current_phase: 10
-current_phase_name: correcao-fatura-cartao-hardening-import
-status: ready-to-plan
+current_phase_name: corre-o-fatura-cart-o-hardening-de-importa-o
+status: executing
 stopped_at: Phase 10 context gathered
-last_updated: "2026-07-04T03:26:08.971Z"
+last_updated: "2026-07-04T19:03:38.645Z"
 last_activity: 2026-07-04
-last_activity_desc: Phase 09 UAT 7/7 + verified; Phase 10 added
+last_activity_desc: Phase 10 execution started
 progress:
   total_phases: 4
   completed_phases: 2
-  total_plans: 8
-  completed_plans: 8
+  total_plans: 11
+  completed_plans: 9
   percent: 50
 ---
 
@@ -21,17 +21,17 @@ progress:
 
 ## Current Position
 
-Phase: 10 (correcao-fatura-cartao-hardening-import) — ready to plan
-Plan: Not started
-Status: ready-to-plan — Phase 09 fechada (UAT 7/7). Phase 10 no roadmap: FAT-01 (fatura fechamento/vencimento corretos, P1), IMP-01/02 (import preview+dedupe, P2), UX-03/04 (P3). Fonte: 09-FOLLOWUPS.md. Rodar /gsd-plan-phase 10.
-Last activity: 2026-07-04 — Phase 09 UAT 7/7 + verified; Phase 10 added
+Phase: 10 (corre-o-fatura-cart-o-hardening-de-importa-o) — EXECUTING
+Plan: 2 of 3
+Status: Ready to execute
+Last activity: 2026-07-04 — Phase 10 execution started
 
 ## Project Reference
 
 See: .planning/PROJECT.md (updated 2026-07-01)
 
 **Core value:** Finanças pessoais por registro manual (fricção intencional → consciência); nunca número que impressiona mas engana.
-**Current focus:** Phase 09 — transacoes-power-tools-analytics
+**Current focus:** Phase 10 — corre-o-fatura-cart-o-hardening-de-importa-o
 
 ## Phase Overview
 
@@ -95,6 +95,7 @@ VERIFICATION: `.planning/phases/08-metas-vision-board-redesign/08-VERIFICATION.m
 | Phase 09 P03 | 7min | 3 tasks | 2 files |
 | Phase 09 P04 | 12min | 3 tasks | 2 files |
 | Phase 09 P05 | ~15min | 3 tasks | 2 files |
+| Phase 10 P01 | 6min | 2 tasks | 2 files |
 
 ## Decisions
 
@@ -137,10 +138,12 @@ VERIFICATION: `.planning/phases/08-metas-vision-board-redesign/08-VERIFICATION.m
 - [Phase 09-05]: Nome do arquivo CSV inclui o intervalo (fides-extrato-{fromYM}_a_{toYM}.csv) quando rangeMode ativo
 - [Phase 09-05]: Cor do preview de limite (TX-08) usa projectedStatus proprio (over/warn/ok sobre projectedSpent/limit), nao usage.status
 - [Phase 09-05]: fromYM/toYM hidratados via readTxState() com fallback a rangeFromPreset(selectedMonth, rangePreset ja hidratado)
+- [Phase 10-01]: computeFaturaDates vive em fides-data.jsx (nao fides-store.jsx) para garantir ordem de carregamento de script como global compartilhado
+- [Phase 10-01]: branch diaF > diaV removido por completo (era a causa raiz do bug D-02), nao mantido como caso especial
 
 ## Session
 
-**Last session:** 2026-07-04T03:26:08.943Z
+**Last session:** 2026-07-04T18:54:00.536Z
 **Stopped at:** Phase 10 context gathered
 **Resume file:** .planning/phases/10-corre-o-fatura-cart-o-hardening-de-importa-o/10-CONTEXT.md
 
