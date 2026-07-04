@@ -564,6 +564,124 @@ function StudioMasthead({ onAdd, onGear, active }) {
   );
 }
 
+// ─── Command Palette (⌘K) ───────────────────────────────────────
+// Busca em memória sobre transactions/accounts/cards/categories já
+// disponíveis via useFides() — sem query nova (TX-07).
+function CommandPalette({ open, onClose, onNav }) {
+  const { transactions, accounts, cards, categories } = useFides();
+  const [query, setQuery] = React.useState('');
+  const [activeIdx, setActiveIdx] = React.useState(0);
+  const inputRef = React.useRef(null);
+
+  // Reset ao abrir + autofoco (hooks sempre antes do return condicional).
+  React.useEffect(() => {
+    if (!open) return;
+    setQuery('');
+    setActiveIdx(0);
+    const t = setTimeout(() => { if (inputRef.current) inputRef.current.focus(); }, 0);
+    return () => clearTimeout(t);
+  }, [open]);
+
+  const results = React.useMemo(() => {
+    if (!open) return [];
+    const q = query.trim().toLowerCase();
+    if (!q) return [];
+
+    // Mesmo idioma de busca de fides-transacoes.jsx:213-222 (desc/val/categoria).
+    const txResults = transactions
+      .filter(t => {
+        const inDesc = (t.desc || '').toLowerCase().indexOf(q) >= 0;
+        const inVal = String(t.val).indexOf(q) >= 0;
+        const catLbl = (categories[t.cat] && categories[t.cat].label) || t.cat || '';
+        const inCat = catLbl.toLowerCase().indexOf(q) >= 0;
+        return inDesc || inVal || inCat;
+      })
+      .slice(0, 6)
+      .map(t => ({
+        key: 'tx-' + (t._id || t.d + t.desc),
+        label: t.desc || '(sem descrição)',
+        hint: (categories[t.cat] && categories[t.cat].label) || 'Transação',
+        page: 'transacoes',
+      }));
+
+    const acctResults = accounts
+      .filter(a => (a.name || '').toLowerCase().indexOf(q) >= 0)
+      .map(a => ({ key: 'acct-' + a.id, label: a.name, hint: 'Conta', page: 'contas' }));
+
+    const cardResults = cards
+      .filter(c => (c.name || '').toLowerCase().indexOf(q) >= 0)
+      .map(c => ({ key: 'card-' + c.id, label: c.name, hint: 'Cartão', page: 'contas' }));
+
+    const catResults = Object.keys(categories || {})
+      .filter(catId => ((categories[catId].label || catId) + '').toLowerCase().indexOf(q) >= 0)
+      .map(catId => ({ key: 'cat-' + catId, label: categories[catId].label || catId, hint: 'Categoria', page: 'orcamento' }));
+
+    return [...txResults, ...acctResults, ...cardResults, ...catResults];
+  }, [open, query, transactions, accounts, cards, categories]);
+
+  React.useEffect(() => { setActiveIdx(0); }, [query]);
+
+  React.useEffect(() => {
+    if (!open) return;
+    function onKey(e) {
+      if (e.key === 'Escape') { onClose(); return; }
+      if (e.key === 'ArrowDown') {
+        e.preventDefault();
+        setActiveIdx(i => (results.length ? Math.min(i + 1, results.length - 1) : 0));
+      } else if (e.key === 'ArrowUp') {
+        e.preventDefault();
+        setActiveIdx(i => Math.max(i - 1, 0));
+      } else if (e.key === 'Enter') {
+        const r = results[activeIdx];
+        if (r) { onNav(r.page); onClose(); }
+      }
+    }
+    document.addEventListener('keydown', onKey);
+    return () => document.removeEventListener('keydown', onKey);
+  }, [open, results, activeIdx, onNav, onClose]);
+
+  if (!open) return null;
+
+  const q = query.trim();
+
+  return (
+    <div className="fds-modal-backdrop stu-cmdk-backdrop" onClick={onClose}>
+      <div className="fds-modal stu-cmdk" onClick={e => e.stopPropagation()}>
+        <div className="stu-cmdk-input-row">
+          <Icon.Search size={16} style={{ opacity: 0.5, flexShrink: 0 }}/>
+          <input
+            ref={inputRef}
+            className="stu-cmdk-input"
+            value={query}
+            onChange={e => setQuery(e.target.value)}
+            placeholder="Buscar transações, contas, categorias…"
+          />
+          <kbd className="fds-kbd">Esc</kbd>
+        </div>
+        <div className="stu-cmdk-list">
+          {q === ''
+            ? <div className="stu-cmdk-empty">Digite para buscar transações, contas ou categorias…</div>
+            : results.length === 0
+              ? <div className="stu-cmdk-empty">Nenhum resultado para "{q}"</div>
+              : results.map((r, i) => (
+                <button
+                  key={r.key}
+                  type="button"
+                  className={`stu-cmdk-item${i === activeIdx ? ' on' : ''}`}
+                  onMouseEnter={() => setActiveIdx(i)}
+                  onClick={() => { onNav(r.page); onClose(); }}
+                >
+                  <span className="stu-cmdk-item-label">{r.label}</span>
+                  {r.hint && <span className="stu-cmdk-item-hint">{r.hint}</span>}
+                </button>
+              ))
+          }
+        </div>
+      </div>
+    </div>
+  );
+}
+
 // ─── Perfil View ──────────────────────────────────────────────
 function PerfilView({ onNav }) {
   var _s = window.useFides();
