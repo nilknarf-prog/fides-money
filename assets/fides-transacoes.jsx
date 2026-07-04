@@ -85,9 +85,16 @@ function csvSafeCell(s) {
 // formato YYYY-MM-DD dos dois lados, para a comparação bater).
 function dedupeKey(tx) {
   var desc = String((tx && tx.desc) || '').trim().toLowerCase().replace(/\s+/g, ' ');
-  var cents = Math.round(Math.abs(Number(tx && tx.val)) * 100);
+  // WR-03: preserva o SINAL — um +R$100 (estorno) e um −R$100 (compra) não são
+  // a mesma transação e não devem colapsar na mesma chave.
+  var cents = Math.round(Number(tx && tx.val) * 100);
   var day = String((tx && tx.date) || '').slice(0, 10);
-  return desc + '|' + cents + '|' + day;
+  // WR-03: inclui a identidade da conta/cartão — a mesma compra em dois cartões
+  // distintos (ex.: Uber em dois cartões) é legítima e não deve ser marcada como
+  // duplicata. `acct` do lado existente vem de card_id/account_id (fides-store);
+  // do lado importado vem do destino resolvido (resolveRowForImport).
+  var acct = String((tx && tx.acct) || '');
+  return desc + '|' + cents + '|' + day + '|' + acct;
 }
 
 function buildDedupeIndex(transactions) {
@@ -740,12 +747,13 @@ function Transacoes({ variant, onAdd }) {
           );
           return;
         }
-        const existing = buildDedupeIndex(transactions);
-        const rows = parsed.rows.map(row => ({
-          ...row,
-          _isDuplicate: existing.has(dedupeKey(row)),
-        }));
-        setImportPreview({ rows, fmt, errors: parsed.errors });
+        // WR-03: a chave de dedupe agora inclui a conta de destino, que só é
+        // conhecida na confirmação. Por isso o flag de duplicata NÃO é mais
+        // calculado aqui (as linhas ainda não têm `acct`) — passamos o índice
+        // das transações existentes para o modal recalcular por linha contra a
+        // conta selecionada em resolveRowForImport.
+        const existingKeys = buildDedupeIndex(transactions);
+        setImportPreview({ rows: parsed.rows, fmt, errors: parsed.errors, existingKeys });
       };
       reader.readAsText(file, 'UTF-8');
     };
@@ -1468,14 +1476,12 @@ function ImportPreviewModal({ preview, accounts, cards, onCancel, onConfirm }) {
   const safeAccounts = accounts || [];
   const safeCards = cards || [];
   const rows = preview.rows || [];
+  const existingKeys = preview.existingKeys || new Set();
 
-  // Set inicial calculado UMA vez na abertura (não recalculado por render):
-  // linhas novas marcadas, duplicatas desmarcadas (D-07/D-08).
-  const [selected, setSelected] = React.useState(() => new Set(
-    rows.filter(r => !r._isDuplicate).map(r => r._key)
-  ));
   // Destino sugerido: casa acctNameRaw de alguma linha com uma conta/cartão
-  // existente; senão, a primeira conta; senão, o primeiro cartão.
+  // existente; senão, a primeira conta; senão, o primeiro cartão. Declarado
+  // ANTES de `selected` (WR-03) para que a seleção inicial já resolva as
+  // duplicatas contra a conta de destino.
   const [destAcct, setDestAcct] = React.useState(() => {
     for (const r of rows) {
       const raw = String(r.acctNameRaw || '').toLowerCase().trim();
@@ -1487,6 +1493,26 @@ function ImportPreviewModal({ preview, accounts, cards, onCancel, onConfirm }) {
     }
     return (safeAccounts[0] && safeAccounts[0].id) || (safeCards[0] && safeCards[0].id) || '';
   });
+
+  // WR-03: duplicatas resolvidas contra a conta de destino selecionada. A chave
+  // de dedupe inclui a conta e preserva o sinal, então o mesmo lançamento em
+  // cartões diferentes (ou +estorno vs −compra) não colapsa nem é falsamente
+  // marcado como "já importada". Recalcula quando o destino muda.
+  const dupKeys = React.useMemo(() => {
+    const s = new Set();
+    rows.forEach(r => {
+      const resolved = resolveRowForImport(r, destAcct, safeCards);
+      if (existingKeys.has(dedupeKey(resolved))) s.add(r._key);
+    });
+    return s;
+  }, [rows, destAcct, safeCards, existingKeys]);
+
+  // Set inicial calculado UMA vez na abertura (não recalculado por render):
+  // linhas novas marcadas, duplicatas (contra o destino inicial) desmarcadas
+  // (D-07/D-08).
+  const [selected, setSelected] = React.useState(() => new Set(
+    rows.filter(r => !dupKeys.has(r._key)).map(r => r._key)
+  ));
 
   const toggle = (key) => setSelected(prev => {
     const next = new Set(prev);
@@ -1577,7 +1603,7 @@ function ImportPreviewModal({ preview, accounts, cards, onCancel, onConfirm }) {
                   </span>
                   <span className="pfm-item-desc">
                     {row.desc}
-                    {row._isDuplicate && <span className="fds-tag warn" style={{ marginLeft: 6 }}>já importada</span>}
+                    {dupKeys.has(row._key) && <span className="fds-tag warn" style={{ marginLeft: 6 }}>já importada</span>}
                   </span>
                   <span className="pfm-item-d">{row.d} · {catLbl}</span>
                   <span className="pfm-item-val">
