@@ -13,6 +13,16 @@
 - [x] **META-03**: Usuário exclui uma meta via modal de confirmação; a meta some da lista após confirmar
 - [x] **META-04**: A view de Metas lista as metas reais do usuário (não placeholder), refletindo criação/edição/exclusão sem reload da página
 
+## Phase 10 Requirements (reativo — descoberto no UAT da Fase 09)
+
+> Não faziam parte do escopo v1.1 original; entraram via ROADMAP/CONTEXT da Fase 10 (fonte: `.planning/phases/09-transacoes-power-tools-analytics/09-FOLLOWUPS.md`). Registrados aqui para rastreabilidade. IMP-01/IMP-02 endereçam o hardening da importação antes deferida como IMPORT-01/IMPORT-02.
+
+- [ ] **FAT-01**: Fatura de cartão exibe fechamento/vencimento/status corretos para qualquer config de dias (inclui `closing_day > due_day`, ex. Bradesco fecha 19/vence 1), sem regressão para `closing_day < due_day`
+- [ ] **IMP-01**: Import de CSV/OFX abre preview com seleção e exige confirmação antes de gravar (cancelar não grava nada)
+- [ ] **IMP-02**: Import faz dedupe (`description`+`value`+`date` normalizado), usa mês/fatura correto por linha e resolve `card_id` quando a conta é cartão
+- [ ] **UX-03**: Botão rápido "Cartão" no masthead de Transações filtra crédito sem abrir Filtros avançados
+- [ ] **UX-04**: Modo Período — toda categoria da legenda tem barra e o valor por categoria aparece no hover/tap
+
 ## Future Requirements (deferred)
 
 ### META — evolução (M5+)
@@ -51,12 +61,19 @@
 | META-02 | Phase 07 | Complete |
 | META-03 | Phase 07 | Complete |
 | META-04 | Phase 07 | Complete |
+| FAT-01 | Phase 10 | Planned |
+| IMP-01 | Phase 10 | Planned |
+| IMP-02 | Phase 10 | Planned |
+| UX-03 | Phase 10 | Planned |
+| UX-04 | Phase 10 | Planned |
 
 **Coverage:**
 
 - v1.1 requirements: 4 total
 - Mapped to phases: 4/4 ✓
 - Unmapped: 0
+
+**Phase 10 (reativo):** 5 requirements (FAT-01, IMP-01, IMP-02, UX-03, UX-04) — todos mapeados para Phase 10, planejados (3 planos, ondas por prioridade)
 
 ---
 *Requirements defined: 2026-07-01 — Milestone v1.1 CRUD Metas*

@@ -512,7 +512,9 @@ function buildDedupeIndex(transactions) {
 
 **Se esta tabela estivesse vazia:** não estaria — as 3 entradas acima precisam de atenção do planner (A1 é a única com decisão de posicionamento em aberto; A2/A3 são baixo risco e só pedem um smoke-check).
 
-## Open Questions
+## Open Questions (RESOLVED — resolvidas durante o planejamento da Fase 10)
+
+> Q1 resolvida: `10-03-PLAN.md` posiciona o chip "Cartão" em `fds-tx-v2-chips`. Q2 resolvida: `10-03-PLAN.md` usa a legenda textual completa `fds-cats-list` (recomendação b), corrigindo o mismatch de truncamento top-7 entre `Donut` e `CategoryChart`.
 
 1. **Onde exatamente inserir o botão "Cartão" no masthead (UX-03)?**
    - O que sabemos: o mecanismo de filtro (`advFilters.contasSelected` + `toggleAllCards`) já existe e funciona; a linha de chips ativa hoje é `fds-tx-v2-chips` (Todas/Receitas/Despesas/Pendentes).
