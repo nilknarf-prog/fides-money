@@ -5,15 +5,15 @@ milestone_name: CRUD Metas — EM PLANEJAMENTO
 current_phase: 09
 current_phase_name: transacoes-power-tools-analytics
 status: executing
-stopped_at: Completed 09-01-PLAN.md
-last_updated: "2026-07-04T00:05:00.828Z"
+stopped_at: Completed 09-02-PLAN.md
+last_updated: "2026-07-04T00:18:02.555Z"
 last_activity: 2026-07-03
 last_activity_desc: Phase 09 execution started
 progress:
   total_phases: 3
   completed_phases: 1
   total_plans: 8
-  completed_plans: 4
+  completed_plans: 5
   percent: 33
 ---
 
@@ -22,7 +22,7 @@ progress:
 ## Current Position
 
 Phase: 09 (transacoes-power-tools-analytics) — EXECUTING
-Plan: 2 of 5
+Plan: 3 of 5
 Status: Ready to execute
 Last activity: 2026-07-03 — Phase 09 execution started
 
@@ -91,6 +91,7 @@ VERIFICATION: `.planning/phases/08-metas-vision-board-redesign/08-VERIFICATION.m
 | Phase 08 P07 | 12min | 3 tasks | 2 files |
 | Phase 08 P08 | 20min | 3 tasks | 3 files |
 | Phase 09 P01 | 8min | 2 tasks | 1 files |
+| Phase 09 P02 | ~15min | 2 tasks | 2 files |
 
 ## Decisions
 
@@ -120,11 +121,14 @@ VERIFICATION: `.planning/phases/08-metas-vision-board-redesign/08-VERIFICATION.m
 - [Phase ?]: 08-08: patchComAutoConclusao helper auto-completes a goal when balance reaches target on aporte/atualizar-saldo, never sets completed:false (no auto-reopen on later balance drop — locked decision)
 - [Phase ?]: 08-08: No live database write performed (checkpoint decision: no-op live + harden SQL); live completed/completed_at columns and owner-scoped RLS UPDATE policy confirmed already correct via Supabase MCP introspection
 - [Phase 09]: 09-01: usou txMonth(t) (nao t.mes cru) para membership de mes em spendByCategoryRange/rangeTransactions, mantendo semantica de monthTransactions e mes de fatura do cartao
+- [Phase 09]: 09-02: CommandPalette reusa shell .fds-modal-backdrop/.fds-modal (sem CSS de overlay novo, so posicionamento via .stu-cmdk-backdrop)
+- [Phase 09]: 09-02: resultados de transacao usam t._id (campo real de normalizeTx), nao t.id
+- [Phase 09]: 09-02: busca cobre transacoes + contas/cartoes/categorias navegaveis, resolvendo Open Question 3 do 09-RESEARCH
 
 ## Session
 
-**Last session:** 2026-07-04T00:05:00.797Z
-**Stopped at:** Completed 09-01-PLAN.md
+**Last session:** 2026-07-04T00:18:02.535Z
+**Stopped at:** Completed 09-02-PLAN.md
 **Resume file:** None
 
 ## Accumulated Context
