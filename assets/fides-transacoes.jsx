@@ -1523,30 +1523,30 @@ function ImportPreviewModal({ preview, accounts, cards, onCancel, onConfirm }) {
   // existente; senão, a primeira conta; senão, o primeiro cartão. Declarado
   // ANTES de `selected` (WR-03) para que a seleção inicial já resolva as
   // duplicatas contra a conta de destino.
-  const [destAcct, setDestAcct] = React.useState(() => {
-    for (const r of rows) {
-      const raw = String(r.acctNameRaw || '').toLowerCase().trim();
-      if (!raw) continue;
-      const matchAcct = safeAccounts.find(a => a.name.toLowerCase() === raw);
-      if (matchAcct) return matchAcct.id;
-      const matchCard = safeCards.find(c => c.name.toLowerCase() === raw);
-      if (matchCard) return matchCard.id;
-    }
-    return (safeAccounts[0] && safeAccounts[0].id) || (safeCards[0] && safeCards[0].id) || '';
-  });
+  // Destino default = sentinel "Da origem do arquivo" (G3, DECISÃO 2): cada linha
+  // resolve seu destino por acctNameRaw (resolveRowForImport). Escolher uma conta/
+  // cartão específico no dropdown força TODAS as linhas para esse destino.
+  const [destAcct, setDestAcct] = React.useState(IMPORT_DEST_ORIGEM);
 
-  // WR-03: duplicatas resolvidas contra a conta de destino selecionada. A chave
-  // de dedupe inclui a conta e preserva o sinal, então o mesmo lançamento em
-  // cartões diferentes (ou +estorno vs −compra) não colapsa nem é falsamente
-  // marcado como "já importada". Recalcula quando o destino muda.
+  // Status das linhas novas (DECISÃO 1 — nunca auto-paga). Default 'arquivo'
+  // respeita o status real de cada linha. Declarado ANTES de `selected` (Rules of
+  // Hooks) — nenhum hook dentro do `.map` da lista.
+  const [statusMode, setStatusMode] = React.useState('arquivo');
+
+  // WR-03: duplicatas resolvidas contra o destino de cada linha. A chave de
+  // dedupe inclui a conta e preserva o sinal, então o mesmo lançamento em cartões
+  // diferentes (ou +estorno vs −compra) não colapsa nem é falsamente marcado como
+  // "já importada". No default "origem", cada linha do reimport casa a tx
+  // existente → entra no set de duplicatas → desmarcada. Recalcula quando o
+  // destino muda.
   const dupKeys = React.useMemo(() => {
     const s = new Set();
     rows.forEach(r => {
-      const resolved = resolveRowForImport(r, destAcct, safeCards);
+      const resolved = resolveRowForImport(r, destAcct, safeAccounts, safeCards);
       if (existingKeys.has(dedupeKey(resolved))) s.add(r._key);
     });
     return s;
-  }, [rows, destAcct, safeCards, existingKeys]);
+  }, [rows, destAcct, safeAccounts, safeCards, existingKeys]);
 
   // Set inicial calculado UMA vez na abertura (não recalculado por render):
   // linhas novas marcadas, duplicatas (contra o destino inicial) desmarcadas
@@ -1571,7 +1571,9 @@ function ImportPreviewModal({ preview, accounts, cards, onCancel, onConfirm }) {
 
   const allSelected = rows.length > 0 && selected.size === rows.length;
   const noneSelected = selected.size === 0;
-  const semDestino = !destAcct;
+  // semDestino = não há NENHUMA conta nem cartão (o sentinel é truthy, então não
+  // serve como sinal de "sem destino").
+  const semDestino = safeAccounts.length === 0 && safeCards.length === 0;
 
   return (
     <div className="fds-modal-backdrop" onClick={onCancel}
@@ -1597,21 +1599,43 @@ function ImportPreviewModal({ preview, accounts, cards, onCancel, onConfirm }) {
               Você não tem contas ou cartões cadastrados. Adicione uma conta primeiro.
             </div>
           ) : (
-            <label className="fds-field">
-              <span>Importar para</span>
-              <select className="fds-select" value={destAcct} onChange={e => setDestAcct(e.target.value)}>
-                {safeAccounts.length > 0 && (
-                  <optgroup label="Contas">
-                    {safeAccounts.map(a => <option key={a.id} value={a.id}>{a.name}</option>)}
-                  </optgroup>
-                )}
-                {safeCards.length > 0 && (
-                  <optgroup label="Cartões">
-                    {safeCards.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
-                  </optgroup>
-                )}
-              </select>
-            </label>
+            <React.Fragment>
+              <label className="fds-field">
+                <span>Importar para</span>
+                <select className="fds-select" value={destAcct} onChange={e => setDestAcct(e.target.value)}>
+                  <option value={IMPORT_DEST_ORIGEM}>Da origem do arquivo</option>
+                  {safeAccounts.length > 0 && (
+                    <optgroup label="Contas">
+                      {safeAccounts.map(a => <option key={a.id} value={a.id}>{a.name}</option>)}
+                    </optgroup>
+                  )}
+                  {safeCards.length > 0 && (
+                    <optgroup label="Cartões">
+                      {safeCards.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
+                    </optgroup>
+                  )}
+                </select>
+              </label>
+
+              <label className="fds-field">
+                <span>Status das linhas novas</span>
+                <div style={{ display: 'flex', gap: 6 }}>
+                  {[
+                    { v: 'arquivo', lbl: 'Do arquivo' },
+                    { v: 'pendente', lbl: 'Pendente' },
+                    { v: 'pago', lbl: 'Paga' },
+                  ].map(opt => (
+                    <button key={opt.v} type="button"
+                            className={`fds-tx-v2-sort-pill ${statusMode === opt.v ? 'active' : ''}`}
+                            aria-pressed={statusMode === opt.v}
+                            onClick={() => setStatusMode(opt.v)}
+                            style={{ touchAction: 'manipulation', WebkitTapHighlightColor: 'transparent', minHeight: 36 }}>
+                      {opt.lbl}
+                    </button>
+                  ))}
+                </div>
+              </label>
+            </React.Fragment>
           )}
 
           {/* Linha selecionar todos */}
@@ -1663,7 +1687,7 @@ function ImportPreviewModal({ preview, accounts, cards, onCancel, onConfirm }) {
           </button>
           <button className="fds-btn-primary"
                   disabled={noneSelected || semDestino}
-                  onClick={() => onConfirm(rows.filter(r => selected.has(r._key)), destAcct)}
+                  onClick={() => { const picked = rows.filter(r => selected.has(r._key)); onConfirm(picked, destAcct, statusMode); }}
                   style={{ touchAction: 'manipulation', WebkitTapHighlightColor: 'transparent', minHeight: 44 }}>
             <Icon.Check size={13}/> Importar ({selected.size})
           </button>
