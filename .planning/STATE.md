@@ -4,17 +4,17 @@ milestone: v1.1
 milestone_name: CRUD Metas — EM PLANEJAMENTO
 current_phase: 10
 current_phase_name: corre-o-fatura-cart-o-hardening-de-importa-o
-status: verifying
+status: executing
 stopped_at: Phase 10 context gathered
-last_updated: "2026-07-04T19:43:43.789Z"
-last_activity: 2026-07-04
+last_updated: "2026-07-05T18:13:29.930Z"
+last_activity: 2026-07-05
 last_activity_desc: Phase 10 execution started
 progress:
   total_phases: 4
-  completed_phases: 3
-  total_plans: 11
-  completed_plans: 11
-  percent: 75
+  completed_phases: 2
+  total_plans: 14
+  completed_plans: 12
+  percent: 50
 ---
 
 # Project State
@@ -22,9 +22,9 @@ progress:
 ## Current Position
 
 Phase: 10 (corre-o-fatura-cart-o-hardening-de-importa-o) — EXECUTING
-Plan: 3 of 3
-Status: Phase complete — ready for verification
-Last activity: 2026-07-04 — Phase 10 execution started
+Plan: 2 of 6
+Status: Ready to execute
+Last activity: 2026-07-05 — Phase 10 execution started
 
 ## Project Reference
 
@@ -98,6 +98,7 @@ VERIFICATION: `.planning/phases/08-metas-vision-board-redesign/08-VERIFICATION.m
 | Phase 10 P01 | 6min | 2 tasks | 2 files |
 | Phase 10 P02 | ~20min | 2 tasks | 1 files |
 | Phase 10 P03 | ~15min | 2 tasks | 1 files |
+| Phase 10 P04 | ~12min | 2 tasks | 1 files |
 
 ## Decisions
 
@@ -145,10 +146,11 @@ VERIFICATION: `.planning/phases/08-metas-vision-board-redesign/08-VERIFICATION.m
 - [Phase ?]: card_id explicito no payload de resolveRowForImport mesmo com txToRow recomputando em modo live (documentacao/contrato, sem alterar o resultado gravado)
 - [Phase ?]: Ano fallback = ano corrente quando o CSV nao traz coluna de ano explicita (export do proprio app so grava dd/mm)
 - [Phase 10-03]: chip Cartao reusa advFilters.contasSelected (nenhum estado novo); rangeTotal extraido para useMemo unico reusado no cabecalho/centro do Donut/legenda; legenda completa sem limite de itens (diferente do top5 do DashboardStudio) para cobrir todas as fatias
+- [Phase 10-04]: destino default do import = sentinel 'Da origem do arquivo' (resolucao por linha via acctNameRaw); id real no dropdown forca todas as linhas; status sempre explicito no payload (nunca fallback pago do txToRow)
 
 ## Session
 
-**Last session:** 2026-07-04T19:41:11.930Z
+**Last session:** 2026-07-05T18:12:23.088Z
 **Stopped at:** Phase 10 context gathered
 **Resume file:** .planning/phases/10-corre-o-fatura-cart-o-hardening-de-importa-o/10-CONTEXT.md
 
