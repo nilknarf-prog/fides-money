@@ -312,11 +312,16 @@ function FidesProvider({ children }) {
     }
 
     let mounted = true;
+    // Guarda por user-id: rastreia o último usuário efetivamente carregado.
+    // Com autoRefreshToken:true o Supabase RE-EMITE SIGNED_IN no focus/token-refresh;
+    // ignoramos essas re-emissões para não desmontar a árvore (perde estado do modal de import).
+    let loadedUid = null;
 
     getAuthUser().then(async user => {
       if (!mounted) return;
       if (user) {
         setUserId(user.id);
+        loadedUid = user.id;
         setMode('live');
         setUserEmail(user.email || '');
         setTransactions([]); setAccounts([]); setCards([]); setGoals([]);
@@ -346,6 +351,9 @@ function FidesProvider({ children }) {
       const user = session?.user || null;
       if (user) {
         if (event === 'INITIAL_SESSION' || event === 'SIGNED_IN') {
+          // Re-emissão de SIGNED_IN para o MESMO usuário (focus/token-refresh):
+          // não resetar/refetch — preserva o estado local da UI (ex.: modal de import).
+          if (user.id === loadedUid) return;
           setUserId(user.id);
           setMode('live');
           setUserEmail(user.email || '');
@@ -366,10 +374,12 @@ function FidesProvider({ children }) {
               }
             } catch (_) {}
           })();
+          loadedUid = user.id;
           console.log('[Fides] Store: modo live — userId:', user.id);
         }
       } else {
         setUserId(null);
+        loadedUid = null;
         setMode('mock');
         resetToMock();
         console.log('[Fides] Store: modo mock (sem usuário autenticado)');
