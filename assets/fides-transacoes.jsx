@@ -101,25 +101,59 @@ function buildDedupeIndex(transactions) {
   return new Set((transactions || []).map(dedupeKey));
 }
 
-// resolveRowForImport: resolve o mês/fatura e a conta/cartão de destino POR
-// LINHA (D-11/D-12) — espelha o padrão FIX-EDIT-MES do EditTxModal.handleSave
-// em lote. Nunca depende do fallback implícito do txToRow (Pitfall 6 do
-// RESEARCH.md, que só recalcula mês em modo live) — o mês já sai calculado.
-function resolveRowForImport(row, destAcctId, cards) {
+// IMPORT_DEST_ORIGEM: valor sentinel do dropdown de destino que significa "usar
+// a origem de cada linha do arquivo" (resolução POR LINHA por acctNameRaw). Um
+// id real de conta/cartão sobrepõe (força todas as linhas para esse destino).
+var IMPORT_DEST_ORIGEM = '__origem__';
+
+// resolveRowForImport: resolve o destino (conta/cartão) e o mês/fatura POR LINHA
+// (D-11/D-12, G1/G2). Quando `fallbackDestId` é um id real, ele força o destino
+// de TODAS as linhas (override do modal). Quando é o sentinel de "origem do
+// arquivo" (ou ausente), o destino de cada linha é resolvido a partir de
+// `row.acctNameRaw` casando por NOME contra accounts (primeiro) e depois cards —
+// é isso que faz o reimport do próprio export casar a tx existente (dedupeKey
+// inclui `acct`, WR-03) e ser marcado como duplicata mesmo p/ compra de cartão
+// pendente. O status é sempre EXPLÍCITO (nunca `undefined` → nunca cai no
+// fallback 'cleared'/pago do txToRow, G2): 'arquivo' respeita row.status, senão
+// usa o modo escolhido. Espelha o padrão FIX-EDIT-MES (Pitfall 6): o mês já sai
+// calculado, sem depender do recálculo só-live do txToRow.
+function resolveRowForImport(row, fallbackDestId, accounts, cards, statusMode) {
+  var destId = null;
+  // Override explícito: usuário escolheu uma conta/cartão → força TODAS as linhas.
+  if (fallbackDestId && fallbackDestId !== IMPORT_DEST_ORIGEM) {
+    destId = fallbackDestId;
+  } else {
+    // "Da origem do arquivo": resolve o destino da própria linha por acctNameRaw.
+    var raw = String(row.acctNameRaw || '').trim().toLowerCase();
+    if (raw) {
+      var mAcct = (accounts || []).find(function(a) { return String(a.name || '').trim().toLowerCase() === raw; });
+      if (mAcct) destId = mAcct.id;
+      if (!destId) {
+        var mCard = (cards || []).find(function(c) { return String(c.name || '').trim().toLowerCase() === raw; });
+        if (mCard) destId = mCard.id;
+      }
+    }
+    if (!destId) {
+      destId = ((accounts || [])[0] && (accounts || [])[0].id) || ((cards || [])[0] && (cards || [])[0].id);
+    }
+  }
   var cardIdSet = new Set((cards || []).map(function(c) { return c.id; }));
-  var isCard = cardIdSet.has(destAcctId);
+  var isCard = cardIdSet.has(destId);
   var mes = row.mesFromCsv;
   if (isCard) {
-    var card = (cards || []).find(function(c) { return c.id === destAcctId; });
+    var card = (cards || []).find(function(c) { return c.id === destId; });
     if (card) {
       var mesCalc = window.mesFaturaFor(row.d, card, row.ano);
       if (mesCalc) mes = mesCalc;
     }
   }
+  // Status explícito (G2): 'arquivo'/ausente → status real da linha; senão o modo.
+  var status = (!statusMode || statusMode === 'arquivo') ? (row.status || 'pendente') : statusMode;
   return Object.assign({}, row, {
-    acct: destAcctId,
+    acct: destId,
     mes: mes,
-    card_id: isCard ? destAcctId : undefined,
+    card_id: isCard ? destId : undefined,
+    status: status,
   });
 }
 
@@ -704,7 +738,14 @@ function Transacoes({ variant, onAdd }) {
       const headers = ['Data','Descrição','Categoria','Conta','Valor','Status','Recorrência'];
       const rows = filtered.map(t => {
         const catLabel = csvSafeCell(categories[t.cat]?.label || t.cat || '');
-        const acctName = csvSafeCell(accounts.find(a => a.id === t.acct)?.name || t.acct || '');
+        // G1: resolve o NOME de origem também em `cards` — para tx de cartão,
+        // t.acct é um card_id que NÃO está em `accounts`. Sem isto, a coluna Conta
+        // levava o id cru e o reimport nunca casava o cartão (caía no débito).
+        const acctName = csvSafeCell(
+          accounts.find(a => a.id === t.acct)?.name ||
+          cards.find(c => c.id === t.acct)?.name ||
+          t.acct || ''
+        );
         const valFmt = t.val.toFixed(2).replace('.', ',');
         return [
           t.d || '',
@@ -720,7 +761,7 @@ function Transacoes({ variant, onAdd }) {
       a.href = url; a.download = `fides-extrato-${fileScope}.csv`; a.click();
       URL.revokeObjectURL(url);
     }
-  }, [filtered, categories, accounts, selectedMonth, rangeMode, fromYM, toYM]);
+  }, [filtered, categories, accounts, cards, selectedMonth, rangeMode, fromYM, toYM]);
 
   // ── Importar extrato (CSV ou OFX) — parse-then-preview (IMP-01/IMP-02) ──
   // Nunca grava nesta etapa (D-06): só parseia o arquivo, calcula as flags de
@@ -764,9 +805,9 @@ function Transacoes({ variant, onAdd }) {
   // mês/fatura e conta/cartão POR LINHA (D-11/D-12) antes da gravação em lote
   // via addTransactions (Pitfall 6 — nunca depender só do fallback do
   // txToRow, que só recalcula mês em modo live).
-  const handleImportConfirm = React.useCallback(async (selectedRows, destAcctId) => {
+  const handleImportConfirm = React.useCallback(async (selectedRows, destAcctId, statusMode) => {
     const payloads = selectedRows.map(row => {
-      const resolved = resolveRowForImport(row, destAcctId, safeCards);
+      const resolved = resolveRowForImport(row, destAcctId, safeAccounts, safeCards, statusMode);
       return {
         desc: resolved.desc,
         val: resolved.val,
@@ -783,7 +824,7 @@ function Transacoes({ variant, onAdd }) {
     await addTransactions(payloads);
     setImportPreview(null);
     window.FidesUI.toast.success(`${payloads.length} transação(ões) importada(s).`);
-  }, [addTransactions, safeCards]);
+  }, [addTransactions, safeAccounts, safeCards]);
 
   // ─── Totais (sobre 'filtered') ────────────────────────────
   const totals = React.useMemo(function() {
