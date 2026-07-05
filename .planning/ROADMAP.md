@@ -336,7 +336,7 @@ Plans:
 
 **Notas de escopo:** FAT-01 é P1 (bug de confiança — dado no banco está correto, só a exibição erra). IMP-01/02 é débito P2 (incidente real: 196 txs duplicadas revertidas manualmente via SQL no UAT). UX-03/04 é P3 (polish). Fonte completa da diagnose: `.planning/phases/09-transacoes-power-tools-analytics/09-FOLLOWUPS.md`. **Escopo travado em FASE ÚNICA por D-01 (CONTEXT.md)** — a nota de split (10a/10b/10c) está SUPERSEDED; a fase é organizada em ondas por prioridade (Onda 1 FAT-01 → Onda 2 import → Onda 3 UX).
 **UI hint**: yes (masthead + widget Período)
-**Plans**: 4/6 plans executed
+**Plans**: 5/6 plans executed
 
 Plans:
 **Onda 1 · FAT-01 (P1)**
@@ -354,7 +354,7 @@ Plans:
 **Gap closure · 10-UAT (6 gaps, 2 blockers)**
 
 - [x] 10-04-PLAN.md — IMP-01/IMP-02 (G1/G2/G3 blockers): export grava nome do cartão + `resolveRowForImport` resolve destino/status POR LINHA a partir da origem do arquivo (reimport idêntico = 0 gravações, nunca converte pendente→paga) + `ImportPreviewModal` com opções de destino (origem/conta/cartão) e status (arquivo/pendente/paga) [wave 1]
-- [ ] 10-05-PLAN.md — IMP-01 (G6): guarda por user-id no `onAuthStateChange` (fides-store.jsx) — trocar aba/minimizar não reseta o modal de import nem recarrega a lista [wave 1]
+- [x] 10-05-PLAN.md — IMP-01 (G6): guarda por user-id no `onAuthStateChange` (fides-store.jsx) — trocar aba/minimizar não reseta o modal de import nem recarrega a lista [wave 1]
 - [ ] 10-06-PLAN.md — UX-04 (G4/G5): analytics do modo Período escopado ao mês selecionado (spendByCategory, não o range) + remoção da legenda textual redundante (volta ao top-7) [wave 2, depende de 10-04]
 
 ---
@@ -366,7 +366,7 @@ Plans:
 | 07 - CRUD Metas | 3/3 | Complete   | 2026-07-01 |
 | 08 - Metas vision-board | 8/8 | Complete   | 2026-07-03 |
 | 09 - Transações power tools + analytics | 5/5 | Complete    | 2026-07-04 |
-| 10 - Fatura cartão + hardening import | 4/6 | In Progress|  |
+| 10 - Fatura cartão + hardening import | 5/6 | In Progress|  |
 
 ### Phase 7: Metas vision-board redesign
 
