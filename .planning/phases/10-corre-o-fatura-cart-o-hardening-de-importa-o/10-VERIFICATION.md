@@ -1,43 +1,61 @@
 ---
 phase: 10-corre-o-fatura-cart-o-hardening-de-importa-o
-verified: 2026-07-04T21:15:00Z
-status: human_needed
-score: 12/13 must-haves verified
+verified: 2026-07-05T18:20:00Z
+status: gaps_found
+score: 11/13 must-haves verified
 behavior_unverified: 1
 overrides_applied: 0
-human_verification:
-  - test: "Abrir Contas com o cartão Bradesco (fecha 19 / vence 1) com compras 19/06→11/07"
-    expected: "Card exibe 'Fecha 19/07 · Vence 01/08' com status 'Aberta' (não 'Vence 01/07 · Vencida')"
-    why_human: "Renderização visual no browser (React via Babel-standalone); lógica de computeFaturaDates já validada por script Node contra o arquivo shipado e o data-flow até fides-contas.jsx (dtFechamento/dtVencimento/status) foi confirmado por leitura de código, mas o pixel final requer o app rodando"
-  - test: "Verificar o mesmo cartão Bradesco com a fatura de junho já paga (todas as txs settled)"
-    expected: "Status continua exibindo 'Paga' (não reabre para vencida/fechada)"
-    why_human: "Precedência paga > vencida/fechada confirmada por leitura de código (fides-store.jsx:1333-1341), mas o rótulo final é renderizado no browser"
-  - test: "Conferir um cartão com closing_day < due_day (ex.: Nubank fecha 5 / vence 15, mock CARDS) no card de Contas"
-    expected: "Fechamento e vencimento no MESMO mês, sem inversão (regressão D-05)"
-    why_human: "Lógica pura validada por script Node; confirmação visual da regressão pendente"
-  - test: "Exportar o CSV do próprio app e reimportar imediatamente o mesmo arquivo"
-    expected: "Todas as linhas aparecem no preview como 'já importada' e DESMARCADAS; confirmar resulta em 0 novas gravações (contagem de transações inalterada após refresh)"
-    why_human: "Comportamento runtime fim-a-fim (parse real + dedupe contra transactions do store + gravação); o próprio PLAN 10-02 marca este item como 'must_have não-inferível' — não verificável estaticamente"
-  - test: "Importar um CSV com 1 linha nova + destino = um CARTÃO; confirmar; consultar via Supabase MCP `select account_id, card_id from transactions order by created_at desc limit 1`"
-    expected: "card_id não é null; account_id é null"
-    why_human: "Requer gravação real em Supabase (modo live); a lógica de resolveRowForImport/txToRow foi confirmada por leitura de código, mas a gravação real não foi exercitada"
-  - test: "Testar Cancelar num import com linhas novas (antes de confirmar)"
-    expected: "Nada é gravado"
-    why_human: "Confirmação de runtime de que nenhum addTransactions é chamado no caminho de cancelamento — o código confirma isso estaticamente (onCancel só chama setImportPreview(null)), mas o item consta como checkpoint humano no PLAN"
-  - test: "Na tela de Transações, clicar o chip 'Cartão'"
-    expected: "Lista mostra só transações de crédito (cartões); chip fica com estado 'on'; modal de Filtros avançados NÃO abre; clicar de novo desliga"
-    why_human: "Confirmação visual de interação de UI; data-flow (advFilters.contasSelected → filtered) confirmado por leitura de código"
-  - test: "Entrar no modo Período (3m/6m/12m/Ano) com várias categorias; passar mouse/tocar uma fatia do Donut"
-    expected: "Centro do Donut muda para categoria + valor + %; sair volta a 'Total'; toda categoria da legenda completa (.fds-cats-list) tem representação, mesmo além das 7 barras do CategoryChart"
-    why_human: "Interação de hover/tap requer o app rodando no browser; wiring (onActiveSlice/.fds-donut-center/.fds-cats-list) confirmado por leitura de código"
+re_verification:
+  previous_status: human_needed
+  previous_score: 12/13
+  gaps_closed:
+    - "G1 — reimport dedup ignorava compras de cartão pendentes (destino resolvia p/ débito default)"
+    - "G2 — import convertia pendente→paga (fallback silencioso 'cleared' do txToRow)"
+    - "G3 — modal sem opção de destino/status (agora 'Da origem do arquivo' + pills Do arquivo/Pendente/Paga)"
+    - "G4 — legenda de categorias longa/repetida/sem barra no modo Período (voltou ao top-7 do CategoryChart)"
+    - "G5 — donut/total do modo Período mostravam o range agregado (agora escopados ao mês do masthead)"
+    - "G6 — trocar aba/minimizar resetava o modal de import (guarda loadedUid no onAuthStateChange)"
+  gaps_remaining: []
+  regressions:
+    - "CR-01 (NOVO blocker do code-review) — export CSV omite o ano; reimport de linhas de outro ano-calendário fura o dedupe e corrompe a data → reintroduz a classe de duplicata silenciosa que a fase visa eliminar (IMP-02)"
+gaps:
+  - truth: "Reimportar o próprio CSV exportado resulta em 0 novas gravações, também para transações de outro ano-calendário (dedupe por description+value+date normalizado)"
+    status: failed
+    reason: "CR-01: o export CSV grava a coluna Data como `t.d` (DD/MM, sem ano — normalizeTx só produz dia/mês). No reimport, parseCsvRows não tem ano para ler e assume o ano corrente (nowY=2026). A dedupeKey usa a data completa (`date.slice(0,10)`), então uma compra de 2025-12-28 reimportada em 2026 vira 2026-12-28: a chave NÃO bate com a tx existente → não é marcada 'já importada' → é reinserida (duplicata silenciosa) com a data corrompida. O fix WR-01 de txToRow preserva fielmente a data já-errada, então a corrupção chega ao banco. Confirmado por simulação da lógica shipada: existing day 2025-12-28 vs reimport day 2026-12-28 → MATCH=false. Dedupe só funciona quando o ano da compra == ano corrente."
+    artifacts:
+      - path: "assets/fides-transacoes.jsx"
+        issue: "handleExport (linha 747) grava `t.d || ''` (DD/MM, sem ano) na coluna Data do CSV; parseCsvRows (linhas 217-220) faz `ano = parseInt(parts[2],10) || nowY` → cai no ano corrente quando o ano falta"
+      - path: "assets/fides-transacoes.jsx"
+        issue: "OFX (WR-02, linha 706): handleExport carimba `DTPOSTED` com `selectedMonth.split('-')[0]` (ano do mês VISTO), não o ano da própria transação — mesmo modo de falha para linhas de cartão cross-year e para exports de range multi-ano"
+    missing:
+      - "Carregar o ano no round-trip do CSV: exportar a data ISO completa que o store já tem (`t.date`, YYYY-MM-DD) na coluna Data, e fazer parseCsvRows aceitar YYYY-MM-DD (fallback p/ DD/MM legado)"
+      - "No OFX, derivar o ano de DTPOSTED da própria data resolvida da transação (`t.date`), não de selectedMonth (WR-02)"
+      - "Após o fix, re-exercitar o roteiro de reimport com uma linha de dezembro/ano anterior e confirmar 0 novas gravações + data preservada"
+  - truth: "No modal de import, trocar o destino no dropdown para uma conta/cartão específico desmarca as linhas que passam a ser duplicatas (evita reimport de duplicata pela UI)"
+    status: partial
+    reason: "WR-01 (warning): `dupKeys` é um useMemo que recalcula quando `destAcct` muda, mas `selected` é semeado UMA vez via inicializador lazy de useState contra o destino inicial (IMPORT_DEST_ORIGEM) e nunca é reconciliado. Se o usuário abre o modal (default 'origem') e depois troca 'Importar para' para uma conta/cartão que faz linhas antes novas resolverem para tx existentes, o badge 'já importada' aparece (dupKeys atualizado) mas as linhas continuam MARCADAS (selected inalterado) → clicar Importar reinsere duplicatas. Não afeta o caminho default 'origem' (dupKeys correto na montagem), mas é alcançável pela UI."
+    artifacts:
+      - path: "assets/fides-transacoes.jsx"
+        issue: "ImportPreviewModal (linhas 1527-1541): falta um React.useEffect que reconcilie `selected` quando `dupKeys` muda (remover das seleções as chaves que viraram duplicata)"
+    missing:
+      - "Adicionar effect: `React.useEffect(() => setSelected(prev => { const n=new Set(prev); dupKeys.forEach(k=>n.delete(k)); return n; }), [dupKeys])`"
+behavior_unverified_items:
+  - truth: "Hover/tap numa fatia do Donut (modo Período) mostra categoria+valor+% no centro e volta a 'Total' ao sair"
+    test: "No modo Período com várias categorias, passar mouse/tocar uma fatia do Donut e depois sair"
+    expected: "Centro muda para categoria + valor + % (relativo ao total do mês selecionado); sair volta a 'Total'"
+    why_human: "Interação de hover/tap requer o app rodando no browser (React via Babel-standalone); wiring onActiveSlice/.fds-donut-center confirmado por leitura de código, mas o comportamento de runtime não é exercitável estaticamente"
 ---
 
-# Phase 10: Correção fatura cartão + hardening de importação Verification Report
+# Phase 10: Correção fatura cartão + hardening de importação — Verification Report (Re-verificação pós gap-closure)
 
 **Phase Goal:** A fatura de cartão exibe fechamento/vencimento corretos para qualquer configuração de dias (incluindo `closing_day > due_day`, ex. Bradesco fecha 19 / vence 1), sem regressão para `closing_day < due_day`; e a importação de CSV/OFX deixa de duplicar dados silenciosamente — passa a ter preview/seleção/confirmação + dedupe.
-**Verified:** 2026-07-04T21:15:00Z
-**Status:** human_needed
-**Re-verification:** No — initial verification
+**Verified:** 2026-07-05T18:20:00Z
+**Status:** gaps_found
+**Re-verification:** Yes — após gap-closure dos planos 10-04/10-05/10-06 (fecha 10-UAT) e do code-review 10-REVIEW.md
+
+## Resumo executivo
+
+Os 6 gaps do 10-UAT (2 blockers G1/G2 + 4 majors G3/G4/G5/G6) estão **fechados no código** — verifiquei cada fix diretamente contra os arquivos shipados, não por citação de SUMMARY. Porém, o code-review desta rodada (10-REVIEW.md) encontrou um **NOVO blocker CR-01** que **não foi corrigido** e que reintroduz exatamente a classe de duplicata silenciosa que a segunda metade do goal ("importação deixa de duplicar dados silenciosamente") existe para eliminar. Por isso o status é `gaps_found`, não `passed`.
 
 ## Goal Achievement
 
@@ -45,112 +63,107 @@ human_verification:
 
 | # | Truth | Status | Evidence |
 |---|-------|--------|----------|
-| 1 | Fatura Bradesco (fecha 19/vence 1) exibe fecha 19/07 · vence 01/08 · aberta (não vencida) [D-03] | ✓ VERIFIED | `computeFaturaDates('2026-07',{diaFechamento:19,diaVencimento:1})` extraído do arquivo shipado retorna `dtFechamento=2026-07-19`, `dtVencimento=2026-08-01` (script Node, ver abaixo). Data-flow confirmado: `faturasDoCartao`/`faturasDoCartaoCompleto` (fides-store.jsx:1275,1331) chamam o helper; `fides-contas.jsx:955` renderiza `dtFechamento`/`dtVencimento` direto do objeto retornado. Confirmação visual final listada em Human Verification. |
-| 2 | Cartão closing_day < due_day mantém fechamento/vencimento no mesmo mês (regressão D-05) | ✓ VERIFIED | `computeFaturaDates('2026-06',{diaFechamento:5,diaVencimento:15})` retorna ambas as datas em junho (script Node). Branch divergente `diaF > diaV` confirmado ausente: `grep -v '^\s*//' assets/fides-store.jsx \| grep -c 'diaF > diaV'` = 0. |
-| 3 | Fatura de junho já paga (todas as txs settled) permanece 'paga' após o fix [D-04] | ✓ VERIFIED | Leitura de código: `faturasDoCartaoCompleto` (fides-store.jsx:1333-1341) calcula `paga = fat.txsAbertas.length === 0` e testa `if (paga) status='paga'` ANTES do else-if de vencida/fechada — precedência preservada. |
-| 4 | computeFaturaDates é a única fonte de derivação de datas — nenhuma função gêmea recalcula mesF divergente [D-02] | ✓ VERIFIED | `grep -c "computeFaturaDates(fat.mesFatura" assets/fides-store.jsx` = 2 (ambas as funções); nenhum outro consumidor de `dtFechamento`/`dtVencimento` fora de fides-store.jsx/fides-contas.jsx. |
-| 5 | Importar CSV/OFX abre preview ANTES de gravar; Cancelar não grava nada [D-06] | ✓ VERIFIED | `handleImport` (fides-transacoes.jsx:731-761) só faz parse + `setImportPreview(...)`; nenhuma chamada a `addTransaction(s)` nesse caminho. `onCancel={() => setImportPreview(null)}` (linha 1459) não grava. Gravação só ocorre em `handleImportConfirm`, chamada exclusivamente pelo botão "Importar (N)". |
-| 6 | Linhas novas marcadas por default; duplicatas desmarcadas + badge "já importada" (não ocultas) [D-07/D-08] | ✓ VERIFIED | `ImportPreviewModal` (fides-transacoes.jsx:1513-1515): `selected` inicial = `rows.filter(r => !dupKeys.has(r._key))`; badge `<span className="fds-tag warn">já importada</span>` renderizado inline por linha (linha 1606), nunca oculta a linha. |
-| 7 | Reimportar o mesmo arquivo resulta em 0 novas gravações (dedupe desc+valor+dia exato) [D-09/D-10] | ⚠️ PRESENT_BEHAVIOR_UNVERIFIED | `dedupeKey`/`buildDedupeIndex` validados por script Node (normalização + janela dia-exato + isolamento por conta, ver abaixo) e wiring confirmado (`dupKeys` recalcula via `resolveRowForImport` contra `existingKeys`). O PRÓPRIO PLAN 10-02 marca este truth como "must_have não-inferível" — comportamento fim-a-fim requer app rodando. Roteado para Human Verification. |
-| 8 | Cada linha usa mês/fatura correto pela DATA DA PRÓPRIA LINHA (não selectedMonth global) [D-11] | ✓ VERIFIED | `grep -c 'mes: selectedMonth' assets/fides-transacoes.jsx` = 0; `resolveRowForImport` (linha 108-124) deriva `mes` de `row.mesFromCsv` ou `window.mesFaturaFor(row.d, card, row.ano)`, nunca de `selectedMonth`. |
-| 9 | Quando destino é cartão, gravação usa card_id (não account_id com card_id null) [D-12] | ✓ VERIFIED | `resolveRowForImport` retorna `card_id: isCard ? destAcctId : undefined`; `txToRow` (fides-store.jsx:230-232) grava `account_id: isCard ? null : tx.acct`, `card_id: isCard ? tx.acct : null`. |
-| 10 | Import nunca marca is_transfer | ✓ VERIFIED | `grep -n "is_transfer\|isTransfer" assets/fides-transacoes.jsx` não mostra nenhuma atribuição no caminho de import; `txToRow` não inclui `is_transfer` no objeto retornado (default do banco aplica). |
-| 11 | Chip "Cartão" no masthead filtra crédito sem abrir Filtros avançados [UX-03] | ✓ VERIFIED | `toggleCardChip` (fides-transacoes.jsx:906-913) chama `setAdvFilters` diretamente, sem tocar em `advFilterOpen`; `filtered` (linhas 575-577) já filtra por `advFilters.contasSelected` — mesmo campo. Confirmação visual final listada em Human Verification. |
-| 12 | No modo Período, toda categoria da legenda tem representação (fix do mismatch top-7) [UX-04] | ✓ VERIFIED | `.fds-cats-list` (linha 1067-1078) itera `rangeSpend.map(...)` SEM truncar; `CategoryChart` (fides-charts.jsx:256) mantém `slice(0,7)` inalterado — confirmado por grep. |
-| 13 | Hover/tap numa fatia do Donut mostra categoria+valor no centro [UX-04] | ⚠️ PRESENT_BEHAVIOR_UNVERIFIED | Wiring completo confirmado: `onActiveSlice={setActiveSlice}` (linha 1049), `.fds-donut-center` (linha 1050-1059) consome `activeSlice.label`/`activeSlice.val`. Interação de hover/tap é comportamento de browser — não exercitável estaticamente. Roteado para Human Verification. |
+| 1 | Fatura Bradesco (fecha 19/vence 1) exibe fecha 19/07 · vence 01/08 · aberta [FAT-01] | ✓ VERIFIED | Código de FAT-01 inalterado desde a verificação inicial; UAT teste 1 = pass. computeFaturaDates validado por script Node. |
+| 2 | closing_day < due_day mantém datas no mesmo mês (regressão D-05) | ✓ VERIFIED | Inalterado; UAT teste 3 = pass. |
+| 3 | Fatura de junho já paga permanece 'paga' [D-04] | ✓ VERIFIED | Inalterado; UAT teste 2 = pass (precedência paga>vencida em fides-store.jsx). |
+| 4 | computeFaturaDates é a única fonte de derivação de datas [D-02] | ✓ VERIFIED | Inalterado desde a verificação inicial. |
+| 5 | Import abre preview ANTES de gravar; Cancelar não grava [IMP-01, G6] | ✓ VERIFIED | `handleImport` (linha 768-798) só parseia + `setImportPreview`; `onCancel` não grava. UAT teste 6 = pass. |
+| 6 | Import não converte pendente→paga; nunca auto-paga [G2] | ✓ VERIFIED | `resolveRowForImport` (linha 151) devolve status SEMPRE explícito (`row.status||'pendente'` ou o modo escolhido) → nunca cai no fallback 'cleared'/pago do txToRow (fides-store.jsx:228). Confirma o fix do medo do usuário. |
+| 7 | Reimportar o mesmo CSV = 0 novas gravações, inclui cross-year (dedupe date normalizado) [IMP-02, G1] | ✗ FAILED | Para linhas do MESMO ano-calendário o dedupe casa (fix G1 correto: export grava nome do cartão, resolução por linha via acctNameRaw). MAS **CR-01**: export omite o ano (linha 747 `t.d`=DD/MM) → reimport assume ano corrente (linha 220) → dedupeKey (linha 91, data completa) não casa p/ linha de 2025 reimportada em 2026 → duplicata silenciosa + data corrompida. Simulação da lógica shipada: existing 2025-12-28 vs reimport 2026-12-28 → MATCH=false. |
+| 8 | Cada linha usa mês/fatura correto pela DATA da própria linha [D-11] | ⚠️ degradado por CR-01 | `resolveRowForImport` deriva `mes` de `window.mesFaturaFor(row.d, card, row.ano)` (nunca de selectedMonth) — mecanismo correto. Porém `row.ano` vem corrompido do round-trip export→reimport para linhas cross-year (CR-01), então a data/mês gravados ficam errados nesse caso. Contabilizado no gap CR-01 (não como truth verde separada). |
+| 9 | Destino cartão grava card_id (não account_id null) [D-12] | ✓ VERIFIED | `resolveRowForImport` retorna `card_id: isCard ? destId : undefined`; `txToRow` (fides-store.jsx:231-232) grava account_id=null/card_id=acct p/ cartão. UAT teste 5 estava blocked (adiado); lógica confirmada por código. |
+| 10 | Import nunca marca is_transfer | ✓ VERIFIED | Nenhuma atribuição de is_transfer no caminho de import; payload (linha 807-818) não inclui o campo. |
+| 11 | Chip "Cartão" filtra crédito sem abrir Filtros avançados [UX-03] | ✓ VERIFIED | Inalterado; UAT teste 7 = pass. |
+| 12 | Modo Período: quebra por categoria = top-7, sem legenda redundante/sem-barra/repetida [UX-04, G4] | ✓ VERIFIED | `fds-cats-list`/`fds-cat-row`/`rangeSpend`/`rangeTotal`/`spendByCategoryRange` REMOVIDOS (grep = 0 matches). CategoryChart (slice 0,7) é a única legenda. Fecha G4. |
+| 13 | Modo Período: donut/total refletem o MÊS do masthead + hover/tap mostra categoria+valor [UX-04, G5] | ⚠️ PRESENT_BEHAVIOR_UNVERIFIED | G5 fechado no código: widget consome `spendByCategory`/`monthTotal` (linhas 457, 570-572, 1079, 1086, 1104), não mais o range. Hover/tap (`onActiveSlice`/`.fds-donut-center`) presente e wired, mas é comportamento de browser — roteado p/ Human Verification. |
 
-**Score:** 11/13 truths verified automaticamente (2 present + wired, comportamento de runtime não exercitado — ver Human Verification)
+**Score:** 11/13 truths verificados · 1 FAILED (#7, CR-01) · 1 present-behavior-unverified (#13). Truth #8 degradado é absorvido no gap CR-01.
+
+### Gap Fixes (10-UAT) — verificação no código
+
+| Gap | Plano | Fix esperado | Status no código |
+|-----|-------|--------------|------------------|
+| G1 (dedup ignorava pendentes / destino default errado) | 10-04 | export grava nome do cartão + resolução de destino POR LINHA via acctNameRaw | ✓ PRESENTE (linhas 740-743, 120-158) — correto p/ mesmo ano; furado cross-year por CR-01 |
+| G2 (pendente→paga silencioso) | 10-04 | status sempre explícito no payload | ✓ PRESENTE (linha 151) |
+| G3 (sem opção destino/status) | 10-04 | modal "Da origem do arquivo" + pills de status | ✓ PRESENTE (linhas 1514, 1519, 1591, 1614) |
+| G4 (legenda longa/repetida) | 10-06 | remover legenda textual, voltar ao top-7 | ✓ PRESENTE (grep fds-cat-row/fds-cats-list = 0) |
+| G5 (donut/total = range, não mês) | 10-06 | escopar analytics ao mês (spendByCategory/monthTotal) | ✓ PRESENTE (linhas 457, 570-572, 1079-1104) |
+| G6 (trocar aba reseta modal) | 10-05 | guarda loadedUid no onAuthStateChange | ✓ PRESENTE (fides-store.jsx:318, 356, 382) |
 
 ### Required Artifacts
 
 | Artifact | Expected | Status | Details |
 |----------|----------|--------|---------|
-| `assets/fides-data.jsx` — `computeFaturaDates` | Helper puro único de derivação de datas de fatura | ✓ VERIFIED | Presente após `mesFaturaFor` (linha 72); testado com fixtures Bradesco/Nubank/virada de ano |
-| `assets/fides-store.jsx` — `faturasDoCartao`/`faturasDoCartaoCompleto` | Consomem `computeFaturaDates`, sem branch `mesF` divergente | ✓ VERIFIED | Ambas chamam o helper (linhas 1275, 1331); branch antigo removido |
-| `assets/fides-transacoes.jsx` — `dedupeKey`/`buildDedupeIndex` | Dedupe normalizado (D-09/D-10) | ✓ VERIFIED | Presentes e testados (linhas 86-102); WR-03 fix aplicado (sinal preservado + conta incluída) |
-| `assets/fides-transacoes.jsx` — `resolveRowForImport` | Mês por linha + card_id resolvido (D-11/D-12) | ✓ VERIFIED | Presente (linha 108), usado em `handleImportConfirm` e em `ImportPreviewModal.dupKeys` |
-| `assets/fides-transacoes.jsx` — `ImportPreviewModal` | Preview/seleção/confirmação (IMP-01) | ✓ VERIFIED | Componente completo (linha 1474-1633), montado condicionalmente no render de `Transacoes` (linha 1454-1462) |
-| `assets/fides-transacoes.jsx` — chip "Cartão" + `onActiveSlice`/`.fds-donut-center` | UX-03/UX-04 | ✓ VERIFIED | Ambos presentes e wired (ver truths #11-13) |
+| `assets/fides-transacoes.jsx` — `resolveRowForImport` | Destino/mês/status POR LINHA (nova assinatura +accounts +statusMode) | ✓ VERIFIED | Linha 120; assinatura `(row, fallbackDestId, accounts, cards, statusMode)`; status explícito |
+| `assets/fides-transacoes.jsx` — `ImportPreviewModal` | Preview + destino "origem" + controle de status | ✓ VERIFIED | Destino sentinel (1514), statusMode (1519), option "Da origem do arquivo" (1591), pills (1614) |
+| `assets/fides-transacoes.jsx` — `handleExport` (CSV) | Round-trip export→reimport casável | ⚠️ HOLLOW | Grava nome do cartão (fix G1) MAS omite o ano (CR-01, linha 747) — round-trip incompleto p/ cross-year |
+| `assets/fides-transacoes.jsx` — bloco analytics modo Período | Escopado ao mês, sem legenda redundante | ✓ VERIFIED | spendByCategory/monthTotal; legenda removida |
+| `assets/fides-store.jsx` — guarda `loadedUid` | Ignora SIGNED_IN re-emitido do mesmo usuário | ✓ VERIFIED | Linhas 318/324/356/377/382 |
 
 ### Key Link Verification
 
 | From | To | Via | Status | Details |
 |------|-----|-----|--------|---------|
-| `assets/fides-store.jsx` (faturasDoCartao/Completo) | `assets/fides-data.jsx` (computeFaturaDates) | Chamada direta `computeFaturaDates(fat.mesFatura, card)` | ✓ WIRED | `grep -c` = 2 ocorrências |
-| `handleImport` | `ImportPreviewModal` | `setImportPreview({...})` abre o modal, sem gravar | ✓ WIRED | Confirmado por leitura completa de `handleImport` |
-| `ImportPreviewModal` (confirm) | `addTransactions` (fides-store.jsx) | `onConfirm` → `handleImportConfirm` → `resolveRowForImport` por linha → `addTransactions(payloads)` | ✓ WIRED | Confirmado; `addTransactions` no destructure de `useFides()` (linha ~381) |
-| chip "Cartão" | `advFilters.contasSelected` | `setAdvFilters` altera o mesmo campo consumido por `filtered` | ✓ WIRED | Mesmo campo usado em ambos os pontos (linhas 575-577, 903-911) |
-| Donut (modo Período) | `.fds-donut-center` | `onActiveSlice={setActiveSlice}` alimenta o centro dinâmico | ✓ WIRED | Confirmado, ver truth #13 |
-
-### Data-Flow Trace (Level 4)
-
-| Artifact | Data Variable | Source | Produces Real Data | Status |
-|----------|---------------|--------|---------------------|--------|
-| `fides-contas.jsx` (card de fatura) | `faturaDestaque.dtFechamento`/`dtVencimento`/`status` | `faturasDoCartao`/`faturasDoCartaoCompleto` → `computeFaturaDates` | Sim — dados reais de `transactions`/`cards` (RLS owner-scoped) | ✓ FLOWING |
-| `ImportPreviewModal` (lista de linhas) | `preview.rows` | `parseCsvRows`/`parseOfxRows` sobre o arquivo real do usuário | Sim | ✓ FLOWING |
-| Donut modo Período (centro) | `activeSlice` | `rangeSpend` (derivado de `transactions` reais) via `onActiveSlice` | Sim | ✓ FLOWING |
+| `handleImportConfirm` | `resolveRowForImport` → `addTransactions` | payload com status/card_id/mes por linha | ✓ WIRED | Linhas 804-818 |
+| `ImportPreviewModal.dupKeys` | `resolveRowForImport` + `existingKeys` | recalcula duplicatas por linha contra destino | ✓ WIRED (default 'origem') | Linha 1527-1534; mas `selected` não reconcilia ao trocar destino (WR-01, gap parcial) |
+| `handleExport` (CSV) | `parseCsvRows` (reimport) | coluna Data faz round-trip do ano | ✗ NOT_WIRED (ano) | Ano perdido no export → dedupe fura cross-year (CR-01) |
+| `onAuthStateChange` (SIGNED_IN) | `setTransactions([])`/`refreshData` | só executa quando user.id muda | ✓ WIRED | Guarda `if (user.id === loadedUid) return;` (linha 356) |
+| Donut modo Período | `.fds-donut-center` | `onActiveSlice={setActiveSlice}` + monthTotal | ✓ WIRED | Linhas 1086-1094 |
 
 ### Behavioral Spot-Checks
 
 | Behavior | Command | Result | Status |
 |----------|---------|--------|--------|
-| computeFaturaDates — caso Bradesco (fecha 19/vence 1) | `node -e "...computeFaturaDates('2026-07',{diaFechamento:19,diaVencimento:1})..."` extraído do arquivo shipado | `dtFechamento=2026-07-19`, `dtVencimento=2026-08-01` | ✓ PASS |
-| computeFaturaDates — regressão fecha<vence | `node -e "...computeFaturaDates('2026-06',{diaFechamento:5,diaVencimento:15})..."` | `dtVencimento=2026-06-15` (mesmo mês) | ✓ PASS |
-| dedupeKey — normalização + janela dia-exato + isolamento por conta | `node -e "...dedupeKey({...})..."` extraído do arquivo shipado | trim/lowercase/espaço colapsado iguais; dia diferente → chave diferente; conta diferente → chave diferente | ✓ PASS |
-| parseBRNumber (CR-01 fix) — valores agrupados BR | `node -e "...parseBRNumber('1.450,00')..."` | `1450` (correto, não `1.45`) | ✓ PASS |
-| splitCsvLine (WR-02 fix) — campo entre aspas com separador | `node -e "...splitCsvLine('19/06;\"Compra; teste\";...', ';')..."` | 7 colunas corretas, campo `"Compra; teste"` atômico | ✓ PASS |
-| txToRow (WR-01 fix) — preserva `tx.date` explícito | Leitura de código `fides-store.jsx:212-214` | `date` usa `tx.date` quando `YYYY-MM-DD` válido, só reconstrói senão | ✓ PASS (inspeção estática — lógica pura confirmada por leitura, sem harness de execução para esta função específica) |
+| CR-01 — round-trip cross-year (Dez/2025 → reimport 2026) | `node -e` simulando normalizeTx + parseCsvRows + dedupeKey da lógica shipada | export "28/12" (ano perdido) → reimport "2026-12-28" → dedupe day mismatch (2025 vs 2026) → MATCH=false (duplicata NÃO detectada) | ✗ FAIL (confirma CR-01) |
+| Guarda de auth idempotente | Leitura fides-store.jsx:356 | `if (user.id === loadedUid) return;` presente no ramo SIGNED_IN/INITIAL_SESSION | ✓ PASS |
+| Legenda redundante removida | grep `fds-cat-row\|fds-cats-list\|rangeSpend\|rangeTotal\|spendByCategoryRange` | 0 matches | ✓ PASS |
+| Status explícito no import | Leitura linha 151 | `(!statusMode||statusMode==='arquivo') ? (row.status||'pendente') : statusMode` — nunca undefined | ✓ PASS |
 
 ### Probe Execution
 
-Não aplicável — projeto não possui probes (`scripts/*/tests/probe-*.sh`); nenhum PLAN/SUMMARY desta fase declara probes.
+Não aplicável — projeto sem probes (`scripts/*/tests/probe-*.sh`); nenhum PLAN/SUMMARY desta fase declara probes.
 
 ### Requirements Coverage
 
 | Requirement | Source Plan | Description | Status | Evidence |
 |--------------|-------------|--------------|--------|----------|
-| FAT-01 | 10-01-PLAN.md | Fatura exibe fechamento/vencimento/status corretos p/ qualquer config de dias | ✓ SATISFIED | Truths #1-4; REQUIREMENTS.md marcado `[x]` |
-| IMP-01 | 10-02-PLAN.md | Import abre preview com seleção e exige confirmação; cancelar não grava | ✓ SATISFIED | Truths #5-6; REQUIREMENTS.md marcado `[x]` |
-| IMP-02 | 10-02-PLAN.md | Dedupe + mês/fatura por linha + card_id resolvido | ✓ SATISFIED (dedupe fim-a-fim pendente de confirmação humana) | Truths #7-10; REQUIREMENTS.md marcado `[x]` |
-| UX-03 | 10-03-PLAN.md | Botão "Cartão" filtra crédito sem abrir Filtros avançados | ✓ SATISFIED | Truth #11; REQUIREMENTS.md marcado `[x]` |
-| UX-04 | 10-03-PLAN.md | Toda categoria da legenda tem barra + valor no hover/tap | ✓ SATISFIED (hover/tap pendente de confirmação humana) | Truths #12-13; REQUIREMENTS.md marcado `[x]` |
+| FAT-01 | 10-01 | Fatura fechamento/vencimento/status corretos | ✓ SATISFIED | Truths #1-4; inalterado, UAT testes 1-3 pass |
+| IMP-01 | 10-02, 10-04, 10-05 | Preview + seleção + confirmação; cancelar não grava | ✓ SATISFIED | Truths #5-6; G6 fechado |
+| IMP-02 | 10-02, 10-04 | Dedupe + mês/fatura por linha + card_id | ✗ BLOCKED | Truth #7 FAILED por CR-01 (dedupe fura cross-year + data corrompida); G1/G2/G3 fechados mas o round-trip de ano quebra o dedupe |
+| UX-03 | 10-03 | Chip "Cartão" filtra crédito | ✓ SATISFIED | Truth #11; UAT teste 7 pass |
+| UX-04 | 10-03, 10-06 | Legenda com barra + valor no hover/tap | ✓ SATISFIED (hover/tap pendente humano) | Truths #12-13; G4/G5 fechados |
 
-Nenhum requisito órfão encontrado — os 5 IDs declarados no PLAN frontmatter (FAT-01, IMP-01, IMP-02, UX-03, UX-04) batem exatamente com os 5 IDs listados em `.planning/REQUIREMENTS.md` para Phase 10, todos marcados `[x]` e mapeados na tabela de Traceability.
+Nenhum requisito órfão: os 5 IDs do PLAN frontmatter (FAT-01, IMP-01, IMP-02, UX-03, UX-04) batem com os 5 de REQUIREMENTS.md para Phase 10. **Nota:** REQUIREMENTS.md marca IMP-02 como `[x]` e Traceability como "Planned" — inconsistente com o blocker CR-01; IMP-02 não deveria ser considerado completo até CR-01 fechar.
 
 ### Anti-Patterns Found
 
-Nenhum debt marker (`TBD`/`FIXME`/`XXX`) ou marcador de aviso (`TODO`/`HACK`/`PLACEHOLDER`) encontrado nos três arquivos modificados (`fides-data.jsx`, `fides-store.jsx`, `fides-transacoes.jsx`) além de ocorrências de texto natural em comentários portugueses (ex. "Cartao"/"TODOS os hooks") que não são marcadores de débito. Nenhum `dangerouslySetInnerHTML`, `console.log`-only handler, ou stub (`return null`/`{}`/`[]`) introduzido pela fase.
-
-O code-review desta fase (`10-REVIEW.md`) encontrou 1 blocker (CR-01) + 3 warnings (WR-01/02/03), todos corrigidos e comitados (`10-REVIEW-FIX.md`, commits `953f6e8`/`1d2a311`/`835dade`/`a205721`) e re-verificados nesta sessão diretamente contra o código atual (ver Behavioral Spot-Checks). 5 findings de nível `info` (IN-01..IN-05) permanecem intencionalmente fora de escopo — não bloqueiam o goal da fase:
+Nenhum debt marker (`TBD`/`FIXME`/`XXX`) introduzido pelos gap plans. CR-01 não é um marcador de débito — é um defeito de correção funcional (silent data corruption + duplicata), classificado como blocker pelo code-review e confirmado por simulação aqui.
 
 | File | Line | Pattern | Severity | Impact |
 |------|------|---------|----------|--------|
-| `assets/fides-transacoes.jsx` | 131 | IN-01: header sempre descartado por `lines.slice(1)` | Info | Arquivo sem header perde a 1ª transação — fora do roteiro de reimport testado nesta fase |
-| `assets/fides-transacoes.jsx` | 758 | IN-02: `readAsText(file, 'UTF-8')` mesmo com OFX declarando CHARSET:1252 | Info | Mojibake em memos acentuados de bancos BR reais |
-| `assets/fides-transacoes.jsx` | 197 | IN-03: status `'agendado'` colapsa para `'pendente'` no import | Info | Perda do estado agendado ao reimportar export próprio |
-| `assets/fides-data.jsx` | 72 vs 344 | IN-04: `computeFaturaDates` não exportado em `window` (inconsistente com `mesFaturaFor`) | Info | Funciona hoje (hoisting), mas quebra para qualquer `window.computeFaturaDates` futuro |
-| `assets/fides-transacoes.jsx` | 1485/1513 | IN-05: reabrir o picker com o modal ainda montado reutiliza `selected`/`destAcct` do arquivo anterior | Info | Edge case (trocar de arquivo sem cancelar primeiro) |
+| `assets/fides-transacoes.jsx` | 747 / 217-220 | CR-01: export omite ano → reimport assume ano corrente | 🛑 Blocker | Duplicata silenciosa + data corrompida p/ linhas de outro ano; fura IMP-02 |
+| `assets/fides-transacoes.jsx` | 706 | WR-02: OFX carimba ano de selectedMonth, não da tx | ⚠️ Warning | Mesmo modo de falha na trilha OFX (cross-year/range) |
+| `assets/fides-transacoes.jsx` | 1527-1541 | WR-01: `selected` não reconcilia com `dupKeys` ao trocar destino | ⚠️ Warning | Trocar dropdown deixa duplicatas marcadas → reimport de duplicata pela UI |
+| `assets/fides-store.jsx` | 320-347 | WR-03: bootstrap `getAuthUser().then` sem guarda loadedUid | ⚠️ Warning | Double-load/flash possível no cold start (não é quebra de correção) |
 
 ### Human Verification Required
 
-Ver lista completa em `human_verification` no frontmatter. Resumo:
+Itens de runtime que permanecem (não bloqueiam, mas pendentes antes do fechamento formal via `/gsd-verify-work 10`), a serem re-testados APÓS o fix de CR-01:
 
-1. **Visual: card Bradesco (Contas)** — fecha 19/07 · vence 01/08 · Aberta (lógica já validada por script Node + data-flow de código; falta o pixel final no browser).
-2. **Visual: fatura de junho paga** — status permanece "Paga" (precedência já confirmada por leitura de código).
-3. **Visual: cartão fecha<vence (regressão)** — datas no mesmo mês, sem inversão.
-4. **Roteiro de reimport (IMP-02)** — exportar CSV do app e reimportar imediatamente → 0 novas gravações. O próprio PLAN 10-02 marca este item como "não-inferível" estaticamente.
-5. **Card_id via Supabase MCP** — importar 1 linha nova com destino cartão; conferir `card_id` não-nulo / `account_id` nulo na tabela `transactions`.
-6. **Cancelar sem gravar** — testar Cancelar num import com linhas novas.
-7. **Visual: chip "Cartão"** — filtra crédito sem abrir Filtros avançados.
-8. **Visual: hover/tap no Donut (modo Período)** — centro dinâmico + legenda completa.
+1. **Hover/tap no Donut (modo Período)** — centro dinâmico categoria+valor+% (do mês) e volta a "Total" ao sair.
+2. **Reimport do próprio CSV com linha de dezembro/ano anterior** — após o fix de CR-01, 0 novas gravações e data preservada (este é o teste que expõe CR-01 hoje).
+3. **card_id via Supabase MCP** — importar 1 linha nova com destino cartão → card_id não-nulo / account_id nulo (UAT teste 5 estava adiado).
+4. **Trocar aba/minimizar com modal de import aberto** — seleções preservadas (G6).
 
 ### Gaps Summary
 
-Nenhum gap bloqueante encontrado. Todo código, helpers, componentes e wiring descritos nos 3 PLANs desta fase existem, são substantivos (não-stub) e estão conectados ponta a ponta — confirmado por leitura de código e por scripts Node executados diretamente contra os arquivos shipados (não apenas contra o que o SUMMARY.md alega). Os 4 findings do code-review (1 blocker CR-01 + 3 warnings WR-01/02/03) foram corrigidos e as correções foram re-verificadas nesta sessão, não apenas aceitas por citação do commit.
+Os 6 gaps do 10-UAT foram fechados no código e re-verificados diretamente (não por citação de SUMMARY): G1/G2/G3 no import (10-04), G6 na guarda de auth (10-05), G4/G5 no analytics do modo Período (10-06). Todos presentes, substantivos e wired.
 
-O único fator que impede `status: passed` é a existência de comportamentos genuinamente dependentes de runtime/browser (renderização visual, hover/tap, e o roteiro fim-a-fim de reimport) que não podem ser observados por grep/leitura estática — nem o próprio PLAN os classifica como inferíveis. Nenhum desses itens é um gap de implementação; são checkpoints humanos pendentes antes do fechamento formal da fase via `/gsd-verify-work 10`.
+O bloqueio ao `passed` é o **novo blocker CR-01**: o export CSV nunca grava o ano da transação, então o reimport de qualquer linha de outro ano-calendário (compra de dezembro do ano anterior, export de range multi-ano) recebe o ano corrente, corrompendo a data gravada E furando a dedupeKey — reinserindo a linha como duplicata silenciosa. Isso contradiz diretamente a segunda metade do goal da fase ("a importação deixa de duplicar dados silenciosamente") e o requisito IMP-02 (dedupe por data normalizada + mês/fatura correto por linha). O fix G1 (resolução de destino por linha) só resolve o caso do MESMO ano; o eixo do ano continua aberto. A trilha OFX tem o defeito análogo (WR-02). Ambos devem ser fechados carregando o ano no round-trip (exportar `t.date` ISO completo e aceitá-lo no parse) antes de considerar IMP-02 satisfeito.
+
+Gap secundário (WR-01): reconciliar `selected` com `dupKeys` quando o destino muda no modal, para não deixar duplicatas marcadas ao trocar o dropdown.
 
 ---
 
-_Verified: 2026-07-04T21:15:00Z_
+_Verified: 2026-07-05T18:20:00Z_
 _Verifier: Claude (gsd-verifier)_
