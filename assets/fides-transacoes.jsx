@@ -454,7 +454,7 @@ function TxAdvFiltersModal({ open, onClose, filters, onApply, categories, accoun
 
 // ─── Componente principal ──────────────────────────────────────
 function Transacoes({ variant, onAdd }) {
-  const { monthTransactions, rangeTransactions, spendByCategoryRange, transactions, categories, selectedMonth, setSelectedMonth, monthLabel, addTransaction, addTransactions, updateTransaction, deleteTransaction, accounts, cards } = useFides();
+  const { monthTransactions, rangeTransactions, spendByCategory, transactions, categories, selectedMonth, setSelectedMonth, monthLabel, addTransaction, addTransactions, updateTransaction, deleteTransaction, accounts, cards } = useFides();
   // ─── Persistencia page-local (TX-06): todos os useState abaixo que compoem
   // o snapshot persistido usam lazy initializer lendo readTxState(), com
   // fallback ao default anterior. NUNCA hidrata/restaura selectedMonth (global).
@@ -562,18 +562,14 @@ function Transacoes({ variant, onAdd }) {
     return rangeTransactions(fromYM, toYM);
   }, [rangeTransactions, fromYM, toYM]);
 
-  // rangeSpend: idem, memoiza spendByCategoryRange(fromYM, toYM) (TX-03). Ja
-  // exclui is_transfer e receitas na derivacao do store — nenhum filtro extra
-  // necessario aqui.
-  const rangeSpend = React.useMemo(function() {
-    return spendByCategoryRange(fromYM, toYM);
-  }, [spendByCategoryRange, fromYM, toYM]);
-  // rangeTotal (UX-04): total do periodo, usado no cabecalho e no centro
-  // dinamico do Donut ("Total" quando nenhuma fatia esta ativa) + no % de
-  // cada fatia da legenda completa.
-  const rangeTotal = React.useMemo(function() {
-    return rangeSpend.reduce(function(s, d) { return s + d.val; }, 0);
-  }, [rangeSpend]);
+  // monthTotal (UX-04, G5): total do MES selecionado, derivado de
+  // spendByCategory (escopado a monthTransactions/selectedMonth no store).
+  // Alimenta o cabecalho e o centro dinamico do Donut ("Total" quando nenhuma
+  // fatia esta ativa) + o % de cada fatia. O widget de analytics do modo
+  // Periodo reflete o mes do masthead, nao o range agregado.
+  const monthTotal = React.useMemo(function() {
+    return spendByCategory.reduce(function(s, d) { return s + d.val; }, 0);
+  }, [spendByCategory]);
 
   const baseList = rangeMode ? rangeList : monthTransactions;
   const flow = baseList.filter(function(t) { return !t.isTransfer; });
@@ -1077,50 +1073,39 @@ function Transacoes({ variant, onAdd }) {
           <header className="fds-tx-v2-analytics-head">
             <div>
               <h3 className="fds-tx-v2-analytics-title">Gasto por categoria</h3>
-              <span className="fds-muted">{rangeLabel}</span>
+              <span className="fds-muted">{lbl.long}</span>
             </div>
             <div className="fds-tx-v2-analytics-total">
-              {fmtBRL(rangeTotal)}
+              {fmtBRL(monthTotal)}
             </div>
           </header>
 
-          {rangeSpend.length > 0 ? (
+          {spendByCategory.length > 0 ? (
             <div className="fds-tx-v2-analytics-body">
               <div className="fds-donut-wrap">
-                <Donut data={rangeSpend} size={160} thickness={20} onActiveSlice={setActiveSlice}/>
+                <Donut data={spendByCategory} size={160} thickness={20} onActiveSlice={setActiveSlice}/>
                 <div className="fds-donut-center">
                   {activeSlice ? <>
                     <div className="fds-donut-label">{activeSlice.label}</div>
                     <div className="fds-donut-value">{fmtBRL(activeSlice.val, { compact: true })}</div>
-                    <div className="fds-donut-label">{Math.round((activeSlice.val / rangeTotal) * 100)}%</div>
+                    <div className="fds-donut-label">{Math.round((activeSlice.val / monthTotal) * 100)}%</div>
                   </> : <>
                     <div className="fds-donut-label">Total</div>
-                    <div className="fds-donut-value">{fmtBRL(rangeTotal, { compact: true })}</div>
+                    <div className="fds-donut-value">{fmtBRL(monthTotal, { compact: true })}</div>
                   </>}
                 </div>
               </div>
               <div className="fds-tx-v2-analytics-chart">
-                <CategoryChart data={rangeSpend} height={220}/>
-                {/* Legenda textual completa (UX-04, Pitfall 4): CategoryChart
-                    trunca em top-7 mas o Donut desenha TODAS as fatias — sem
-                    esta lista, cor/fatia do Donut fica sem correspondencia
-                    visivel. Lista TODAS as categorias de rangeSpend. */}
-                <div className="fds-cats-list">
-                  {rangeSpend.map(function(c) {
-                    return (
-                      <div className="fds-cat-row" key={c.key}>
-                        <CategoryAvatar cat={c.key} size={22}/>
-                        <span className="fds-cat-lbl">{c.label}</span>
-                        <span className="fds-cat-pct">{rangeTotal > 0 ? Math.round((c.val / rangeTotal) * 100) : 0}%</span>
-                        <span className="fds-cat-val">{fmtBRL(c.val)}</span>
-                      </div>
-                    );
-                  })}
-                </div>
+                {/* CategoryChart faz slice(0,7) e desenha rotulo + R$ + % por
+                    barra — e a legenda visual (top-7 do mes), compartilhando as
+                    cores do Donut (tint). Sem lista textual extra: a quebra por
+                    categoria termina no top-7, sem duplicacao nem categorias
+                    sem barra (UX-04, G4). */}
+                <CategoryChart data={spendByCategory} height={220}/>
               </div>
             </div>
           ) : (
-            <p className="fds-muted">Nenhuma despesa no período selecionado.</p>
+            <p className="fds-muted">Nenhuma despesa em {lbl.long}.</p>
           )}
         </section>
       )}
