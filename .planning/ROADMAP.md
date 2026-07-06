@@ -384,7 +384,7 @@ Plans:
 
 **Onda 2 · WR-02 + WR-03 servidor** *(depende de 11-01 — mesmo arquivo)*
 
-- [ ] 11-02-PLAN.md — WR-03: servidor lê JWT de `Authorization: Bearer` (não do body) · WR-02: modo `analysis` proíbe tools (toolConfig NONE), chat mantém tools READ
+- [x] 11-02-PLAN.md — WR-03: servidor lê JWT de `Authorization: Bearer` (não do body) · WR-02: modo `analysis` proíbe tools (toolConfig NONE), chat mantém tools READ
 
 **Onda 3 · Telemetria + frente cliente** *(ambos dependem de 11-02; arquivos disjuntos → paralelos)*
 
@@ -435,7 +435,7 @@ Plans:
 
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
-| 11 - IA-1 Hardening Gemini | 1/4 | In Progress|  |
+| 11 - IA-1 Hardening Gemini | 2/4 | In Progress|  |
 | 12 - IA-2 WRITE in-app (B8) | 0/? | Not started | - |
 | 13 - IA-3 Gating premium | 0/? | Not started | - |
 | 14 - IA-4 Bot WhatsApp | 0/? | Not started | - |

@@ -6,14 +6,14 @@ current_phase: 11
 current_phase_name: ia-1-hardening-do-assistente-gemini
 status: executing
 stopped_at: Phase 10 verified — UAT 8/8 pass, CR-01 fechado (c2cd89d)
-last_updated: "2026-07-06T20:47:26.342Z"
+last_updated: "2026-07-06T20:58:30.680Z"
 last_activity: 2026-07-06
 last_activity_desc: Phase 11 execution started
 progress:
   total_phases: 8
   completed_phases: 3
   total_plans: 18
-  completed_plans: 15
+  completed_plans: 16
   percent: 38
 ---
 
@@ -22,7 +22,7 @@ progress:
 ## Current Position
 
 Phase: 11 (ia-1-hardening-do-assistente-gemini) — EXECUTING
-Plan: 2 of 4
+Plan: 3 of 4
 Status: Ready to execute
 Last activity: 2026-07-06 — Phase 11 execution started
 
@@ -101,6 +101,7 @@ VERIFICATION: `.planning/phases/08-metas-vision-board-redesign/08-VERIFICATION.m
 | Phase 10 P04 | ~12min | 2 tasks | 1 files |
 | Phase 10 P06 | ~5min | 1 tasks | 1 files |
 | Phase 11 P01 | ~5min | 2 tasks | 2 files |
+| Phase 11 P02 | ~10min | 2 tasks | 1 files |
 
 ## Decisions
 
@@ -150,10 +151,12 @@ VERIFICATION: `.planning/phases/08-metas-vision-board-redesign/08-VERIFICATION.m
 - [Phase 10-03]: chip Cartao reusa advFilters.contasSelected (nenhum estado novo); rangeTotal extraido para useMemo unico reusado no cabecalho/centro do Donut/legenda; legenda completa sem limite de itens (diferente do top5 do DashboardStudio) para cobrir todas as fatias
 - [Phase 10-04]: destino default do import = sentinel 'Da origem do arquivo' (resolucao por linha via acctNameRaw); id real no dropdown forca todas as linhas; status sempre explicito no payload (nunca fallback pago do txToRow)
 - [Phase ?]: 11-01: toolMode 'AUTO' explicito no call-site do chat em api/assistant.js — facilita diff do 11-02 (toolMode NONE no caminho de analise)
+- [Phase ?]: 11-02: isAnalysisMode = mode === 'analysis' (comparacao estrita) - unico valor aceito e a string exata, resto cai no default chat com tools AUTO
+- [Phase ?]: 11-02: tools: isAnalysisMode ? undefined : TOOLS_DECLARATION - modo analise nem envia o array de tools ao buildPayload (opcao A da pesquisa)
 
 ## Session
 
-**Last session:** 2026-07-06T20:45:06.530Z
+**Last session:** 2026-07-06T20:57:15.007Z
 **Stopped at:** Phase 10 context gathered
 **Resume file:** .planning/phases/10-corre-o-fatura-cart-o-hardening-de-importa-o/10-CONTEXT.md
 
