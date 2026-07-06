@@ -1,10 +1,14 @@
 ---
 phase: 10-corre-o-fatura-cart-o-hardening-de-importa-o
-verified: 2026-07-05T18:20:00Z
-status: gaps_found
-score: 11/13 must-haves verified
-behavior_unverified: 1
+verified: 2026-07-06T00:00:00Z
+status: passed
+score: 13/13 must-haves verified
+behavior_unverified: 0
 overrides_applied: 0
+resolution:
+  note: "CR-01 (blocker) + WR-01/WR-02 fechados em c2cd89d. UAT re-testado pelo usuário 2026-07-06 → 9/9 pass (inclui cross-year reimport, card_id via Supabase, hover/tap donut). Gaps remaining=0."
+  commit: c2cd89d
+  prior_status: gaps_found
 re_verification:
   previous_status: human_needed
   previous_score: 12/13
