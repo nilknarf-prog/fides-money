@@ -357,6 +357,70 @@ Plans:
 - [x] 10-05-PLAN.md — IMP-01 (G6): guarda por user-id no `onAuthStateChange` (fides-store.jsx) — trocar aba/minimizar não reseta o modal de import nem recarrega a lista [wave 1]
 - [x] 10-06-PLAN.md — UX-04 (G4/G5): analytics do modo Período escopado ao mês selecionado (spendByCategory, não o range) + remoção da legenda textual redundante (volta ao top-7) [wave 2, depende de 10-04]
 
+> **Épico IA/WhatsApp (Phases 11–14).** Fonte de design completa: `.planning/research/whatsapp-e-ia-arquitetura.md` (Parte A = bot WhatsApp, Parte B = plano IA in-app, decisões D-1..D-11 resolvidas 2026-07-06, adendo D-8 = caminho sem CNPJ). Precificação decidida: P-2 (Free + Premium R$ 89,90/ano via Mercado Pago/Pix). Ordem travada: 11→12→13→14 (WRITE in-app validado antes do bot, que reusa parser/insert/confirmação). Caminhos sensíveis (`api/`, `supabase/`) → rodar `security-reviewer` + `database-reviewer` antes de commit.
+
+### Phase 11: IA-1 Hardening do assistente Gemini
+
+**Goal:** As duas superfícies de IA existentes (chat `fides-claude.jsx` + botão "Análise da IA" `fides-orcamento.jsx`) ficam sem as 3 dívidas do review da fase 05 e com base observável para os evals das fases seguintes — antes de qualquer nova capacidade. WR-01: "Análise da IA" ganha o mesmo throttle/cooldown do chat (não queima cota com duplo-tap). WR-02: chamada single-shot proíbe tools (`tool_config: NONE`) para nunca morrer com erro genérico em `tool_calls`. WR-03: JWT vai no header `Authorization: Bearer`, não no corpo. Extrai módulo Gemini compartilhado (payload/safety/erros) que `api/assistant.js` e o futuro `api/whatsapp.js` consomem. Telemetria: `assistant_usage` passa a gravar tokens in/out + latência.
+**Requirements**: WR-01, WR-02, WR-03, AI-SHARED-01, AI-TELEM-01
+**Depends on:** Phase 10
+**Fonte:** `.planning/research/whatsapp-e-ia-arquitetura.md` §B1, §B3 (Fase IA-1)
+**Caminho sensível:** `api/assistant.js` → security-reviewer (+ database-reviewer no plano de telemetria)
+**Plans:** 4 plans
+
+Plans:
+
+**Onda 1 · AI-SHARED-01 (helper Gemini)**
+
+- [ ] 11-01-PLAN.md — AI-SHARED-01: extrai `api/_lib/gemini.js` (CommonJS não-roteável: buildPayload/callGemini/parseResponse com pontos de extensão toolMode + usageMetadata) e reconecta `api/assistant.js` — refactor puro, zero mudança de comportamento
+
+**Onda 2 · WR-02 + WR-03 servidor** *(depende de 11-01 — mesmo arquivo)*
+
+- [ ] 11-02-PLAN.md — WR-03: servidor lê JWT de `Authorization: Bearer` (não do body) · WR-02: modo `analysis` proíbe tools (toolConfig NONE), chat mantém tools READ
+
+**Onda 3 · Telemetria + frente cliente** *(ambos dependem de 11-02; arquivos disjuntos → paralelos)*
+
+- [ ] 11-03-PLAN.md — AI-TELEM-01: `assistant_usage` grava prompt_tokens/completion_tokens/latency_ms (insert→update fail-open) + espelho `.sql` + migração MCP (checkpoint humano)
+- [ ] 11-04-PLAN.md — WR-01: cooldown no botão "Análise da IA" (padrão do chat) · WR-03 cliente: os 2 callers migram o token p/ header · WR-02 cliente: mode `analysis` + remove branch morto
+
+### Phase 12: IA-2 Destravar WRITE no assistente in-app (B8)
+
+**Goal:** O gate B8 abre — o chat "Assistente Fides" volta a poder ESCREVER (lançar/recategorizar/editar transação + criar categoria) com confirmação, agora que a fundação que derrubou o WRITE na v7 está resolvida e verificada (FIX-1..4, RPCs atômicos, fase 10). O cliente já tem os 4 tools WRITE com card de confirmação (`fides-claude.jsx` — hoje código morto porque o servidor só declara READ); reativar = religar `TOOLS_DECLARATION` + system prompt de escrita com regra de honestidade, não construir do zero. Insert via RPC `wa_log_transaction` SECURITY DEFINER com guarda de dono (mesmo padrão de `pay_card_invoice`), respeitando o saldo derivado (nenhuma mutação incremental). Regra de honestidade: baixa confiança pede confirmação, nunca chuta valor/conta/categoria.
+**Requirements**: WRITE-01..04 (lançar/recategorizar/editar/criar-categoria), HONEST-01, DERIVED-SAFE-01 (a formalizar). UAT = os 6 bugs da v7 (mês vazio, mês hard-coded, delete sem estorno, cartão inconsistente, toast falso de criar_categoria, ⌘K) viram casos de regressão.
+**Depends on:** Phase 11
+**Fonte:** `.planning/research/whatsapp-e-ia-arquitetura.md` §6, §7, §B3 (Fase IA-2). Gate B8 em `v1.0-ROADMAP.md:258`.
+**Caminho sensível:** `api/assistant.js` + RPC Supabase → security-reviewer + database-reviewer
+**Plans:** 0 plans
+
+Plans:
+
+- [ ] TBD (run /gsd-plan-phase 12 to break down)
+
+### Phase 13: IA-3 Gating premium in-app
+
+**Goal:** O app passa a gatear capacidades por tier real. Hoje o front usa mock `plan:'Pro'` (`fides-data.jsx:31`) e o store live nem lê a coluna — `profiles.plan` (`free|pro|family`, já existe no schema) vira fonte da verdade. Premium = `plan <> 'free'` (usar `pro`, zero migração — D-4). Free: degustação de IA (~10 msg/mês de chat READ, sem WRITE — D-5) como funil de conversão. Premium: chat completo + WRITE + Análise da IA ilimitada dentro dos caps. Paywall suave + tela de upgrade que aponta para o checkout do M6.
+**Requirements**: GATE-01 (store lê plan real), GATE-02 (free degustação limitada), GATE-03 (premium libera WRITE/IA), PAYWALL-01 (a formalizar)
+**Depends on:** Phase 12
+**Fonte:** `.planning/research/whatsapp-e-ia-arquitetura.md` §B3 (Fase IA-3), §B4 (precificação P-2)
+**Plans:** 0 plans
+
+Plans:
+
+- [ ] TBD (run /gsd-plan-phase 13 to break down)
+
+### Phase 14: IA-4 Bot WhatsApp via Meta Cloud API
+
+**Goal:** Usuário premium registra transações e consulta saldo/mini-extrato pelo WhatsApp. `api/whatsapp.js` (Vercel Function CommonJS): webhook Meta Cloud API com verificação de assinatura HMAC (`X-Hub-Signature-256`), idempotência por `wamid`, opt-in por código de posse (link `wa.me`), gating premium antes de qualquer LLM, parser NL→JSON (Gemini, saída estruturada — NÃO function calling — com guarda determinística de valor), confirmação sempre antes do insert (D-1), insert pelo MESMO RPC/regras da fase 12. Migrações: `phone` + `wa_linked_at` em `profiles`, tabelas `wa_link_codes`/`wa_messages`/`wa_pending` (todas via ALTER standalone + MCP). Provedor: Meta direta. **Sem CNPJ não bloqueia** (adendo D-8): WABA não-verificada responde mensagens de usuário ilimitado/grátis; dev/UAT com test number (você + 4 beta testers). LGPD: consentimento explícito no opt-in, minimização (só a mensagem + listas ao LLM, nunca extrato/saldo), retenção 90 dias do texto bruto, opt-out "PARAR".
+**Requirements**: WA-WEBHOOK-01 (assinatura+idempotência), WA-OPTIN-01, WA-GATE-01, WA-PARSE-01, WA-CONFIRM-01, WA-INSERT-01, WA-LGPD-01 (a formalizar)
+**Depends on:** Phase 13
+**Fonte:** `.planning/research/whatsapp-e-ia-arquitetura.md` Parte A inteira (§1–§10) + adendo D-8
+**Caminho sensível:** `api/whatsapp.js` + migrações + RPC → security-reviewer + database-reviewer (obrigatório — webhook público + service role)
+**Plans:** 0 plans
+
+Plans:
+
+- [ ] TBD (run /gsd-plan-phase 14 to break down)
+
 ---
 
 ### Progress Table
