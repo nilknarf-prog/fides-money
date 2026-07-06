@@ -97,12 +97,17 @@ module.exports = async (req, res) => {
   }
 
   try {
-    const { messages, context, jwt, toolResults } = req.body || {};
+    const { messages, context, toolResults } = req.body || {};
     if (!Array.isArray(messages) || messages.length === 0) {
       res.status(400).json({ error: 'INVALID_MESSAGES', code: 400 });
       return;
     }
-    if (!jwt || typeof jwt !== 'string') {
+
+    // WR-03: token de sessão vem do header Authorization: Bearer (nunca do body).
+    // Node normaliza chaves de header para minúsculas.
+    const authHeader = req.headers.authorization || '';
+    const token = authHeader.startsWith('Bearer ') ? authHeader.slice(7).trim() : '';
+    if (!token) {
       res.status(401).json({ error: 'JWT_MISSING', code: 401 });
       return;
     }
@@ -115,9 +120,9 @@ module.exports = async (req, res) => {
       return;
     }
     const supabase = createClient(supabaseUrl, supabaseAnonKey, {
-      global: { headers: { Authorization: `Bearer ${jwt}` } },
+      global: { headers: { Authorization: `Bearer ${token}` } },
     });
-    const { data: userData, error: authError } = await supabase.auth.getUser(jwt);
+    const { data: userData, error: authError } = await supabase.auth.getUser(token);
     if (authError || !userData?.user) {
       res.status(401).json({ error: 'JWT_INVALID', code: 401 });
       return;
