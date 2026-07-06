@@ -453,11 +453,13 @@ function FidesAssistant() {
     const ctx = buildContext();
     const res = await fetch('/api/assistant', {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${jwt}`,
+      },
       body: JSON.stringify({
         messages: history,
         context: ctx,
-        jwt,
         toolResults: toolResults || null,
       }),
     });
