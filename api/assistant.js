@@ -134,6 +134,10 @@ module.exports = async (req, res) => {
 
     // ─── RATE LIMIT POR USUÁRIO ──────────────────────
     const isFirstCallOfTurn = !Array.isArray(toolResults) || toolResults.length === 0;
+    // AI-TELEM-01: id da linha de rate-limit desta chamada, para o UPDATE fail-open
+    // de telemetria mais abaixo (tokens + latência). Fica null se o insert falhar
+    // ou fora do isFirstCallOfTurn — nesse caso simplesmente não há telemetria a gravar.
+    let usageRowId = null;
 
     if (isFirstCallOfTurn) {
       const twentyFourHoursAgo = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString();
@@ -151,11 +155,16 @@ module.exports = async (req, res) => {
         return;
       }
 
-      const { error: insertError } = await supabase
+      const { data: insertData, error: insertError } = await supabase
         .from('assistant_usage')
-        .insert({ user_id: userId });
+        .insert({ user_id: userId })
+        .select('id')
+        .single();
       if (insertError) {
         console.error('[assistant] usage insert error', insertError);
+        // fail-open — segue sem usageRowId, telemetria desta chamada fica sem UPDATE
+      } else {
+        usageRowId = insertData?.id || null;
       }
     }
 
@@ -203,7 +212,10 @@ module.exports = async (req, res) => {
       },
     });
 
+    // AI-TELEM-01: mede só a chamada Gemini (o que interessa para custo/performance do modelo).
+    const t0 = Date.now();
     const geminiResult = await gemini.callGemini(payload, geminiKey);
+    const latencyMs = Date.now() - t0;
 
     if (!geminiResult.ok) {
       if (geminiResult.errorCode === 'RATE_LIMIT') {
@@ -218,7 +230,26 @@ module.exports = async (req, res) => {
       return;
     }
 
-    const { toolCalls, textReply, finishReason } = gemini.parseResponse(geminiResult.data);
+    const { toolCalls, textReply, finishReason, usageMetadata } = gemini.parseResponse(geminiResult.data);
+
+    // AI-TELEM-01: UPDATE fail-open da linha de rate-limit com tokens + latência.
+    // NUNCA grava texto de prompt/contexto/resposta — só contagens + latência (LGPD §9).
+    // Telemetria jamais pode derrubar a resposta ao usuário: qualquer erro aqui só loga e segue.
+    if (usageRowId) {
+      const promptTokens = usageMetadata ? (usageMetadata.promptTokenCount ?? null) : null;
+      const completionTokens = usageMetadata ? (usageMetadata.candidatesTokenCount ?? null) : null;
+      try {
+        const { error: updateError } = await supabase
+          .from('assistant_usage')
+          .update({ prompt_tokens: promptTokens, completion_tokens: completionTokens, latency_ms: latencyMs })
+          .eq('id', usageRowId);
+        if (updateError) {
+          console.error('[assistant] usage telemetry update error', updateError);
+        }
+      } catch (telemetryErr) {
+        console.error('[assistant] usage telemetry update exception', telemetryErr);
+      }
+    }
 
     if (toolCalls.length > 0) {
       res.status(200).json({ tool_calls: toolCalls });
