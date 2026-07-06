@@ -389,7 +389,7 @@ Plans:
 **Onda 3 · Telemetria + frente cliente** *(ambos dependem de 11-02; arquivos disjuntos → paralelos)*
 
 - [ ] 11-03-PLAN.md — AI-TELEM-01: `assistant_usage` grava prompt_tokens/completion_tokens/latency_ms (insert→update fail-open) + espelho `.sql` + migração MCP (checkpoint humano)
-- [ ] 11-04-PLAN.md — WR-01: cooldown no botão "Análise da IA" (padrão do chat) · WR-03 cliente: os 2 callers migram o token p/ header · WR-02 cliente: mode `analysis` + remove branch morto
+- [x] 11-04-PLAN.md — WR-01: cooldown no botão "Análise da IA" (padrão do chat) · WR-03 cliente: os 2 callers migram o token p/ header · WR-02 cliente: mode `analysis` + remove branch morto
 
 ### Phase 12: IA-2 Destravar WRITE no assistente in-app (B8)
 
@@ -435,7 +435,7 @@ Plans:
 
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
-| 11 - IA-1 Hardening Gemini | 2/4 | In Progress|  |
+| 11 - IA-1 Hardening Gemini | 3/4 | In Progress|  |
 | 12 - IA-2 WRITE in-app (B8) | 0/? | Not started | - |
 | 13 - IA-3 Gating premium | 0/? | Not started | - |
 | 14 - IA-4 Bot WhatsApp | 0/? | Not started | - |

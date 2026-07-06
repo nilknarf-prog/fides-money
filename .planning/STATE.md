@@ -5,15 +5,15 @@ milestone_name: CRUD Metas — EM PLANEJAMENTO
 current_phase: 11
 current_phase_name: ia-1-hardening-do-assistente-gemini
 status: executing
-stopped_at: Phase 10 verified — UAT 8/8 pass, CR-01 fechado (c2cd89d)
-last_updated: "2026-07-06T20:58:30.680Z"
+stopped_at: Completed 11-04-PLAN.md
+last_updated: "2026-07-06T21:10:50.149Z"
 last_activity: 2026-07-06
 last_activity_desc: Phase 11 execution started
 progress:
   total_phases: 8
   completed_phases: 3
   total_plans: 18
-  completed_plans: 16
+  completed_plans: 17
   percent: 38
 ---
 
@@ -22,7 +22,7 @@ progress:
 ## Current Position
 
 Phase: 11 (ia-1-hardening-do-assistente-gemini) — EXECUTING
-Plan: 3 of 4
+Plan: 4 of 4
 Status: Ready to execute
 Last activity: 2026-07-06 — Phase 11 execution started
 
@@ -102,6 +102,7 @@ VERIFICATION: `.planning/phases/08-metas-vision-board-redesign/08-VERIFICATION.m
 | Phase 10 P06 | ~5min | 1 tasks | 1 files |
 | Phase 11 P01 | ~5min | 2 tasks | 2 files |
 | Phase 11 P02 | ~10min | 2 tasks | 1 files |
+| Phase 11 P04 | ~10min | 3 tasks | 2 files |
 
 ## Decisions
 
@@ -153,12 +154,15 @@ VERIFICATION: `.planning/phases/08-metas-vision-board-redesign/08-VERIFICATION.m
 - [Phase ?]: 11-01: toolMode 'AUTO' explicito no call-site do chat em api/assistant.js — facilita diff do 11-02 (toolMode NONE no caminho de analise)
 - [Phase ?]: 11-02: isAnalysisMode = mode === 'analysis' (comparacao estrita) - unico valor aceito e a string exata, resto cai no default chat com tools AUTO
 - [Phase ?]: 11-02: tools: isAnalysisMode ? undefined : TOOLS_DECLARATION - modo analise nem envia o array de tools ao buildPayload (opcao A da pesquisa)
+- [Phase ?]: 11-04: cooldown do botao de analise nao arma no caminho JWT_MISSING, espelhando o chat
+- [Phase ?]: 11-04: erro !res.ok arma 60s quando res.status===429 OU errCode USER_DAILY_LIMIT/RATE_LIMIT; demais erros armam 4s
+- [Phase ?]: 11-04: branch morto de function-calling removido do handleAiClick (servidor em mode=analysis nunca retorna tool_calls)
 
 ## Session
 
-**Last session:** 2026-07-06T20:57:15.007Z
-**Stopped at:** Phase 10 context gathered
-**Resume file:** .planning/phases/10-corre-o-fatura-cart-o-hardening-de-importa-o/10-CONTEXT.md
+**Last session:** 2026-07-06T21:10:50.134Z
+**Stopped at:** Completed 11-04-PLAN.md
+**Resume file:** None
 
 ## Accumulated Context
 

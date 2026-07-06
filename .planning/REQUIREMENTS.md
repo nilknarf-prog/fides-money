@@ -29,7 +29,7 @@
 
 ### Phase 11 — IA-1 Hardening do assistente Gemini
 
-- [ ] **WR-01**: Botão "Análise da IA" (`fides-orcamento.jsx`) ganha throttle/cooldown igual ao chat — duplo-tap não dispara 2ª chamada nem queima cota
+- [x] **WR-01**: Botão "Análise da IA" (`fides-orcamento.jsx`) ganha throttle/cooldown igual ao chat — duplo-tap não dispara 2ª chamada nem queima cota
 - [x] **WR-02**: Chamada single-shot do "Análise da IA" proíbe tools (Gemini `toolConfig` mode NONE) → sempre retorna texto, nunca fecha com `GEMINI_ERROR` genérico em `functionCall`
 - [x] **WR-03**: JWT trafega em `Authorization: Bearer` (header), não no corpo do POST; `api/assistant.js` + os 2 callers (`fides-claude.jsx`, `fides-orcamento.jsx`) atualizados juntos
 - [x] **AI-SHARED-01**: Helper Gemini CommonJS único (payload + safetySettings + mapeamento de erros) consumido por `api/assistant.js` e, na Fase 14, por `api/whatsapp.js`; não roteável como endpoint Vercel
