@@ -175,7 +175,14 @@ module.exports = async (req, res) => {
       return;
     }
 
-    const fullSystem = SYSTEM_PROMPT + (context ? `\n\n═══ CONTEXTO ATUAL DO USUÁRIO ═══\n${context}` : '');
+    // G-1 (11-UAT): no modo análise (single-shot, sem chat) a resposta deve ser
+    // autocontida — sem perguntas de follow-up nem convites a "analisar o extrato",
+    // que o usuário não tem como responder nesta tela. Aponta o chat para aprofundar.
+    const ANALYSIS_ADDENDUM = '\n\n═══ MODO ANÁLISE (resposta única) ═══\nEsta é uma análise pontual, NÃO um chat: o usuário NÃO pode responder aqui. Entregue uma resposta completa e autocontida com conclusões acionáveis. NÃO faça perguntas de follow-up nem convide o usuário a continuar a conversa ou a enviar dados (ex.: "podemos analisar o extrato?"). Se um aprofundamento fizer sentido, apenas oriente-o a abrir o chat "Assistente Fides" para detalhar — sem terminar com pergunta.';
+
+    const fullSystem = SYSTEM_PROMPT
+      + (isAnalysisMode ? ANALYSIS_ADDENDUM : '')
+      + (context ? `\n\n═══ CONTEXTO ATUAL DO USUÁRIO ═══\n${context}` : '');
 
     // Montar contents do Gemini
     const contents = [];
