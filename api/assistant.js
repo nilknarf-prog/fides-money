@@ -97,7 +97,7 @@ module.exports = async (req, res) => {
   }
 
   try {
-    const { messages, context, toolResults } = req.body || {};
+    const { messages, context, toolResults, mode } = req.body || {};
     if (!Array.isArray(messages) || messages.length === 0) {
       res.status(400).json({ error: 'INVALID_MESSAGES', code: 400 });
       return;
@@ -111,6 +111,9 @@ module.exports = async (req, res) => {
       res.status(401).json({ error: 'JWT_MISSING', code: 401 });
       return;
     }
+
+    // WR-02: flag de modo validado por whitelist — só 'analysis' é reconhecido.
+    const isAnalysisMode = mode === 'analysis';
 
     // Validar JWT via Supabase
     const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
@@ -191,8 +194,8 @@ module.exports = async (req, res) => {
     const payload = gemini.buildPayload({
       systemPrompt: fullSystem,
       contents,
-      tools: TOOLS_DECLARATION,
-      toolMode: 'AUTO',
+      tools: isAnalysisMode ? undefined : TOOLS_DECLARATION,
+      toolMode: isAnalysisMode ? 'NONE' : 'AUTO',
       generationConfig: {
         temperature: 0.6,
         topP: 0.95,
