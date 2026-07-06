@@ -4,9 +4,9 @@
 // Tools (consultar_saldo, consultar_extrato) continuam executando no cliente.
 
 const { createClient } = require('@supabase/supabase-js');
+const gemini = require('./_lib/gemini');
 
-const GEMINI_MODEL = 'gemini-2.5-flash-lite';
-const GEMINI_ENDPOINT = `https://generativelanguage.googleapis.com/v1beta/models/${GEMINI_MODEL}:generateContent`;
+const { GEMINI_MODEL, GEMINI_ENDPOINT } = gemini;
 
 // Cota diária por usuário (24h rolling window)
 const USER_DAILY_LIMIT = 100;
@@ -183,37 +183,26 @@ module.exports = async (req, res) => {
       });
     }
 
-    const geminiPayload = {
-      systemInstruction: { parts: [{ text: fullSystem }] },
+    const payload = gemini.buildPayload({
+      systemPrompt: fullSystem,
       contents,
       tools: TOOLS_DECLARATION,
+      toolMode: 'AUTO',
       generationConfig: {
         temperature: 0.6,
         topP: 0.95,
         maxOutputTokens: 1024,
       },
-      safetySettings: [
-        { category: 'HARM_CATEGORY_HARASSMENT',        threshold: 'BLOCK_ONLY_HIGH' },
-        { category: 'HARM_CATEGORY_HATE_SPEECH',       threshold: 'BLOCK_ONLY_HIGH' },
-        { category: 'HARM_CATEGORY_SEXUALLY_EXPLICIT', threshold: 'BLOCK_ONLY_HIGH' },
-        { category: 'HARM_CATEGORY_DANGEROUS_CONTENT', threshold: 'BLOCK_ONLY_HIGH' },
-      ],
-    };
-
-    const geminiRes = await fetch(`${GEMINI_ENDPOINT}?key=${geminiKey}`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(geminiPayload),
     });
 
-    if (!geminiRes.ok) {
-      const errBody = await geminiRes.text().catch(() => '');
-      console.error('[assistant] Gemini error', geminiRes.status, errBody);
-      if (geminiRes.status === 429) {
+    const geminiResult = await gemini.callGemini(payload, geminiKey);
+
+    if (!geminiResult.ok) {
+      if (geminiResult.errorCode === 'RATE_LIMIT') {
         res.status(429).json({ error: 'RATE_LIMIT', code: 429 });
         return;
       }
-      if (geminiRes.status === 400) {
+      if (geminiResult.errorCode === 'GEMINI_BAD_REQUEST') {
         res.status(400).json({ error: 'GEMINI_BAD_REQUEST', code: 400 });
         return;
       }
@@ -221,22 +210,7 @@ module.exports = async (req, res) => {
       return;
     }
 
-    const geminiData = await geminiRes.json();
-    const candidate = geminiData?.candidates?.[0];
-    const parts = candidate?.content?.parts || [];
-
-    const toolCalls = [];
-    let textReply = '';
-    for (const p of parts) {
-      if (p.functionCall) {
-        toolCalls.push({
-          name: p.functionCall.name,
-          args: p.functionCall.args || {},
-        });
-      } else if (p.text) {
-        textReply += p.text;
-      }
-    }
+    const { toolCalls, textReply, finishReason } = gemini.parseResponse(geminiResult.data);
 
     if (toolCalls.length > 0) {
       res.status(200).json({ tool_calls: toolCalls });
@@ -244,8 +218,7 @@ module.exports = async (req, res) => {
     }
 
     if (!textReply) {
-      const finishReason = candidate?.finishReason;
-      console.error('[assistant] No reply', finishReason, JSON.stringify(geminiData).slice(0, 500));
+      console.error('[assistant] No reply', finishReason, JSON.stringify(geminiResult.data).slice(0, 500));
       res.status(502).json({ error: 'EMPTY_REPLY', code: 502, finishReason });
       return;
     }
