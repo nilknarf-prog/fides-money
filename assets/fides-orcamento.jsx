@@ -1071,11 +1071,14 @@
 
           var res = await fetch('/api/assistant', {
             method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
+            headers: {
+              'Content-Type': 'application/json',
+              'Authorization': 'Bearer ' + jwt,
+            },
             body: JSON.stringify({
               messages: [{ role: 'user', content: 'Analise meu orçamento deste mês e aponte os principais pontos de atenção.' }],
               context: buildAiContext(),
-              jwt: jwt,
+              mode: 'analysis',
               toolResults: null,
             }),
           });
@@ -1090,15 +1093,6 @@
               setCooldown(COOLDOWN_NORMAL_SEC);
             }
             setAiError(friendlyAiError(errCode));
-            setAiLoading(false);
-            return;
-          }
-
-          if (Array.isArray(data && data.tool_calls) && data.tool_calls.length > 0) {
-            // Análise single-shot não executa tool_calls READ (sem executeTools aqui).
-            // Fail closed com mensagem amigável em vez de travar o spinner.
-            setCooldown(COOLDOWN_NORMAL_SEC);
-            setAiError(friendlyAiError('GEMINI_ERROR'));
             setAiLoading(false);
             return;
           }
