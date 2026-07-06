@@ -135,6 +135,29 @@ create index if not exists idx_category_limits_user
   on public.category_limits (user_id, cat_key, month);
 
 -- ─────────────────────────────────────────────
+-- TABELA: assistant_usage
+-- Contagem de chamadas do assistente por usuário (rate limit 100/dia) + telemetria
+-- de custo/performance por chamada (AI-TELEM-01). Achado da pesquisa (Phase 11 P03):
+-- esta tabela NÃO tinha espelho .sql no repositório — criada direto no banco via MCP
+-- (débito B10). Este bloco documenta a estrutura real que o servidor já usa.
+-- ─────────────────────────────────────────────
+create table if not exists public.assistant_usage (
+  id          uuid primary key default uuid_generate_v4(),
+  user_id     uuid references public.profiles(id) on delete cascade not null,
+  created_at  timestamptz not null default now()
+);
+
+-- Defensive idempotent ALTERs: `create table if not exists` acima NÃO adiciona colunas a
+-- uma tabela já existente (learning 08-08: completed/completed_at ficaram só no bloco
+-- CREATE e nunca chegaram na tabela goals live). Por isso as colunas de telemetria abaixo
+-- precisam de ALTER standalone para chegar em assistant_usage no banco real.
+-- AI-TELEM-01: prompt_tokens/completion_tokens/latency_ms — todas int, nullable, sem
+-- default. Chamadas antigas e chamadas que falharam no Gemini ficam null, sem backfill.
+alter table public.assistant_usage add column if not exists prompt_tokens     int;
+alter table public.assistant_usage add column if not exists completion_tokens int;
+alter table public.assistant_usage add column if not exists latency_ms       int;
+
+-- ─────────────────────────────────────────────
 -- ROW LEVEL SECURITY
 -- ─────────────────────────────────────────────
 alter table public.profiles        enable row level security;
