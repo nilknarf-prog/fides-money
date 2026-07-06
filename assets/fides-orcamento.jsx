@@ -18,6 +18,10 @@
     divida:    { label: 'Dividas & investimentos',  tint: 'var(--g-divida)',    target: 20 }
   };
 
+  // Cooldown do botao "Analise da IA" (WR-01) — mesmos nomes/valores do chat (fides-claude.jsx:9-10)
+  var COOLDOWN_NORMAL_SEC = 4;
+  var COOLDOWN_RATELIMIT_SEC = 60;
+
   // ─── Helpers ───────────────────────────────────────────────
   function goMonth(ym, delta) {
     var p = ym.split('-').map(Number);
@@ -992,6 +996,18 @@
     var stAIError = React.useState(null);
     var aiError = stAIError[0]; var setAiError = stAIError[1];
 
+    var stCooldown = React.useState(0);
+    var cooldown = stCooldown[0]; var setCooldown = stCooldown[1];
+
+    // Countdown do cooldown — hook no TOPO do componente, nunca dentro de handleAiClick (Rules of Hooks)
+    React.useEffect(function() {
+      if (cooldown <= 0) return;
+      var t = setTimeout(function() {
+        setCooldown(function(c) { return Math.max(0, c - 1); });
+      }, 1000);
+      return function() { clearTimeout(t); };
+    }, [cooldown]);
+
     var result   = computeInsights(groups, totals, prevTxs);
     var cards    = result.cards;
     var hasHistory = result.hasHistory;
@@ -1034,7 +1050,7 @@
     }
 
     function handleAiClick() {
-      if (aiLoading) return;
+      if (aiLoading || cooldown > 0) return;
       setAiError(null);
       setAiResult(null);
       setAiLoading(true);
@@ -1067,7 +1083,13 @@
           var data = await res.json().catch(function() { return {}; });
 
           if (!res.ok) {
-            setAiError(friendlyAiError(data && data.error));
+            var errCode = data && data.error;
+            if (res.status === 429 || errCode === 'USER_DAILY_LIMIT' || errCode === 'RATE_LIMIT') {
+              setCooldown(COOLDOWN_RATELIMIT_SEC);
+            } else {
+              setCooldown(COOLDOWN_NORMAL_SEC);
+            }
+            setAiError(friendlyAiError(errCode));
             setAiLoading(false);
             return;
           }
@@ -1075,6 +1097,7 @@
           if (Array.isArray(data && data.tool_calls) && data.tool_calls.length > 0) {
             // Análise single-shot não executa tool_calls READ (sem executeTools aqui).
             // Fail closed com mensagem amigável em vez de travar o spinner.
+            setCooldown(COOLDOWN_NORMAL_SEC);
             setAiError(friendlyAiError('GEMINI_ERROR'));
             setAiLoading(false);
             return;
@@ -1082,14 +1105,17 @@
 
           var reply = data && data.reply;
           if (!reply) {
+            setCooldown(COOLDOWN_NORMAL_SEC);
             setAiError(friendlyAiError('EMPTY_REPLY'));
             setAiLoading(false);
             return;
           }
 
           setAiResult(reply);
+          setCooldown(COOLDOWN_NORMAL_SEC);
           setAiLoading(false);
         } catch (err) {
+          setCooldown(COOLDOWN_NORMAL_SEC);
           setAiError(friendlyAiError('NETWORK'));
           setAiLoading(false);
         }
@@ -1128,13 +1154,14 @@
         React.createElement('button', {
           type: 'button',
           className: 'pln-mi-ai-btn',
-          disabled: aiLoading,
+          disabled: aiLoading || cooldown > 0,
           onClick: handleAiClick
         },
           aiLoading
             ? React.createElement('span', { className: 'pln-mi-spin' })
             : React.createElement('span', null, '🤖'),
-          React.createElement('span', null, aiLoading ? 'Analisando…' : 'Análise da IA')
+          React.createElement('span', null,
+            aiLoading ? 'Analisando…' : (cooldown > 0 ? ('Aguarde ' + cooldown + 's') : 'Análise da IA'))
         ),
         (aiResult && !aiError)
           ? React.createElement('div', { className: 'pln-mi-ai-result' },
