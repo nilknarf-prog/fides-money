@@ -32,7 +32,7 @@
 - [ ] **WR-01**: Botão "Análise da IA" (`fides-orcamento.jsx`) ganha throttle/cooldown igual ao chat — duplo-tap não dispara 2ª chamada nem queima cota
 - [ ] **WR-02**: Chamada single-shot do "Análise da IA" proíbe tools (Gemini `toolConfig` mode NONE) → sempre retorna texto, nunca fecha com `GEMINI_ERROR` genérico em `functionCall`
 - [ ] **WR-03**: JWT trafega em `Authorization: Bearer` (header), não no corpo do POST; `api/assistant.js` + os 2 callers (`fides-claude.jsx`, `fides-orcamento.jsx`) atualizados juntos
-- [ ] **AI-SHARED-01**: Helper Gemini CommonJS único (payload + safetySettings + mapeamento de erros) consumido por `api/assistant.js` e, na Fase 14, por `api/whatsapp.js`; não roteável como endpoint Vercel
+- [x] **AI-SHARED-01**: Helper Gemini CommonJS único (payload + safetySettings + mapeamento de erros) consumido por `api/assistant.js` e, na Fase 14, por `api/whatsapp.js`; não roteável como endpoint Vercel
 - [ ] **AI-TELEM-01**: `assistant_usage` grava tokens in/out (`usageMetadata`) + latência por chamada (ALTER standalone via MCP; colunas nullable)
 
 ### Phases 12–14 (a detalhar no discuss/plan de cada fase)

@@ -247,15 +247,17 @@ Plans:
 
 ---
 
-## PARTE 3.8 — 🔄 M3.1 v1.1 CRUD Metas — EM PLANEJAMENTO
+## PARTE 3.8 — ✅ v1.1 Metas + Transações — SHIPPED 2026-07-06 (tag `v1.1`)
 
-**Goal do milestone:** tornar a view de Metas funcional — usuário cria, edita e exclui metas (nome, valor-alvo, prazo) persistidas na tabela `goals`, saindo do estado read-only atual. Fonte do valor atual da meta é decisão explicitamente deferida — não faz parte deste milestone.
+- [x] **Phase 07: CRUD Metas** (3/3) — Metas deixa de ser read-only: criar/editar/excluir/listar em `goals` (2026-07-01)
+- [x] **Phase 08: Metas vision-board** (8/8) — capas SVG/upload, busca/filtro por status, hero editorial, aportar/concluir inline (2026-07-03)
+- [x] **Phase 09: Transações power tools + analytics** (5/5) — filtro Cartões, paginação 20/50/100, gasto cross-month, CSV, ⌘K (2026-07-04)
+- [x] **Phase 10: Fatura cartão + hardening import** (6/6) — computeFaturaDates + preview/dedupe de import (2026-07-05)
 
-### Phases
+> Detalhe completo arquivado em `milestones/v1.1-ROADMAP.md`.
 
-- [x] **Phase 6: CRUD Metas** - Usuário cria, edita, exclui e lista metas reais persistidas em `goals`, sem placeholders (completed 2026-07-01)
-
-### Phase Details
+<details>
+<summary>Phase Details (Phases 07-10) — clique para expandir</summary>
 
 ### Phase 6: CRUD Metas
 
@@ -357,6 +359,12 @@ Plans:
 - [x] 10-05-PLAN.md — IMP-01 (G6): guarda por user-id no `onAuthStateChange` (fides-store.jsx) — trocar aba/minimizar não reseta o modal de import nem recarrega a lista [wave 1]
 - [x] 10-06-PLAN.md — UX-04 (G4/G5): analytics do modo Período escopado ao mês selecionado (spendByCategory, não o range) + remoção da legenda textual redundante (volta ao top-7) [wave 2, depende de 10-04]
 
+</details>
+
+---
+
+## PARTE 4 — 🔜 Próximo milestone · Épico IA/WhatsApp (Phases 11–14) — PLANEJADO
+
 > **Épico IA/WhatsApp (Phases 11–14).** Fonte de design completa: `.planning/research/whatsapp-e-ia-arquitetura.md` (Parte A = bot WhatsApp, Parte B = plano IA in-app, decisões D-1..D-11 resolvidas 2026-07-06, adendo D-8 = caminho sem CNPJ). Precificação decidida: P-2 (Free + Premium R$ 89,90/ano via Mercado Pago/Pix). Ordem travada: 11→12→13→14 (WRITE in-app validado antes do bot, que reusa parser/insert/confirmação). Caminhos sensíveis (`api/`, `supabase/`) → rodar `security-reviewer` + `database-reviewer` antes de commit.
 
 ### Phase 11: IA-1 Hardening do assistente Gemini
@@ -372,7 +380,7 @@ Plans:
 
 **Onda 1 · AI-SHARED-01 (helper Gemini)**
 
-- [ ] 11-01-PLAN.md — AI-SHARED-01: extrai `api/_lib/gemini.js` (CommonJS não-roteável: buildPayload/callGemini/parseResponse com pontos de extensão toolMode + usageMetadata) e reconecta `api/assistant.js` — refactor puro, zero mudança de comportamento
+- [x] 11-01-PLAN.md — AI-SHARED-01: extrai `api/_lib/gemini.js` (CommonJS não-roteável: buildPayload/callGemini/parseResponse com pontos de extensão toolMode + usageMetadata) e reconecta `api/assistant.js` — refactor puro, zero mudança de comportamento
 
 **Onda 2 · WR-02 + WR-03 servidor** *(depende de 11-01 — mesmo arquivo)*
 
@@ -423,14 +431,19 @@ Plans:
 
 ---
 
-### Progress Table
+### Progress Table — Próximo milestone (IA/WhatsApp)
 
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
-| 07 - CRUD Metas | 3/3 | Complete   | 2026-07-01 |
-| 08 - Metas vision-board | 8/8 | Complete   | 2026-07-03 |
-| 09 - Transações power tools + analytics | 5/5 | Complete    | 2026-07-04 |
-| 10 - Fatura cartão + hardening import | 6/6 | Complete   | 2026-07-05 |
+| 11 - IA-1 Hardening Gemini | 1/4 | In Progress|  |
+| 12 - IA-2 WRITE in-app (B8) | 0/? | Not started | - |
+| 13 - IA-3 Gating premium | 0/? | Not started | - |
+| 14 - IA-4 Bot WhatsApp | 0/? | Not started | - |
+
+> Milestone v1.1 (Phases 07-10) shipped 2026-07-06 — detalhe em `milestones/v1.1-ROADMAP.md`.
+
+<details>
+<summary>v1.1 Phase 08 (vision-board) — detalhe arquivado, clique para expandir</summary>
 
 ### Phase 7: Metas vision-board redesign
 
@@ -463,3 +476,5 @@ Plans:
 - [x] 08-07-PLAN.md — **wave 1** · UI polish (presentation-only): guardar Infinity→"sem prazo" em todas exibições de meses (GAP-INFINITY); remover CTA "Nova meta" duplicado/vazado (GAP-DUP-NOVA); EmojiPicker grid curado hand-rolled (sem npm) nos modais Criar/Ajustar (GAP-EMOJI)
 - [x] 08-08-PLAN.md — **wave 2** (depends_on 08-07 por sobreposição de fides-metas.jsx) · [BLOCKER] conclusão de meta diagnose-first: instrumentar runtime (chrome-devtools + Supabase MCP) → (condicional) migração/policy LIVE blocking-human → conclusão manual end-to-end + auto-conclusão a >=alvo, sem auto-reabertura (GAP-CONCLUSAO)
 - Deferidos p/ passada research-gated: capas fotos reais CC0; metas-exemplo pré-criadas (ambos needs_research)
+
+</details>

@@ -2,36 +2,36 @@
 gsd_state_version: 1.0
 milestone: v1.1
 milestone_name: CRUD Metas — EM PLANEJAMENTO
-current_phase: 10
-current_phase_name: corre-o-fatura-cart-o-hardening-de-importa-o
-status: verified
+current_phase: 11
+current_phase_name: ia-1-hardening-do-assistente-gemini
+status: executing
 stopped_at: Phase 10 verified — UAT 8/8 pass, CR-01 fechado (c2cd89d)
-last_updated: "2026-07-06T00:00:00.000Z"
+last_updated: "2026-07-06T20:47:26.342Z"
 last_activity: 2026-07-06
-last_activity_desc: Phase 10 UAT complete (8/8 pass) + CR-01/WR-01/WR-02 fixed
+last_activity_desc: Phase 11 execution started
 progress:
-  total_phases: 4
-  completed_phases: 4
-  total_plans: 14
-  completed_plans: 14
-  percent: 100
+  total_phases: 8
+  completed_phases: 3
+  total_plans: 18
+  completed_plans: 15
+  percent: 38
 ---
 
 # Project State
 
 ## Current Position
 
-Phase: 10 (corre-o-fatura-cart-o-hardening-de-importa-o) — ✅ VERIFIED
-Plan: 6 of 6 complete
-Status: UAT 8/8 pass · CR-01/WR-01/WR-02 fechados (c2cd89d) · milestone v1.1 4/4
-Last activity: 2026-07-06 — Phase 10 UAT complete
+Phase: 11 (ia-1-hardening-do-assistente-gemini) — EXECUTING
+Plan: 2 of 4
+Status: Ready to execute
+Last activity: 2026-07-06 — Phase 11 execution started
 
 ## Project Reference
 
 See: .planning/PROJECT.md (updated 2026-07-01)
 
 **Core value:** Finanças pessoais por registro manual (fricção intencional → consciência); nunca número que impressiona mas engana.
-**Current focus:** Phase 10 — corre-o-fatura-cart-o-hardening-de-importa-o
+**Current focus:** Phase 11 — ia-1-hardening-do-assistente-gemini
 
 ## Phase Overview
 
@@ -100,6 +100,7 @@ VERIFICATION: `.planning/phases/08-metas-vision-board-redesign/08-VERIFICATION.m
 | Phase 10 P03 | ~15min | 2 tasks | 1 files |
 | Phase 10 P04 | ~12min | 2 tasks | 1 files |
 | Phase 10 P06 | ~5min | 1 tasks | 1 files |
+| Phase 11 P01 | ~5min | 2 tasks | 2 files |
 
 ## Decisions
 
@@ -148,10 +149,11 @@ VERIFICATION: `.planning/phases/08-metas-vision-board-redesign/08-VERIFICATION.m
 - [Phase ?]: Ano fallback = ano corrente quando o CSV nao traz coluna de ano explicita (export do proprio app so grava dd/mm)
 - [Phase 10-03]: chip Cartao reusa advFilters.contasSelected (nenhum estado novo); rangeTotal extraido para useMemo unico reusado no cabecalho/centro do Donut/legenda; legenda completa sem limite de itens (diferente do top5 do DashboardStudio) para cobrir todas as fatias
 - [Phase 10-04]: destino default do import = sentinel 'Da origem do arquivo' (resolucao por linha via acctNameRaw); id real no dropdown forca todas as linhas; status sempre explicito no payload (nunca fallback pago do txToRow)
+- [Phase ?]: 11-01: toolMode 'AUTO' explicito no call-site do chat em api/assistant.js — facilita diff do 11-02 (toolMode NONE no caminho de analise)
 
 ## Session
 
-**Last session:** 2026-07-05T18:25:46.661Z
+**Last session:** 2026-07-06T20:45:06.530Z
 **Stopped at:** Phase 10 context gathered
 **Resume file:** .planning/phases/10-corre-o-fatura-cart-o-hardening-de-importa-o/10-CONTEXT.md
 
