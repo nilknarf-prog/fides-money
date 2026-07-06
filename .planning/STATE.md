@@ -166,7 +166,13 @@ Milestone v1.1 (CRUD Metas) roadmap: single phase (Phase 07) given tight scope �
 - Phase 06 added mid-milestone: Fix v1.0 tech debt (dead AI-context block, metas modal motion, --warn-soft align) — closed the 4 audit warnings.
 - Phase 07 added for milestone v1.1: CRUD Metas — continues phase numbering from v1.0 (06 → 07), single phase covering all 4 META requirements.
 - Phase 08 added: Metas vision-board redesign — spec em docs/superpowers/specs/2026-07-02-metas-vision-board-design.md; eleva a tela Metas ao nível visual do PlannerFin.
+- Phases 11–14 added (2026-07-06): épico IA/WhatsApp. Fonte de design `.planning/research/whatsapp-e-ia-arquitetura.md` (decisões D-1..D-11 resolvidas). Ordem travada 11→12→13→14. Phase 11 (IA-1 hardening WR-01/02/03 + módulo Gemini + telemetria); Phase 12 (IA-2 destravar B8/WRITE in-app); Phase 13 (IA-3 gating premium `profiles.plan`); Phase 14 (IA-4 bot WhatsApp Meta Cloud API — sem CNPJ não bloqueia, adendo D-8). Precificação P-2 (Free + Premium R$ 89,90/ano Mercado Pago/Pix).
 
 ## Operator Next Steps
 
-- Run `/gsd-discuss-phase 07` to resolve the goal-value data-model decision, then `/gsd-plan-phase 07`.
+- **Phase 11 (IA-1) planejada e verificada (PLAN CHECK: PASS, 2026-07-06).** 4 plans em 3 ondas (commit `9a39110`). Executar com `/gsd-execute-phase 11`.
+  - **Warning W-1 (deploy atomicidade — honrar na execução):** WR-03 exige que 11-02 (servidor passa a EXIGIR JWT no header) e 11-04 (os 2 callers migram para header) subam no MESMO push. Se 11-02 pushar isolado, produção quebra com 401 até 11-04 deployar. Segurar o push de 11-02 até 11-04 concluir → um único push com `api/assistant.js` + os 2 `.jsx`. NÃO auto-pushar por plano nesta fase.
+  - **Warning W-2 (prova estática extra):** ao executar 11-02 T1 / 11-04 T2 / 11-04 T3, adicionar grep negativo confirmando que `jwt` saiu do body (desestruturação de `req.body` sem `jwt`; `JSON.stringify` do fetch sem `jwt`).
+  - Caminhos sensíveis: `security-reviewer` (todos os plans de `api/`) + `database-reviewer` (11-03, schema) antes de cada commit.
+- Épico IA/WhatsApp: Phases 12–14 registradas mas ainda não planejadas. Planejar cada uma na vez (`/gsd-plan-phase 12` etc.) — design completo em `.planning/research/whatsapp-e-ia-arquitetura.md`.
+- (Anterior) Phase 07 goal-value data-model: `/gsd-discuss-phase 07` se/quando retomar Metas.

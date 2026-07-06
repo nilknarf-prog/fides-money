@@ -23,6 +23,25 @@
 - [x] **UX-03**: Botão rápido "Cartão" no masthead de Transações filtra crédito sem abrir Filtros avançados
 - [x] **UX-04**: Modo Período — toda categoria da legenda tem barra e o valor por categoria aparece no hover/tap
 
+## Phases 11–14 Requirements (épico IA/WhatsApp — design em `.planning/research/whatsapp-e-ia-arquitetura.md`)
+
+> Decisões D-1..D-11 travadas 2026-07-06 (aceitas pelo usuário). Ordem 11→12→13→14. Precificação P-2 (Free + Premium R$ 89,90/ano). Caminhos `api/`/`supabase/` → security/database review antes de commit.
+
+### Phase 11 — IA-1 Hardening do assistente Gemini
+
+- [ ] **WR-01**: Botão "Análise da IA" (`fides-orcamento.jsx`) ganha throttle/cooldown igual ao chat — duplo-tap não dispara 2ª chamada nem queima cota
+- [ ] **WR-02**: Chamada single-shot do "Análise da IA" proíbe tools (Gemini `toolConfig` mode NONE) → sempre retorna texto, nunca fecha com `GEMINI_ERROR` genérico em `functionCall`
+- [ ] **WR-03**: JWT trafega em `Authorization: Bearer` (header), não no corpo do POST; `api/assistant.js` + os 2 callers (`fides-claude.jsx`, `fides-orcamento.jsx`) atualizados juntos
+- [ ] **AI-SHARED-01**: Helper Gemini CommonJS único (payload + safetySettings + mapeamento de erros) consumido por `api/assistant.js` e, na Fase 14, por `api/whatsapp.js`; não roteável como endpoint Vercel
+- [ ] **AI-TELEM-01**: `assistant_usage` grava tokens in/out (`usageMetadata`) + latência por chamada (ALTER standalone via MCP; colunas nullable)
+
+### Phases 12–14 (a detalhar no discuss/plan de cada fase)
+
+> Requisitos preliminares no ROADMAP (Goal de cada fase). Formalizar os IDs ao planejar cada uma:
+> - **Phase 12 (IA-2 · B8):** WRITE-01..04 (lançar/recategorizar/editar/criar-categoria), HONEST-01, DERIVED-SAFE-01
+> - **Phase 13 (IA-3 · gating):** GATE-01/02/03, PAYWALL-01
+> - **Phase 14 (IA-4 · bot):** WA-WEBHOOK-01, WA-OPTIN-01, WA-GATE-01, WA-PARSE-01, WA-CONFIRM-01, WA-INSERT-01, WA-LGPD-01
+
 ## Future Requirements (deferred)
 
 ### META — evolução (M5+)
