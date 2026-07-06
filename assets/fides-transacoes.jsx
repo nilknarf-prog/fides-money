@@ -700,10 +700,14 @@ function Transacoes({ variant, onAdd }) {
       const dtNow = `${now.getFullYear()}${String(now.getMonth()+1).padStart(2,'0')}${String(now.getDate()).padStart(2,'0')}120000`;
       const txLines = filtered.map(t => {
         const trnType = t.val >= 0 ? 'CREDIT' : 'DEBIT';
+        // WR-02: deriva ano/mês/dia da data ISO da PRÓPRIA transação (t.date),
+        // não de selectedMonth — senão linhas cross-year (ou export de range
+        // multi-ano) recebem o ano do mês visto e furam o dedupe no reimport.
+        const isoOk = /^\d{4}-\d{2}-\d{2}$/.test(t.date || '');
         const parts = (t.d || '01/01').split('/');
-        const dd = (parts[0] || '01').padStart(2,'0');
-        const mm = (parts[1] || '01').padStart(2,'0');
-        const yyyy = selectedMonth.split('-')[0] || String(new Date().getFullYear());
+        const dd = isoOk ? t.date.slice(8,10) : (parts[0] || '01').padStart(2,'0');
+        const mm = isoOk ? t.date.slice(5,7) : (parts[1] || '01').padStart(2,'0');
+        const yyyy = isoOk ? t.date.slice(0,4) : (selectedMonth.split('-')[0] || String(new Date().getFullYear()));
         const dtPosted = `${yyyy}${mm}${dd}120000`;
         const amt = t.val.toFixed(2);
         const memo = (t.desc || '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
@@ -743,8 +747,14 @@ function Transacoes({ variant, onAdd }) {
           t.acct || ''
         );
         const valFmt = t.val.toFixed(2).replace('.', ',');
+        // CR-01: grava DD/MM/YYYY (ano incluído) para o reimport casar o dedupe
+        // cross-year. Deriva do ISO completo do store (t.date, YYYY-MM-DD);
+        // fallback p/ t.d legado (DD/MM) quando a data ISO faltar.
+        const dataCell = /^\d{4}-\d{2}-\d{2}$/.test(t.date || '')
+          ? `${t.date.slice(8,10)}/${t.date.slice(5,7)}/${t.date.slice(0,4)}`
+          : (t.d || '');
         return [
-          t.d || '',
+          dataCell,
           `"${csvSafeCell(t.desc || '').replace(/"/g, '""')}"`,
           catLabel, acctName, valFmt, t.status || '', t.recur || ''
         ].join(';');
@@ -1539,6 +1549,19 @@ function ImportPreviewModal({ preview, accounts, cards, onCancel, onConfirm }) {
   const [selected, setSelected] = React.useState(() => new Set(
     rows.filter(r => !dupKeys.has(r._key)).map(r => r._key)
   ));
+
+  // WR-01: `selected` é semeado UMA vez contra o destino inicial. Ao trocar o
+  // dropdown "Importar para", dupKeys recalcula mas selected não — deixando
+  // duplicatas marcadas (→ reimport de duplicata pela UI). Reconcilia: remove da
+  // seleção as linhas que passaram a ser duplicatas. Não re-marca (usuário pode
+  // reativar manualmente se quiser).
+  React.useEffect(() => {
+    setSelected(prev => {
+      const n = new Set(prev);
+      dupKeys.forEach(k => n.delete(k));
+      return n;
+    });
+  }, [dupKeys]);
 
   const toggle = (key) => setSelected(prev => {
     const next = new Set(prev);
