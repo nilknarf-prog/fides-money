@@ -39,6 +39,42 @@
 
 ---
 
+## Milestone: v1.1 — Metas + Transações
+
+**Shipped:** 2026-07-06
+**Phases:** 4 (07, 08, 09, 10) | **Plans:** 22
+
+### What Was Built
+- Metas CRUD real em `goals` (criar/editar/excluir/listar) + colunas `target_date`/`description`.
+- Metas vision-board: 16 capas SVG bespoke + upload (bucket `goal-covers` RLS owner-only), busca/filtro, hero editorial, aportar/atualizar-saldo inline, auto-conclusão a >=alvo sem auto-reabertura.
+- Transações power tools: filtro Cartões, paginação 20/50/100, gasto por categoria cross-month, export CSV + fix CSV-injection, persistência de filtros, ⌘K.
+- Fatura corrigida p/ qualquer config de dias (`closing_day > due_day`) + import com preview/seleção/confirmação + dedupe.
+
+### What Worked
+- Diagnose-first na 08-08 (chrome-devtools + Supabase MCP) achou a causa raiz certa (drift de schema, não bug de UI) antes de escrever código.
+- `computeFaturaDates` centralizou a data de fatura num único helper compartilhado — removeu a lógica divergente entre `mesFaturaFor` e `faturasDoCartao*`.
+- Ondas por prioridade na Phase 10 (FAT-01 → import → UX) permitiram fechar o P1 de confiança antes do débito P2.
+
+### What Was Inefficient
+- Import duplicando silenciosamente só foi descoberto no UAT da Fase 09 — incidente real de 196 txs revertidas manualmente via SQL. Preview/dedupe deveriam ter vindo no design original do import.
+- Milestone v1.1 fechado tarde: Phase 11 (próximo épico) já tinha começado a executar quando o close rodou, exigindo fechamento adaptado (tag em commit da Phase 10, não HEAD; REQUIREMENTS.md preservado por conter reqs 11-14 vivos).
+
+### Patterns Established
+- Helpers de data/domínio compartilhados vivem em `fides-data.jsx` (não no store) para garantir ordem de carregamento como global.
+- Auto-conclusão idempotente: atinge alvo → conclui; nunca reabre em queda posterior de saldo.
+- Import: destino/status resolvidos POR LINHA a partir da origem do arquivo; reimport idêntico = 0 gravações.
+
+### Key Lessons
+1. Fechar o milestone **antes** de começar a próxima fase — deixar v1.1 aberto enquanto a Phase 11 executava embaralhou o contador de fases e forçou um close adaptado.
+2. Feature de import/escrita em lote precisa de preview + dedupe no design v1, não como hardening reativo pós-incidente.
+3. Diagnose-first (instrumentar runtime antes de codar) evita fixes especulativos em bugs de causa não-óbvia (schema drift).
+
+### Cost Observations
+- Timeline: 2026-07-01 → 2026-07-06 (~5 dias, 120 commits desde v1.0).
+- Notable: escopo cresceu de 1 fase (CRUD Metas) para 4 — expansão reativa saudável, mas atrasou o boundary do milestone.
+
+---
+
 ## Cross-Milestone Trends
 
 ### Process Evolution
@@ -46,12 +82,14 @@
 | Milestone | Phases | Key Change |
 |-----------|--------|------------|
 | v1.0 | 4 | Primeiro milestone GSD completo; auditoria→fase-de-débito inserida antes do close |
+| v1.1 | 4 | Escopo expandiu reativo (1→4 fases); close adaptado por sobreposição com Phase 11 |
 
 ### Cumulative Quality
 
 | Milestone | Requirements | Coverage | Deferred |
 |-----------|--------------|----------|----------|
 | v1.0 | 14/14 | 100% | 1 (UAT humano fatura-ciclo, M4) |
+| v1.1 | 9/9 formais (+ TX-01..08, UAT-1..7) | 100% | fonte do valor da meta (M5+); épico IA/WhatsApp (11–14) |
 
 ### Top Lessons (Verified Across Milestones)
 

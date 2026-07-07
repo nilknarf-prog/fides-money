@@ -86,7 +86,8 @@ design-canvas.jsx   tweaks-panel.jsx   Fides-app.html
 | **M2 — Núcleo de produto** (Transações, Planejamento+Insights, Contas, fatura selecionável) | ✅ Concluído (v6–v18) |
 | **M3 — Polish pré-lançamento** (dead code, design polish, perfil mobile, motion, IA real) | ✅ **Concluído (v1.0 GSD · shipped 2026-07-01, tag `v1.0`)** |
 | **M4 — Ciclo de fatura confiável** (faturas por mês, seletor, avisos, sincronia com fatura real) | ✅ Concluído (`ade84f7`) |
-| **M5 — Expansão** (CRUD Metas, Dívidas/Família, import CSV/OFX, busca ⌘K, WRITE assistente, WhatsApp) | ⏳ Backlog |
+| **v1.1 — Metas + Transações** (CRUD/vision-board Metas, power tools Transações, fatura+import) | ✅ **Concluído (shipped 2026-07-06, tag `v1.1`)** |
+| **M5 — Expansão** (épico IA/WhatsApp: hardening Gemini, WRITE in-app, gating premium, bot WhatsApp — Phases 11–14) | 🟡 Próximo |
 | **M6 — Comercial** (landing, FAQ, pricing, monetização) | ⏳ Roadmap longo |
 
 > Detalhe de cada fase em `ROADMAP.md`. Fase ativa detalhada em `phases/fatura-ciclo/`.
@@ -119,18 +120,37 @@ Entregue:
 
 ---
 
-## Current Milestone: v1.1 CRUD Metas
+## Current State — v1.1 shipped (2026-07-06)
 
-**Goal:** Tornar Metas funcional — usuário cria, edita e exclui metas (nome, valor-alvo, prazo) persistidas na tabela `goals`, saindo do estado read-only atual.
+**Último milestone:** v1.1 Metas + Transações — 4 fases (07-10), 22 plans, tag `v1.1`. UAT final 8/8 pass.
 
-**Target features:**
-- Criar meta (nome, valor-alvo, prazo)
-- Editar meta existente
-- Excluir meta (com confirmação)
+Entregue:
+- ✅ Metas CRUD real em `goals` (criar/editar/excluir/listar) + colunas `target_date`/`description` (META-01..04)
+- ✅ Metas vision-board — 16 capas SVG + upload (bucket `goal-covers` RLS owner-only), busca/filtro, hero editorial, aportar/concluir inline com auto-conclusão a >=alvo (UAT-1..7)
+- ✅ Transações power tools — filtro Cartões, paginação 20/50/100, gasto cross-month, export CSV + fix CSV-injection, persistência de filtros, ⌘K (TX-01..08)
+- ✅ Fatura corrigida p/ qualquer config de dias (`closing_day > due_day`) + import com preview/dedupe/confirmação (FAT-01, IMP-01/02, UX-03/04)
 
-**Fora do escopo (deferido):** aportes/contribuição, acompanhamento de progresso, ajuste de plano. **Fonte do valor atual da meta** = decisão de modelo de dados adiada para `/gsd-discuss-phase 07`.
+**Deferido:** fonte do valor atual da meta (aportes vs vínculo a conta) → M5+; épico IA/WhatsApp (Phases 11–14) → próximo milestone.
 
-**Context:** modais de Metas já têm motion (fase 06); os 4 placeholders (Aportar/AjustarPlano/ConfirmDelete/Configurar) têm wiring mas sem mount site. `goals` já existe no schema — verificar via MCP antes de assumir. Numeração de fases continua na 07.
+### Key Decisions (v1.1)
+
+| Decisão | Racional | Outcome |
+|---|---|---|
+| Escopo v1.1 expandiu de CRUD Metas → Metas+Transações+fatura/import | Reativo ao UAT da Fase 09 (incidente de import); valor entregue > plano original | ✓ Good |
+| `computeFaturaDates` em `fides-data.jsx` + remoção total do branch `diaF>diaV` | Causa raiz do bug de fatura, não caso especial; ordem de load como global | ✓ Good |
+| Auto-conclusão de meta a >=alvo nunca reabre (`completed:false` proibido) | Semântica previsível; queda posterior de saldo não desfaz conquista | ✓ Good |
+| Import: destino default = sentinel "Da origem do arquivo", status sempre explícito | Reimport idêntico = 0 gravações; nunca converte pendente→paga | ✓ Good |
+| 08-08 no-op live + harden SQL (nenhum write LIVE de schema) | Colunas já live via MCP; evita mutação redundante, espelha `schema.sql` | ✓ Good |
+
+---
+
+## Next Milestone: Épico IA/WhatsApp (Phases 11–14)
+
+**Goal:** Endurecer o assistente Gemini (WR-01/02/03 + módulo compartilhado + telemetria), destravar WRITE in-app (gate B8), gatear premium por `profiles.plan` e ligar o bot WhatsApp via Meta Cloud API.
+
+**Ordem travada:** 11 → 12 → 13 → 14. Precificação P-2 (Free + Premium R$ 89,90/ano via Mercado Pago/Pix).
+
+**Fonte de design:** `.planning/research/whatsapp-e-ia-arquitetura.md` (decisões D-1..D-11 travadas 2026-07-06, adendo D-8 = caminho sem CNPJ). Caminhos sensíveis (`api/`, `supabase/`) → `security-reviewer` + `database-reviewer` antes de commit.
 
 ---
 
@@ -151,4 +171,4 @@ Este documento evolui nas transições de fase e marcos de milestone.
 3. Auditoria Out of Scope — razões ainda válidas?
 4. Atualizar Context com estado atual
 
-*Última atualização: 2026-07-01 — Milestone v1.1 CRUD Metas iniciado*
+*Última atualização: 2026-07-06 — Milestone v1.1 "Metas + Transações" shipped (tag v1.1); próximo: épico IA/WhatsApp (Phases 11–14)*
