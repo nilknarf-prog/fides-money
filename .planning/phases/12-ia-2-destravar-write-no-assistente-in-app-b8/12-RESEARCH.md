@@ -426,9 +426,14 @@ propõe, e o sistema mostra um card de confirmação. Regras de honestidade obri
 | A4 | Redação exata do trecho de honestidade no `SYSTEM_PROMPT` | Code Examples | Baixo — é prompt engineering, ajustável sem risco de segurança; a regra de negócio subjacente (D-04, HONEST-01) é que é fixa |
 | A5 | `criar_categoria` standalone deveria passar a exigir confirmação (interpretação de CONTEXT.md `<specifics>`: "nenhuma tool WRITE executa direto") | Common Pitfalls P5, Open Questions Q1 | Médio — se a leitura estiver errada e a intenção for manter `criar_categoria` sem confirmação (só a versão bundlada em D-04 precisa de card), a correção de P5 ainda é necessária (await ausente), só que sem adicionar ao `TOOLS_REQUIRING_CONFIRMATION` |
 
-## Open Questions
+## Open Questions (ALL RESOLVED — 2026-07-07, plan-phase 12)
 
-1. **`criar_categoria` standalone exige confirmação agora?**
+> **Q1 → RESOLVED (SD-1):** Sim — `criar_categoria` standalone entra em `TOOLS_REQUIRING_CONFIRMATION`; nenhuma tool WRITE executa sem confirmação. Implementado no Plan 12-04 (fecha P5 junto).
+> **Q2 → RESOLVED:** Nova env var dedicada `ASSISTANT_NONCE_SECRET` (32+ bytes, Vercel Project, nunca commitada). Implementado no Plan 12-02.
+> **Q3 → RESOLVED:** Lançamento em cartão força `status = 'pendente'` (regra do commit `2343086`), replicada via `wa_log_transaction`/client. Implementado nos Plans 12-01/12-03.
+> **A2 (TTL do nonce) → RESOLVED (SD-2):** fixado em **120s** — meio-termo aprovado pelo usuário (nem os 5min sugeridos aqui, nem os 30-60s do D-06).
+
+1. **`criar_categoria` standalone exige confirmação agora?** _(RESOLVED — ver acima)_
    - What we know: O código original (pré-FIX-3) e o comentário atual em `fides-claude.jsx` tratam `criar_categoria` como "WRITE leve, executa direto". CONTEXT.md `<specifics>` diz "Confirmação é SEMPRE obrigatória antes de qualquer insert/update via chat — nenhuma tool WRITE executa direto".
    - What's unclear: Se essa frase de CONTEXT.md é uma reafirmação geral do princípio do produto (confirmação nas 3 tools que já exigiam) ou uma mudança de escopo que agora inclui `criar_categoria` standalone.
    - Recommendation: Tratar como mudança de escopo (mover `criar_categoria` para `TOOLS_REQUIRING_CONFIRMATION`) — resolve P5 de raiz, é consistente com a leitura mais literal do texto de CONTEXT.md, e o custo de adicionar 1 clique extra numa operação já rara (criar categoria) é baixo. Confirmar com o usuário/planner antes de assumir.
