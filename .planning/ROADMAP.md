@@ -398,11 +398,15 @@ Plans:
 **Depends on:** Phase 11
 **Fonte:** `.planning/research/whatsapp-e-ia-arquitetura.md` §6, §7, §B3 (Fase IA-2). Gate B8 em `v1.0-ROADMAP.md:258`.
 **Caminho sensível:** `api/assistant.js` + RPC Supabase → security-reviewer + database-reviewer
-**Plans:** 0 plans
+**Plans:** 5 plans (4 ondas)
 
 Plans:
 
-- [ ] TBD (run /gsd-plan-phase 12 to break down)
+- [ ] 12-01-PLAN.md — WRITE-01/DERIVED-SAFE-01: RPC `wa_log_transaction` (SECURITY DEFINER + owner-guard, espelha pay_card_invoice) aplicada no Supabase LIVE via MCP + database-reviewer (Onda 1)
+- [ ] 12-02-PLAN.md — WRITE-01..04/HONEST-01: servidor religa `TOOLS_DECLARATION` (4 WRITE) + system prompt de honestidade + nonce anti-replay `api/_lib/nonce.js` (D-06, TTL 120s) + security-reviewer (Onda 1)
+- [ ] 12-03-PLAN.md — WRITE-01/WRITE-04/DERIVED-SAFE-01: cliente reescreve `lancar_transacao` p/ a RPC + fix P2 (mês real, não selectedMonth) + status pendente em cartão + D-04 categoria bundlada (Onda 2)
+- [ ] 12-04-PLAN.md — WRITE-04/HONEST-01: `criar_categoria` passa a exigir confirmação (SD-1) + mata toast falso (P5, await) + threading do nonce (cliente) + flag de confirmação pendente (Onda 3)
+- [ ] 12-05-PLAN.md — HONEST-01: guard de ⌘K não sobrepõe o card de confirmação WRITE pendente (P6) (Onda 4)
 
 ### Phase 13: IA-3 Gating premium in-app
 
