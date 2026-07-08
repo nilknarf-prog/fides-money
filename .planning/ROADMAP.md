@@ -401,11 +401,21 @@ Plans:
 **Plans:** 5 plans (4 ondas)
 
 Plans:
+**Wave 1**
 
 - [ ] 12-01-PLAN.md — WRITE-01/DERIVED-SAFE-01: RPC `wa_log_transaction` (SECURITY DEFINER + owner-guard, espelha pay_card_invoice) aplicada no Supabase LIVE via MCP + database-reviewer (Onda 1)
 - [ ] 12-02-PLAN.md — WRITE-01..04/HONEST-01: servidor religa `TOOLS_DECLARATION` (4 WRITE) + system prompt de honestidade + nonce anti-replay `api/_lib/nonce.js` (D-06, TTL 120s) + security-reviewer (Onda 1)
+
+**Wave 2** *(blocked on Wave 1 completion)*
+
 - [ ] 12-03-PLAN.md — WRITE-01/WRITE-04/DERIVED-SAFE-01: cliente reescreve `lancar_transacao` p/ a RPC + fix P2 (mês real, não selectedMonth) + status pendente em cartão + D-04 categoria bundlada (Onda 2)
+
+**Wave 3** *(blocked on Wave 2 completion)*
+
 - [ ] 12-04-PLAN.md — WRITE-04/HONEST-01: `criar_categoria` passa a exigir confirmação (SD-1) + mata toast falso (P5, await) + threading do nonce (cliente) + flag de confirmação pendente (Onda 3)
+
+**Wave 4** *(blocked on Wave 3 completion)*
+
 - [ ] 12-05-PLAN.md — HONEST-01: guard de ⌘K não sobrepõe o card de confirmação WRITE pendente (P6) (Onda 4)
 
 ### Phase 13: IA-3 Gating premium in-app
