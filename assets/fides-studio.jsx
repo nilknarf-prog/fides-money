@@ -50,6 +50,7 @@ function FidesStudioShell({ initialPage = 'dashboard' }) {
   React.useEffect(() => {
     function onKeyDown(e) {
       if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === 'k') {
+        if (window.__fidesWriteConfirmPending) return;
         e.preventDefault();
         setPaletteOpen(true);
       }

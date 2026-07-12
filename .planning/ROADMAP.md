@@ -450,9 +450,16 @@ Plans:
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
 | 11 - IA-1 Hardening Gemini | 4/4 | Complete    | 2026-07-07 |
-| 12 - IA-2 WRITE in-app (B8) | 0/? | Not started | - |
+| 12 - IA-2 WRITE in-app (B8) | 5/5 | Complete | 2026-07-12 |
 | 13 - IA-3 Gating premium | 0/? | Not started | - |
 | 14 - IA-4 Bot WhatsApp | 0/? | Not started | - |
+| 15 - UI Polish (Favicon) | 0/? | Not started | - |
+
+### Phase 15: UI Polish (Favicon)
+**Goal:** Adicionar o ícone do Fides como favicon do site (atualmente está sem favicon).
+**Plans:** 0 plans
+
+- [ ] TBD (run /gsd-plan-phase 15 to break down)
 
 > Milestone v1.1 (Phases 07-10) shipped 2026-07-06 — detalhe em `milestones/v1.1-ROADMAP.md`.
 
