@@ -1,8 +1,7 @@
 // fides-claude.jsx — Assistente Fides com Gemini 2.5 Flash-Lite
 // Lote A2.2: tools WRITE com card de confirmação + limpeza de histórico após 2h.
 // - 6 tools: 2 READ (consultar_saldo, consultar_extrato) + 4 WRITE
-// - WRITE: lancar_transacao, recategorizar_transacao, editar_transacao (com card)
-// - WRITE leve: criar_categoria (executa direto, mostra toast)
+// - WRITE: lancar, recategorizar, editar, criar_categoria (com card de confirmação)
 // - Limpeza automática do chat após 2h de inatividade
 
 const MAX_TOOL_ITERATIONS = 2;
@@ -14,7 +13,7 @@ const STORAGE_KEY_LAST_ACTIVITY = 'fides_assistant_last_activity';
 const TOAST_DURATION_MS = 3000;
 
 // Tools que requerem confirmação visual antes de executar
-const TOOLS_REQUIRING_CONFIRMATION = ['lancar_transacao', 'recategorizar_transacao', 'editar_transacao'];
+const TOOLS_REQUIRING_CONFIRMATION = ['lancar_transacao', 'recategorizar_transacao', 'editar_transacao', 'criar_categoria'];
 
 function FidesAssistant() {
   const fs = useFides();
@@ -51,6 +50,12 @@ function FidesAssistant() {
   const [pendingConfirmation, setPendingConfirmation] = React.useState(null); // { toolCall, resolved }
   const [toast, setToast] = React.useState(null); // { text, ts }
   const listRef = React.useRef(null);
+
+  // Ponte p/ o guard de ⌘K (Plan 05)
+  React.useEffect(() => {
+    window.__fidesWriteConfirmPending = !!pendingConfirmation;
+    return () => { window.__fidesWriteConfirmPending = false; };
+  }, [pendingConfirmation]);
 
   // Persistir mensagens + timestamp
   React.useEffect(() => {
@@ -264,23 +269,6 @@ function FidesAssistant() {
         transacoes: items,
       };
     },
-
-    // WRITE leve (executa direto, mostra toast)
-    criar_categoria: (args = {}) => {
-      const label = String(args.label || '').trim();
-      if (!label) return { error: 'LABEL_REQUIRED', message: 'Label da categoria é obrigatório.' };
-      const emoji = String(args.emoji || '🏷️');
-      const group = ['essenciais', 'estilo', 'futuro'].includes(args.group) ? args.group : 'estilo';
-      const catKey = label.toLowerCase().replace(/[^a-z0-9]/g, '_').replace(/_+/g, '_').replace(/^_|_$/g, '');
-      if (!catKey) return { error: 'INVALID_LABEL', message: 'Não consegui gerar id para essa categoria.' };
-      try {
-        addCategory(catKey, { label, emoji, group, custom: true });
-        setToast({ text: `✓ Categoria "${label}" criada`, ts: Date.now() });
-        return { success: true, categoria_id: catKey, label, emoji, group };
-      } catch (err) {
-        return { error: 'EXECUTION_ERROR', message: String(err?.message || err) };
-      }
-    },
   };
 
   // Resolver tool WRITE preparando os argumentos finais (UUIDs)
@@ -358,6 +346,20 @@ function FidesAssistant() {
         },
       };
     }
+    if (name === 'criar_categoria') {
+      const label = String(args.nome || '').trim();
+      if (!label) return { error: 'Label da categoria é obrigatório.' };
+      const catKey = label.toLowerCase().replace(/[^a-z0-9]/g, '_').replace(/_+/g, '_').replace(/^_|_$/g, '');
+      if (!catKey) return { error: 'Categoria inválida.' };
+      return {
+        resolved: {
+          label,
+          catKey,
+          emoji: String(args.emoji || '🏷️'),
+          group: 'estilo'
+        }
+      };
+    }
     return { error: `Tool ${name} não suportada.` };
   };
 
@@ -415,6 +417,11 @@ function FidesAssistant() {
         if (resolved.patch.status !== undefined) patch.status = String(resolved.patch.status);
         await updateTransaction(resolved.tx._id || resolved.tx.id, patch);
         return { success: true, message: `Transação atualizada.` };
+      }
+      if (name === 'criar_categoria') {
+        await addCategory(resolved.catKey, { label: resolved.label, emoji: resolved.emoji, group: resolved.group, custom: true });
+        setToast({ text: `✓ Categoria "${resolved.label}" criada`, ts: Date.now() });
+        return { success: true, categoria_id: resolved.catKey, label: resolved.label, emoji: resolved.emoji, group: resolved.group };
       }
       return { error: 'UNKNOWN_TOOL' };
     } catch (err) {
@@ -486,7 +493,7 @@ function FidesAssistant() {
     return map[errCode] || 'Não consegui responder agora. Tente de novo em instantes.';
   };
 
-  const callAssistant = async (history, toolResults, jwt) => {
+  const callAssistant = async (history, toolResults, jwt, nonceStr) => {
     const ctx = buildContext();
     const res = await fetch('/api/assistant', {
       method: 'POST',
@@ -498,6 +505,7 @@ function FidesAssistant() {
         messages: history,
         context: ctx,
         toolResults: toolResults || null,
+        nonce: nonceStr || null
       }),
     });
     const data = await res.json().catch(() => ({}));
@@ -533,9 +541,10 @@ function FidesAssistant() {
 
       let toolResults = null;
       let iteration = 0;
+      let lastNonce = null;
 
       while (iteration < MAX_TOOL_ITERATIONS) {
-        const { ok, status, data } = await callAssistant(history, toolResults, jwt);
+        const { ok, status, data } = await callAssistant(history, toolResults, jwt, lastNonce);
 
         if (!ok) {
           const errCode = data?.error;
@@ -559,6 +568,7 @@ function FidesAssistant() {
         }
 
         if (Array.isArray(data?.tool_calls) && data.tool_calls.length > 0) {
+          if (data.nonce) lastNonce = data.nonce;
           setThinkingLabel('consultando seus dados...');
           // executeTools agora é async (pode esperar confirmação)
           toolResults = await executeTools(data.tool_calls);
@@ -644,6 +654,13 @@ function FidesAssistant() {
       details = [
         { label: 'Transação', value: resolved.tx.desc || '—' },
         ...changes,
+      ];
+    } else if (toolCall.name === 'criar_categoria') {
+      title = '🏷️ Criar categoria';
+      details = [
+        { label: 'Nome', value: resolved.label },
+        { label: 'Emoji', value: resolved.emoji },
+        { label: 'Grupo', value: resolved.group }
       ];
     }
 
