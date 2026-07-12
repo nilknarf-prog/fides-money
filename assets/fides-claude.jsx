@@ -628,6 +628,21 @@ function FidesAssistant() {
       title = resolved.tipo === 'despesa' ? '📌 Lançar despesa' : '💰 Lançar receita';
       if (resolved.createCategory) {
         details.push({ label: 'Nova categoria', value: `Vou criar "${resolved.createCategory.label}"` });
+        details.push({ 
+          label: 'Grupo da categoria', 
+          value: (
+            <select
+              defaultValue={resolved.createCategory.group || 'estilo'}
+              onChange={(e) => { resolved.createCategory.group = e.target.value; }}
+              style={{ padding: '2px 4px', fontSize: 13, borderRadius: 4, border: '1px solid var(--ink-4)', background: 'var(--bg)', color: 'var(--ink-1)', outline: 'none' }}
+            >
+              <option value="essencial">Essencial</option>
+              <option value="estilo">Estilo de Vida</option>
+              <option value="renda">Renda</option>
+              <option value="ignorados">Ignorados</option>
+            </select>
+          ) 
+        });
       }
       details.push(
         { label: 'Descrição', value: resolved.desc },
@@ -660,7 +675,21 @@ function FidesAssistant() {
       details = [
         { label: 'Nome', value: resolved.label },
         { label: 'Emoji', value: resolved.emoji },
-        { label: 'Grupo', value: resolved.group }
+        { 
+          label: 'Grupo', 
+          value: (
+            <select
+              defaultValue={resolved.group || 'estilo'}
+              onChange={(e) => { resolved.group = e.target.value; }}
+              style={{ padding: '2px 4px', fontSize: 13, borderRadius: 4, border: '1px solid var(--ink-4)', background: 'var(--bg)', color: 'var(--ink-1)', outline: 'none' }}
+            >
+              <option value="essencial">Essencial</option>
+              <option value="estilo">Estilo de Vida</option>
+              <option value="renda">Renda</option>
+              <option value="ignorados">Ignorados</option>
+            </select>
+          )
+        }
       ];
     }
 
