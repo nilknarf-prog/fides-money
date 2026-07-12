@@ -158,6 +158,25 @@ alter table public.assistant_usage add column if not exists completion_tokens in
 alter table public.assistant_usage add column if not exists latency_ms       int;
 
 -- ─────────────────────────────────────────────
+-- NOTA: transactions LIVE tem colunas adicionais não listadas no CREATE acima
+-- (schema.sql é documentação, a verdade é o banco — ROADMAP B10):
+--   settled        boolean not null default false
+--   is_transfer    boolean not null default false
+--   transfer_group uuid
+--   paid_at        timestamptz
+-- Também accounts LIVE tem: opening_balance numeric(12,2) not null default 0
+-- Ver supabase/derived-balance.sql para as RPCs que dependem dessas colunas.
+-- ─────────────────────────────────────────────
+
+-- ─────────────────────────────────────────────
+-- RPC: wa_log_transaction (Phase 12 — IA-2 WRITE)
+-- Insert atômico de transação via assistente IA.
+-- Corpo completo em supabase/wa-log-transaction.sql
+-- ─────────────────────────────────────────────
+-- Ver supabase/wa-log-transaction.sql (doc-of-record, espelha o LIVE).
+-- Padrão: SECURITY DEFINER + owner-guard + recalc_account_balance interno.
+
+-- ─────────────────────────────────────────────
 -- ROW LEVEL SECURITY
 -- ─────────────────────────────────────────────
 alter table public.profiles        enable row level security;
