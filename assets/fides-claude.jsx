@@ -294,22 +294,44 @@ function FidesAssistant() {
         return { error: `Não encontrei conta ou cartão chamado "${ref}". Contas/cartões disponíveis: ${[...(accounts||[]).map(a=>a.name), ...(cards||[]).map(c=>c.name)].join(', ')}` };
       }
       const cat = findCategoryByName(args.categoria);
-      if (!cat) {
-        return { error: `Categoria "${args.categoria}" não encontrada. Você quer criar essa categoria primeiro?` };
+      let catId, catLabel;
+      let createCategory = null;
+      if (cat) {
+        catId = cat.id;
+        catLabel = cat.label;
+      } else {
+        catLabel = String(args.categoria || '').trim();
+        catId = catLabel.toLowerCase().replace(/[^a-z0-9]/g, '_').replace(/_+/g, '_').replace(/^_|_$/g, '');
+        if (!catId) return { error: `Categoria inválida.` };
+        createCategory = { label: catLabel, catKey: catId, emoji: '🏷️', group: 'estilo' };
       }
-      const today = new Date();
-      const dateStr = args.data || `${String(today.getDate()).padStart(2,'0')}/${String(today.getMonth()+1).padStart(2,'0')}`;
+      
+      let yr, mm, dd;
+      if (args.data && /^\d{4}-\d{2}-\d{2}$/.test(args.data)) {
+        [yr, mm, dd] = args.data.split('-');
+      } else {
+        const today = new Date();
+        yr = String(today.getFullYear());
+        mm = String(today.getMonth() + 1).padStart(2, '0');
+        dd = String(today.getDate()).padStart(2, '0');
+      }
+      const isoDate = `${yr}-${mm}-${dd}`;
+      const dateStr = `${dd}/${mm}`;
+      
       const val = args.tipo === 'despesa' ? -Math.abs(Number(args.valor)) : Math.abs(Number(args.valor));
       return {
         resolved: {
           tipo: args.tipo,
           val,
           desc: args.descricao,
-          cat: cat.id,
-          catLabel: cat.label,
+          cat: catId,
+          catLabel,
+          createCategory,
+          isoDate,
           dateStr,
+          ano: parseInt(yr, 10),
           status: args.status || 'pago',
-          target: acc ? { type: 'account', id: acc.id, name: acc.name } : { type: 'card', id: card.id, name: card.name },
+          target: acc ? { type: 'account', id: acc.id, name: acc.name } : { type: 'card', id: card.id, name: card.name, obj: card },
         },
       };
     }
@@ -345,21 +367,36 @@ function FidesAssistant() {
     try {
       if (name === 'lancar_transacao') {
         const r = resolved;
-        const tx = {
-          desc: r.desc,
-          val: r.val,
-          cat: r.cat,
-          d: r.dateStr,
-          status: r.status,
-          mes: selectedMonth,
-        };
-        if (r.target.type === 'account') {
-          tx.acct = r.target.id;
-          tx.account_id = r.target.id;
-        } else {
-          tx.card_id = r.target.id;
+        if (r.createCategory) {
+          await addCategory(r.createCategory.catKey, {
+            label: r.createCategory.label,
+            emoji: r.createCategory.emoji,
+            group: r.createCategory.group,
+            custom: true
+          });
         }
-        await addTransaction(tx);
+        
+        const isCard = r.target.type === 'card';
+        const p_month = isCard 
+          ? window.mesFaturaFor(r.dateStr, r.target.obj, r.ano)
+          : r.isoDate.substring(0, 7);
+          
+        const p_status = isCard ? 'pending' : (r.status === 'pago' ? 'cleared' : 'pending');
+        
+        const { error: rpcError } = await window.fidesDb.rpc('wa_log_transaction', {
+          p_description: r.desc,
+          p_value: r.val,
+          p_category: r.cat,
+          p_date: r.isoDate,
+          p_month: p_month,
+          p_status: p_status,
+          p_account_id: isCard ? null : r.target.id,
+          p_card_id: isCard ? r.target.id : null
+        });
+        
+        if (rpcError) throw rpcError;
+        
+        if (fs.refreshData) await fs.refreshData();
         return { success: true, message: `Lancei ${fmtBRL(Math.abs(r.val))} (${r.desc}) em ${r.target.name}.` };
       }
       if (name === 'recategorizar_transacao') {
@@ -579,14 +616,17 @@ function FidesAssistant() {
 
     if (toolCall.name === 'lancar_transacao') {
       title = resolved.tipo === 'despesa' ? '📌 Lançar despesa' : '💰 Lançar receita';
-      details = [
+      if (resolved.createCategory) {
+        details.push({ label: 'Nova categoria', value: `Vou criar "${resolved.createCategory.label}"` });
+      }
+      details.push(
         { label: 'Descrição', value: resolved.desc },
         { label: 'Valor', value: fmtBRL(Math.abs(resolved.val)) },
         { label: resolved.target.type === 'account' ? 'Conta' : 'Cartão', value: resolved.target.name },
         { label: 'Categoria', value: resolved.catLabel },
         { label: 'Data', value: resolved.dateStr },
-        { label: 'Status', value: resolved.status === 'pago' ? 'Pago' : 'Pendente' },
-      ];
+        { label: 'Status', value: resolved.status === 'pago' ? 'Pago' : 'Pendente' }
+      );
     } else if (toolCall.name === 'recategorizar_transacao') {
       title = '🏷️ Mudar categoria';
       details = [
