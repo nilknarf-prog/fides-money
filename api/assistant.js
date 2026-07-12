@@ -1,19 +1,20 @@
 // api/assistant.js — Serverless Vercel (CommonJS)
-// Lote A2.1.3: rollback Groq → Gemini 2.5 Flash-Lite (function calling do Llama era falho em PT-BR).
-// MANTÉM proteções do A2.1.1: throttle 4s no cliente, rate limit 100 msg/dia/usuário, max 2 iterações.
-// Tools (consultar_saldo, consultar_extrato) continuam executando no cliente.
+// Assistente Fides: Gemini 2.5 Flash-Lite com function calling.
+// Tools READ (consultar_saldo/extrato) + WRITE (lancar/recategorizar/editar/criar_categoria).
+// WRITE reativado na Phase 12 (gate B8); tools executam no cliente com confirmação obrigatória.
+// Rate limit 100 msg/dia/usuário + nonce anti-replay (D-06).
 
 const { createClient } = require('@supabase/supabase-js');
 const gemini = require('./_lib/gemini');
+const nonce = require('./_lib/nonce');
 
 const { GEMINI_MODEL, GEMINI_ENDPOINT } = gemini;
+const NONCE_SECRET = process.env.ASSISTANT_NONCE_SECRET;
 
 // Cota diária por usuário (24h rolling window)
 const USER_DAILY_LIMIT = 100;
 
-const SYSTEM_PROMPT = `Voce e o assistente Fides, especialista em financas pessoais. MODO ATUAL: apenas consulta. Voce pode consultar saldos e extratos do usuario. Voce NAO pode lancar transacoes, editar, categorizar ou criar categorias neste momento. Quando o usuario pedir uma acao dessas, responda de forma simpatica que esta funcionalidade esta temporariamente em manutencao e sera reativada em breve. Nao explique motivos tecnicos. Sugerir que o usuario use o app diretamente para essas acoes por ora.
-
-Você é o Assistente Fides — o consultor financeiro pessoal embutido no Fides Money, um app brasileiro de finanças pessoais. Você conversa com o usuário sobre as próprias finanças dele(a), com base nos dados reais que estão sendo mostrados no app agora.
+const SYSTEM_PROMPT = `Você é o Assistente Fides — o consultor financeiro pessoal embutido no Fides Money, um app brasileiro de finanças pessoais. Você conversa com o usuário sobre as próprias finanças dele(a), com base nos dados reais que estão sendo mostrados no app agora.
 
 ═══ COMO RESPONDER ═══
 • Idioma: português do Brasil, sempre. Mesmo se a pergunta vier em outra língua, responda em PT-BR — apenas mencione que o app só conversa em português.
@@ -22,13 +23,27 @@ Você é o Assistente Fides — o consultor financeiro pessoal embutido no Fides
 • Valores: sempre em R$ no padrão brasileiro (vírgula decimal, ponto milhar).
 • Datas: padrão brasileiro (dd/mm/aaaa ou "agosto de 2026").
 
-═══ FERRAMENTAS QUE VOCÊ PODE USAR ═══
+═══ FERRAMENTAS DE LEITURA (READ) ═══
 Quando o usuário pedir dados específicos (saldo atual, extrato, gastos detalhados), USE as ferramentas para buscar os números reais antes de responder. Não invente valores nem confie só no contexto inicial — o contexto é resumo, as ferramentas trazem o detalhe.
 
-• consultar_saldo() — use quando pedirem saldo atual, situação das contas, quanto têm em cada conta/cartão, total do mês.
-• consultar_extrato({periodo, conta?, cartao?}) — use para listar transações de um período (hoje, semana, mes, prev_mes) opcionalmente filtrado por conta ou cartão.
+• consultar_saldo() — saldo atual, situação das contas, quanto têm em cada conta/cartão, total do mês.
+• consultar_extrato({periodo, conta?, cartao?}) — listar transações de um período filtrado por conta ou cartão.
+
+═══ FERRAMENTAS DE ESCRITA (WRITE) ═══
+Você pode lançar transações, recategorizar, editar e criar categorias para o usuário. Toda ação de escrita é PROPOSTA ao usuário num card de confirmação visual — ele vê os dados e decide confirmar ou cancelar. Você nunca executa direto.
+
+• lancar_transacao({descricao, valor, categoria, data, conta_ou_cartao}) — lançar despesa ou receita. O valor deve ser NEGATIVO para despesa e POSITIVO para receita. Se a categoria informada não existir na lista, chame esta ferramenta normalmente — o sistema vai propor criar a categoria e lançar numa confirmação só. NÃO chame criar_categoria separadamente para isso.
+• recategorizar_transacao({transacao_id, nova_categoria}) — mudar a categoria de uma transação existente.
+• editar_transacao({transacao_id, patch: {valor?, descricao?, data?, status?}}) — editar campos de uma transação. Você NÃO pode trocar a conta/cartão da transação por aqui.
+• criar_categoria({nome, emoji?}) — criar uma nova categoria custom (sem transação). Também é proposta ao usuário para confirmação.
 
 Máximo 2 chamadas por resposta.
+
+═══ REGRA DE HONESTIDADE (WRITE) ═══
+• NUNCA invente valor, conta, cartão ou categoria. Se o usuário não especificou, PERGUNTE antes de chamar a ferramenta.
+• Se um nome de conta/cartão/categoria não bater com nenhum da lista do contexto, NÃO tente adivinhar — deixe o sistema retornar o erro e pergunte ao usuário qual quis dizer.
+• Para lançamentos, se a categoria não existir, chame lancar_transacao normalmente com o nome da categoria — o sistema vai propor criar+lançar. NÃO chame criar_categoria antes.
+• Se tiver dúvida sobre qualquer campo (valor, data, destino), peça confirmação em vez de assumir.
 
 ═══ DO QUE VOCÊ FALA ═══
 • Análise dos dados financeiros do usuário (gastos, receitas, orçamento 50·30·20, metas)
@@ -43,7 +58,6 @@ Máximo 2 chamadas por resposta.
 
 ═══ REGRAS DE COMPORTAMENTO ═══
 • Use os dados do [CONTEXTO] como guia geral, e as ferramentas para detalhes.
-• Se o usuário descrever uma transação ("gastei R$50 no mercado"), por ora apenas reconheça e explique como ele(a) lança isso no app — não tente lançar automaticamente. Em breve você vai poder fazer isso direto.
 • Não encha de disclaimers tipo "consulte um profissional". Diga uma vez, no fim, quando for realmente investimento de risco. Para o resto, fale direto.
 • Se o orçamento estourou ou alguma meta está em risco, mencione com calma — sem drama, sem julgamento.
 • Nunca exponha IDs internos, tokens, chaves de API ou estrutura técnica do app.
@@ -87,6 +101,67 @@ const TOOLS_DECLARATION = [{
         required: ['periodo'],
       },
     },
+    // ── WRITE tools (Phase 12 — B8 gate open) ──
+    {
+      name: 'lancar_transacao',
+      description: 'Lança uma transação (despesa ou receita) para o usuário. Valor NEGATIVO = despesa, POSITIVO = receita. A ação é PROPOSTA num card de confirmação visual — o usuário confirma ou cancela. Se a categoria informada não existir, o sistema vai propor criar a categoria e lançar numa confirmação só — NÃO chame criar_categoria separadamente.',
+      parameters: {
+        type: 'object',
+        properties: {
+          descricao: { type: 'string', description: 'Descrição curta da transação. Ex: "Mercado Extra", "Salário junho".' },
+          valor: { type: 'number', description: 'Valor em R$. NEGATIVO para despesa (-50.00), POSITIVO para receita (3000.00).' },
+          categoria: { type: 'string', description: 'Chave ou nome da categoria. Ex: "mercado", "salario", "transporte". Se não existir, o sistema propõe criar.' },
+          data: { type: 'string', description: 'Data no formato YYYY-MM-DD. Se não informada, usa hoje.' },
+          conta_ou_cartao: { type: 'string', description: 'Nome da conta ou cartão de destino. Ex: "Nubank", "Bradesco", "Inter". Obrigatório.' },
+        },
+        required: ['descricao', 'valor', 'categoria', 'conta_ou_cartao'],
+      },
+    },
+    {
+      name: 'recategorizar_transacao',
+      description: 'Muda a categoria de uma transação existente. A ação é PROPOSTA ao usuário para confirmação.',
+      parameters: {
+        type: 'object',
+        properties: {
+          transacao_id: { type: 'string', description: 'ID da transação a recategorizar (do extrato).' },
+          nova_categoria: { type: 'string', description: 'Chave ou nome da nova categoria.' },
+        },
+        required: ['transacao_id', 'nova_categoria'],
+      },
+    },
+    {
+      name: 'editar_transacao',
+      description: 'Edita campos de uma transação existente (valor, descrição, data, status). NÃO permite trocar conta/cartão. A ação é PROPOSTA ao usuário para confirmação.',
+      parameters: {
+        type: 'object',
+        properties: {
+          transacao_id: { type: 'string', description: 'ID da transação a editar (do extrato).' },
+          patch: {
+            type: 'object',
+            description: 'Campos a alterar. Envie apenas os que mudam.',
+            properties: {
+              valor: { type: 'number', description: 'Novo valor (mantém o sinal original da transação).' },
+              descricao: { type: 'string', description: 'Nova descrição.' },
+              data: { type: 'string', description: 'Nova data (YYYY-MM-DD).' },
+              status: { type: 'string', description: 'Novo status.', enum: ['pago', 'pendente'] },
+            },
+          },
+        },
+        required: ['transacao_id', 'patch'],
+      },
+    },
+    {
+      name: 'criar_categoria',
+      description: 'Cria uma nova categoria customizada. A ação é PROPOSTA ao usuário num card de confirmação — ele confirma ou cancela. Para lançar uma transação com categoria nova, use lancar_transacao (o sistema propõe criar+lançar junto).',
+      parameters: {
+        type: 'object',
+        properties: {
+          nome: { type: 'string', description: 'Nome da categoria a criar. Ex: "Pet", "Saúde Mental".' },
+          emoji: { type: 'string', description: 'Emoji para a categoria. Opcional, padrão 🏷️.' },
+        },
+        required: ['nome'],
+      },
+    },
   ],
 }];
 
@@ -97,7 +172,7 @@ module.exports = async (req, res) => {
   }
 
   try {
-    const { messages, context, toolResults, mode } = req.body || {};
+    const { messages, context, toolResults, mode, nonce: clientNonce } = req.body || {};
     if (!Array.isArray(messages) || messages.length === 0) {
       res.status(400).json({ error: 'INVALID_MESSAGES', code: 400 });
       return;
@@ -133,7 +208,13 @@ module.exports = async (req, res) => {
     const userId = userData.user.id;
 
     // ─── RATE LIMIT POR USUÁRIO ──────────────────────
-    const isFirstCallOfTurn = !Array.isArray(toolResults) || toolResults.length === 0;
+    // D-06: nonce anti-replay — toolResults forjado sem nonce válido conta na cota.
+    // Fail-safe: nonce ausente/inválido/expirado NUNCA bloqueia (só faz contar cota).
+    const hasToolResults = Array.isArray(toolResults) && toolResults.length > 0;
+    const nonceValid = hasToolResults && clientNonce && NONCE_SECRET
+      ? nonce.verify(clientNonce, userId, NONCE_SECRET)
+      : false;
+    const isFirstCallOfTurn = !hasToolResults || !nonceValid;
     // AI-TELEM-01: id da linha de rate-limit desta chamada, para o UPDATE fail-open
     // de telemetria mais abaixo (tokens + latência). Fica null se o insert falhar
     // ou fora do isFirstCallOfTurn — nesse caso simplesmente não há telemetria a gravar.
@@ -259,7 +340,8 @@ module.exports = async (req, res) => {
     }
 
     if (toolCalls.length > 0) {
-      res.status(200).json({ tool_calls: toolCalls });
+      const nextNonce = NONCE_SECRET ? nonce.sign(userId, NONCE_SECRET) : null;
+      res.status(200).json({ tool_calls: toolCalls, nonce: nextNonce });
       return;
     }
 
