@@ -2,9 +2,13 @@
 // Prefixo `_` no diretório garante que este arquivo nunca vira Serverless Function.
 // AI-SHARED-01: extrai payload/call/parse comuns entre api/assistant.js (hoje) e
 // api/whatsapp.js (fase 14). Escopo mínimo — auth/rate-limit/prompt ficam no handler.
+// Retry com backoff exponencial para erros transitórios (503/504/500/429).
 
 const GEMINI_MODEL = 'gemini-2.5-flash-lite';
 const GEMINI_ENDPOINT = `https://generativelanguage.googleapis.com/v1beta/models/${GEMINI_MODEL}:generateContent`;
+
+const MAX_RETRIES = 3;
+const RETRY_BASE_MS = 1000;
 
 /**
  * Monta o payload de generateContent do Gemini.
@@ -48,15 +52,20 @@ function buildPayload({ systemPrompt, contents, tools, toolMode, generationConfi
  * @returns {Promise<{ok: boolean, status: number, errorCode: (string|null), data: (object|null)}>}
  */
 async function callGemini(payload, apiKey) {
-  const geminiRes = await fetch(`${GEMINI_ENDPOINT}?key=${apiKey}`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify(payload),
-  });
+  for (let attempt = 1; attempt <= MAX_RETRIES; attempt++) {
+    const geminiRes = await fetch(`${GEMINI_ENDPOINT}?key=${apiKey}`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload),
+    });
 
-  if (!geminiRes.ok) {
+    if (geminiRes.ok) {
+      const data = await geminiRes.json();
+      return { ok: true, status: geminiRes.status, errorCode: null, data };
+    }
+
     const errBody = await geminiRes.text().catch(() => '');
-    console.error(`[gemini] Gemini error (HTTP ${geminiRes.status}):`, errBody);
+    console.error(`[gemini] Gemini error (HTTP ${geminiRes.status}) attempt ${attempt}/${MAX_RETRIES}:`, errBody);
     if (geminiRes.status === 400) {
       console.error('[gemini] Bad Request Payload:', JSON.stringify(payload, null, 2));
     }
@@ -69,11 +78,20 @@ async function callGemini(payload, apiKey) {
     else if (geminiRes.status === 500) errorCode = 'GEMINI_SERVER_ERROR';
     else if (geminiRes.status === 403) errorCode = 'GEMINI_ERROR'; // Forçado para 403
 
+    // Retries only on retryable errors (503, 504, 500, 429)
+    const retryable = [503, 504, 500, 429].includes(geminiRes.status);
+
+    if (retryable && attempt < MAX_RETRIES) {
+      const waitMs = RETRY_BASE_MS * Math.pow(2, attempt - 1) + Math.random() * 500;
+      console.log(`[gemini] Retrying in ${Math.round(waitMs)}ms...`);
+      await new Promise(r => setTimeout(r, waitMs));
+      continue;
+    }
+
     return { ok: false, status: geminiRes.status, errorCode, data: null };
   }
 
-  const data = await geminiRes.json();
-  return { ok: true, status: geminiRes.status, errorCode: null, data };
+  return { ok: false, status: 503, errorCode: 'GEMINI_UNAVAILABLE', data: null };
 }
 
 /**
