@@ -61,6 +61,9 @@ async function callGemini(payload, apiKey) {
     let errorCode = 'GEMINI_ERROR';
     if (geminiRes.status === 429) errorCode = 'RATE_LIMIT';
     else if (geminiRes.status === 400) errorCode = 'GEMINI_BAD_REQUEST';
+    else if (geminiRes.status === 503) errorCode = 'GEMINI_UNAVAILABLE';
+    else if (geminiRes.status === 504) errorCode = 'GEMINI_TIMEOUT';
+    else if (geminiRes.status === 500) errorCode = 'GEMINI_SERVER_ERROR';
 
     return { ok: false, status: geminiRes.status, errorCode, data: null };
   }

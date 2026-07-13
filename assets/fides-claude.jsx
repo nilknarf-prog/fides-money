@@ -5,7 +5,7 @@
 // - Limpeza automática do chat após 2h de inatividade
 
 const MAX_TOOL_ITERATIONS = 2;
-const COOLDOWN_NORMAL_SEC = 4;
+const COOLDOWN_NORMAL_SEC = 10;
 const COOLDOWN_RATELIMIT_SEC = 60;
 const HISTORY_TIMEOUT_MS = 2 * 60 * 60 * 1000; // 2 horas
 const STORAGE_KEY_MESSAGES = 'fides_assistant_messages';
@@ -486,6 +486,9 @@ function FidesAssistant() {
       GEMINI_BAD_REQUEST:  'Não consegui entender sua mensagem. Tente reformular.',
       EMPTY_REPLY:         'O assistente não conseguiu responder dessa vez. Tente reformular.',
       GEMINI_ERROR:        'O assistente está temporariamente fora do ar. Tente em instantes.',
+      GEMINI_UNAVAILABLE:  'Serviço indisponível no momento. Tente novamente em instantes.',
+      GEMINI_TIMEOUT:      'O assistente demorou demais. Tente novamente.',
+      GEMINI_SERVER_ERROR: 'Erro interno do assistente. Tente novamente em instantes.',
       INTERNAL_ERROR:      'Algo deu errado do nosso lado. Tente novamente.',
       NETWORK:             'Sem conexão. Verifique a internet.',
       TOOL_LIMIT:          'O assistente ficou em loop. Tente reformular a pergunta.',

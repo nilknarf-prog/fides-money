@@ -3,7 +3,7 @@ status: testing
 phase: 07-crud-metas
 source: [07-VERIFICATION.md]
 started: 2026-07-01
-updated: 2026-07-01
+updated: 2026-07-02
 ---
 
 ## Current Test
@@ -42,3 +42,7 @@ skipped: 0
 blocked: 0
 
 ## Gaps
+
+## Notes
+
+- **2026-07-02 — deploy-gap detectado durante UAT (não é gap de código).** Usuário testou produção e viu "Metas com salvamento chegam em breve. Por enquanto é só leitura." (EmBreveModal, `fides-metas.jsx:692`) ao tocar em criar meta. Diagnóstico: `main` estava 15 commits à frente de `origin/main` — toda a Phase 07 committada localmente mas nunca pushada; Vercel servia bundle antigo. Código HEAD já liga os CTAs corretos a `setCriarOpen(true)` (`fides-metas.jsx:732/816/885`). Resolvido: push `7b7a1d8..e47674c main -> main` disparou auto-deploy. Tests 1-4 seguem `pending` — re-testar em produção após deploy concluir. Botões Aportar/Ajustar plano/Concluir ainda abrem "Em breve" por design (deferidos).

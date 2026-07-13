@@ -316,6 +316,18 @@ module.exports = async (req, res) => {
         res.status(400).json({ error: 'GEMINI_BAD_REQUEST', code: 400 });
         return;
       }
+      if (geminiResult.errorCode === 'GEMINI_UNAVAILABLE') {
+        res.status(503).json({ error: 'GEMINI_UNAVAILABLE', code: 503 });
+        return;
+      }
+      if (geminiResult.errorCode === 'GEMINI_TIMEOUT') {
+        res.status(504).json({ error: 'GEMINI_TIMEOUT', code: 504 });
+        return;
+      }
+      if (geminiResult.errorCode === 'GEMINI_SERVER_ERROR') {
+        res.status(500).json({ error: 'GEMINI_SERVER_ERROR', code: 500 });
+        return;
+      }
       res.status(502).json({ error: 'GEMINI_ERROR', code: 502 });
       return;
     }

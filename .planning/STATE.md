@@ -1,37 +1,37 @@
 ---
 gsd_state_version: 1.0
 milestone: v1.1
-milestone_name: CRUD Metas — EM PLANEJAMENTO
-current_phase: 12
-current_phase_name: B8
+milestone_name: CRUD Metas + IA-3
+current_phase: 13
+current_phase_name: IA-3
 status: executing
-stopped_at: Phase 12 context gathered
-last_updated: "2026-07-08T01:57:31.312Z"
-last_activity: 2026-07-07
-last_activity_desc: Phase 11 complete, transitioned to Phase 12
+stopped_at: Phase 13 planning
+last_updated: "2026-07-12T21:05:00.000Z"
+last_activity: 2026-07-12
+last_activity_desc: Phase 12 complete, transitioned to Phase 13
 progress:
   total_phases: 8
-  completed_phases: 4
-  total_plans: 18
-  completed_plans: 18
-  percent: 50
+  completed_phases: 5
+  total_plans: 22
+  completed_plans: 22
+  percent: 62
 ---
 
 # Project State
 
 ## Current Position
 
-Phase: 12 — IA-2 Destravar WRITE no assistente in-app (B8)
+Phase: 13 — IA-3
 Plan: Not started
 Status: Ready to execute
-Last activity: 2026-07-07 — Phase 11 complete, transitioned to Phase 12
+Last activity: 2026-07-12 — Phase 12 complete, transitioned to Phase 13
 
 ## Project Reference
 
 See: .planning/PROJECT.md (updated 2026-07-01)
 
 **Core value:** Finanças pessoais por registro manual (fricção intencional → consciência); nunca número que impressiona mas engana.
-**Current focus:** Phase 11 — ia-1-hardening-do-assistente-gemini
+**Current focus:** Phase 13
 
 ## Phase Overview
 
@@ -42,6 +42,8 @@ See: .planning/PROJECT.md (updated 2026-07-01)
 | 05 | IA Real | AI-01, AI-02 | ✅ Complete |
 | 06 | Fix v1.0 tech debt | DEBT-01/02/03/04 | ✅ Complete |
 | 07 | CRUD Metas | META-01/02/03/04 | ⏳ Not started |
+| 12 | IA-2 WRITE in-app (B8) | WRITE-01..04, HONEST-01, DERIVED-SAFE-01 | ✅ Implemented — UAT pendente |
+| 13 | IA-3 Gating Premium | PENDING | 📋 Planning |
 
 ## Deferred Items
 
@@ -57,23 +59,25 @@ Items acknowledged and deferred at milestone close on 2026-07-01:
 
 ## Next Action
 
-**Phase 08 code-complete + deployed — rodar UAT humano:** `/gsd-verify-work 08`
+**Phase 13 (IA-3) — planejar gating premium:**
 
-Gap-closure feito e revisado (DB + security CLEAN, safe to push):
+Phase 12 (IA-2 B8) foi implementada em 5 commits (`9a9ead5` → `6714d3f`). UAT pendente — rodar com `/gsd-verify-work 12` após validar no app.
 
-- **08-07** (UI polish): `mesesLabel` mata "Infinity meses"; um só CTA "Nova meta"; `EmojiPicker` hand-rolled nos modais Criar/Ajustar.
-- **08-08** (blocker conclusão): diagnose-first via Supabase MCP → root cause = drift de schema (`create table if not exists` nunca adiciona coluna a tabela pré-existente; `completed`/`completed_at` só existiam no bloco CREATE). Colunas JÁ estão LIVE + RLS owner-scoped OK → **nenhum write LIVE feito** (decisão: no-op live + harden SQL). `schema.sql` + novo `goals-completed-fix.sql` com ALTERs idempotentes; helper `patchComAutoConclusao` (auto-conclui a >=alvo, sem auto-reabertura).
+Phase 13 é o próximo passo do épico IA/WhatsApp (13→14): gating premium via `profiles.plan`. Planejar com `/gsd-plan-phase 13`.
 
-**4 verdades runtime a fechar na UAT (precisam do app deployado + sessão logada):**
+## Phase Overview
 
-1. `EmojiPicker` abre/seleciona/persiste nos dois modais (sem warning "Rendered more hooks…").
-2. "Marcar como concluída" reflete end-to-end (pill/filtro/Cap III) e persiste após refresh — Teste 7/8 do 08-UAT.
-3. Aportar/Atualizar saldo a >=alvo auto-conclui com o mesmo reflexo.
-4. Sem "Infinity meses" em nenhum ponto; só um CTA "Nova meta".
+| Phase | Name | Requirements | Status |
+|-------|------|--------------|--------|
+| 03 | Limpeza + Tokens | CLEAN-01, DESIGN-01/02/03/04 | ✅ Complete |
+| 04 | UX Mobile + Motion | MOBILE-01, MOTION-01/02 | ✅ Complete |
+| 05 | IA Real | AI-01, AI-02 | ✅ Complete |
+| 06 | Fix v1.0 tech debt | DEBT-01/02/03/04 | ✅ Complete |
+| 07 | CRUD Metas | META-01/02/03/04 | ⏳ Not started |
+| 12 | IA-2 WRITE in-app (B8) | WRITE-01..04, HONEST-01, DERIVED-SAFE-01 | ✅ Implemented — UAT pendente |
+| 13 | IA-3 Gating Premium | PENDING | 📋 Planning |
 
-VERIFICATION: `.planning/phases/08-metas-vision-board-redesign/08-VERIFICATION.md` (human_needed, 5/9 static-verified).
-
-## Performance Metrics
+## Phase Overview
 
 | Phase | Plan | Duration | Notes |
 |-------|------|----------|-------|
@@ -103,6 +107,12 @@ VERIFICATION: `.planning/phases/08-metas-vision-board-redesign/08-VERIFICATION.m
 | Phase 11 P01 | ~5min | 2 tasks | 2 files |
 | Phase 11 P02 | ~10min | 2 tasks | 1 files |
 | Phase 11 P04 | ~10min | 3 tasks | 2 files |
+| Phase 12 P01 | 15min | 3 tasks | 2 files |
+| Phase 12 P02 | 25min | 3 tasks | 2 files |
+| Phase 12 P03 | 20min | 2 tasks | 1 files |
+| Phase 12 P04 | 15min | 2 tasks | 1 files |
+| Phase 12 P05 | 5min | 1 tasks | 1 files |
+| Phase 13 P01 | — | — | — |
 
 ## Decisions
 
@@ -158,10 +168,17 @@ VERIFICATION: `.planning/phases/08-metas-vision-board-redesign/08-VERIFICATION.m
 - [Phase ?]: 11-04: erro !res.ok arma 60s quando res.status===429 OU errCode USER_DAILY_LIMIT/RATE_LIMIT; demais erros armam 4s
 - [Phase ?]: 11-04: branch morto de function-calling removido do handleAiClick (servidor em mode=analysis nunca retorna tool_calls)
 
+- [Phase 12]: 12-01: wa_log_transaction RPC — SECURITY DEFINER + owner-guard + recalc_account_balance (D-01)
+- [Phase 12]: 12-02: 4 tools WRITE restauradas (lancar/recategorizar/editar/criar_categoria) + system prompt honestidade + nonce anti-replay (D-06, TTL 120s) + security-reviewer PASS
+- [Phase 12]: 12-03: lancar_transacao reescrito p/ RPC + mês derivado de data real (mesFaturaFor) + status pendente em cartão + D-04 categoria bundlada
+- [Phase 12]: 12-04: criar_categoria em TOOLS_REQUIRING_CONFIRMATION (SD-1) + await addCategory (P5 morto) + nonce round-trip + window.__fidesWriteConfirmPending
+- [Phase 12]: 12-05: guard ⌘K — early-return quando __fidesWriteConfirmPending (P6)
+- [Phase 13]: P01: planejamento gating premium via profiles.plan — pendente
+
 ## Session
 
-**Last session:** 2026-07-08T01:57:31.281Z
-**Stopped at:** Phase 12 context gathered
+**Last session:** 2026-07-12T20:55:00.000Z
+**Stopped at:** Phase 13 planning
 **Resume file:** .planning/phases/12-ia-2-destravar-write-no-assistente-in-app-b8/12-CONTEXT.md
 
 ## Accumulated Context
@@ -183,5 +200,11 @@ Milestone v1.1 (CRUD Metas) roadmap: single phase (Phase 07) given tight scope �
   - **Warning W-1 (deploy atomicidade — honrar na execução):** WR-03 exige que 11-02 (servidor passa a EXIGIR JWT no header) e 11-04 (os 2 callers migram para header) subam no MESMO push. Se 11-02 pushar isolado, produção quebra com 401 até 11-04 deployar. Segurar o push de 11-02 até 11-04 concluir → um único push com `api/assistant.js` + os 2 `.jsx`. NÃO auto-pushar por plano nesta fase.
   - **Warning W-2 (prova estática extra):** ao executar 11-02 T1 / 11-04 T2 / 11-04 T3, adicionar grep negativo confirmando que `jwt` saiu do body (desestruturação de `req.body` sem `jwt`; `JSON.stringify` do fetch sem `jwt`).
   - Caminhos sensíveis: `security-reviewer` (todos os plans de `api/`) + `database-reviewer` (11-03, schema) antes de cada commit.
-- Épico IA/WhatsApp: Phases 12–14 registradas mas ainda não planejadas. Planejar cada uma na vez (`/gsd-plan-phase 12` etc.) — design completo em `.planning/research/whatsapp-e-ia-arquitetura.md`.
+- **Phase 12 (IA-2 B8) implementada em 5 commits (`9a9ead5` → `6714d3f`). UAT pendente (4 testes humanos no app).**
+  - 12-01: RPC `wa_log_transaction` (SECURITY DEFINER + owner-guard + recalc_account_balance)
+  - 12-02: 4 tools WRITE restauradas + system prompt honestidade + nonce anti-replay (D-06)
+  - 12-03: `lancar_transacao` → RPC + mês derivado de data real (mesFaturaFor) + status pendente em cartão + D-04 bundlada
+  - 12-04: `criar_categoria` confirmado (SD-1) + await addCategory (P5 morto) + nonce round-trip + flag `__fidesWriteConfirmPending`
+  - 12-05: guard ⌘K (P6)
+- **Phase 13 (IA-3):** gating premium via `profiles.plan` — ainda não planejada.
 - (Anterior) Phase 07 goal-value data-model: `/gsd-discuss-phase 07` se/quando retomar Metas.
