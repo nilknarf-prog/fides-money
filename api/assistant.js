@@ -72,7 +72,7 @@ const TOOLS_DECLARATION = [{
       name: 'consultar_saldo',
       description: 'Retorna um snapshot das finanças atuais do usuário: lista de contas com saldos, cartões com limite/usado/disponível, e totais do mês (receitas, despesas pagas, despesas pendentes). Use quando o usuário perguntar sobre saldo, situação das contas, quanto tem disponível, ou totais do mês.',
       parameters: {
-        type: 'object',
+        type: 'OBJECT',
         properties: {},
       },
     },
@@ -80,23 +80,23 @@ const TOOLS_DECLARATION = [{
       name: 'consultar_extrato',
       description: 'Retorna lista de transações filtradas. Use para perguntas tipo "o que eu gastei essa semana", "extrato do Nubank", "minhas transações de ontem". Cada transação inclui descrição, valor, categoria, data, conta/cartão e status.',
       parameters: {
-        type: 'object',
+        type: 'OBJECT',
         properties: {
           periodo: {
-            type: 'string',
+            type: 'STRING',
             description: 'Período do extrato. Valores aceitos: "hoje", "semana" (últimos 7 dias), "mes" (mês selecionado no app), "prev_mes" (mês anterior).',
             enum: ['hoje', 'semana', 'mes', 'prev_mes'],
           },
           conta: {
-            type: 'string',
+            type: 'STRING',
             description: 'Filtro opcional por nome da conta (busca aproximada). Ex: "Nubank", "Bradesco".',
           },
           cartao: {
-            type: 'string',
+            type: 'STRING',
             description: 'Filtro opcional por nome do cartão (busca aproximada). Ex: "Nubank", "Inter".',
           },
           limite: {
-            type: 'integer',
+            type: 'INTEGER',
             description: 'Máximo de transações a retornar. Padrão 20.',
           },
         },
@@ -108,13 +108,13 @@ const TOOLS_DECLARATION = [{
       name: 'lancar_transacao',
       description: 'Lança uma transação (despesa ou receita) para o usuário. Valor NEGATIVO = despesa, POSITIVO = receita. A ação é PROPOSTA num card de confirmação visual — o usuário confirma ou cancela. Se a categoria informada não existir, o sistema vai propor criar a categoria e lançar numa confirmação só — NÃO chame criar_categoria separadamente.',
       parameters: {
-        type: 'object',
+        type: 'OBJECT',
         properties: {
-          descricao: { type: 'string', description: 'Descrição curta da transação. Ex: "Mercado Extra", "Salário junho".' },
-          valor: { type: 'number', description: 'Valor em R$. NEGATIVO para despesa (-50.00), POSITIVO para receita (3000.00).' },
-          categoria: { type: 'string', description: 'Chave ou nome da categoria. Ex: "mercado", "salario", "transporte". Se não existir, o sistema propõe criar.' },
-          data: { type: 'string', description: 'Data no formato YYYY-MM-DD. Se não informada, usa hoje.' },
-          conta_ou_cartao: { type: 'string', description: 'Nome da conta ou cartão de destino. Ex: "Nubank", "Bradesco", "Inter". Obrigatório.' },
+          descricao: { type: 'STRING', description: 'Descrição curta da transação. Ex: "Mercado Extra", "Salário junho".' },
+          valor: { type: 'NUMBER', description: 'Valor em R$. NEGATIVO para despesa (-50.00), POSITIVO para receita (3000.00).' },
+          categoria: { type: 'STRING', description: 'Chave ou nome da categoria. Ex: "mercado", "salario", "transporte". Se não existir, o sistema propõe criar.' },
+          data: { type: 'STRING', description: 'Data no formato YYYY-MM-DD. Se não informada, usa hoje.' },
+          conta_ou_cartao: { type: 'STRING', description: 'Nome da conta ou cartão de destino. Ex: "Nubank", "Bradesco", "Inter". Obrigatório.' },
         },
         required: ['descricao', 'valor', 'categoria', 'conta_ou_cartao'],
       },
@@ -123,10 +123,10 @@ const TOOLS_DECLARATION = [{
       name: 'recategorizar_transacao',
       description: 'Muda a categoria de uma transação existente. A ação é PROPOSTA ao usuário para confirmação.',
       parameters: {
-        type: 'object',
+        type: 'OBJECT',
         properties: {
-          transacao_id: { type: 'string', description: 'ID da transação a recategorizar (do extrato).' },
-          nova_categoria: { type: 'string', description: 'Chave ou nome da nova categoria.' },
+          transacao_id: { type: 'STRING', description: 'ID da transação a recategorizar (do extrato).' },
+          nova_categoria: { type: 'STRING', description: 'Chave ou nome da nova categoria.' },
         },
         required: ['transacao_id', 'nova_categoria'],
       },
@@ -135,17 +135,17 @@ const TOOLS_DECLARATION = [{
       name: 'editar_transacao',
       description: 'Edita campos de uma transação existente (valor, descrição, data, status). NÃO permite trocar conta/cartão. A ação é PROPOSTA ao usuário para confirmação.',
       parameters: {
-        type: 'object',
+        type: 'OBJECT',
         properties: {
-          transacao_id: { type: 'string', description: 'ID da transação a editar (do extrato).' },
+          transacao_id: { type: 'STRING', description: 'ID da transação a editar (do extrato).' },
           patch: {
-            type: 'object',
+            type: 'OBJECT',
             description: 'Campos a alterar. Envie apenas os que mudam.',
             properties: {
-              valor: { type: 'number', description: 'Novo valor (mantém o sinal original da transação).' },
-              descricao: { type: 'string', description: 'Nova descrição.' },
-              data: { type: 'string', description: 'Nova data (YYYY-MM-DD).' },
-              status: { type: 'string', description: 'Novo status.', enum: ['pago', 'pendente'] },
+              valor: { type: 'NUMBER', description: 'Novo valor (mantém o sinal original da transação).' },
+              descricao: { type: 'STRING', description: 'Nova descrição.' },
+              data: { type: 'STRING', description: 'Nova data (YYYY-MM-DD).' },
+              status: { type: 'STRING', description: 'Novo status.', enum: ['pago', 'pendente'] },
             },
           },
         },
@@ -156,10 +156,10 @@ const TOOLS_DECLARATION = [{
       name: 'criar_categoria',
       description: 'Cria uma nova categoria customizada. A ação é PROPOSTA ao usuário num card de confirmação — ele confirma ou cancela. Para lançar uma transação com categoria nova, use lancar_transacao (o sistema propõe criar+lançar junto).',
       parameters: {
-        type: 'object',
+        type: 'OBJECT',
         properties: {
-          nome: { type: 'string', description: 'Nome da categoria a criar. Ex: "Pet", "Saúde Mental".' },
-          emoji: { type: 'string', description: 'Emoji para a categoria. Opcional, padrão 🏷️.' },
+          nome: { type: 'STRING', description: 'Nome da categoria a criar. Ex: "Pet", "Saúde Mental".' },
+          emoji: { type: 'STRING', description: 'Emoji para a categoria. Opcional, padrão 🏷️.' },
         },
         required: ['nome'],
       },
@@ -174,7 +174,7 @@ module.exports = async (req, res) => {
   }
 
   try {
-    const { messages, context, toolResults, mode, nonce: clientNonce } = req.body || {};
+    const { messages, context, toolResults, lastToolCalls, mode, nonce: clientNonce } = req.body || {};
     if (!Array.isArray(messages) || messages.length === 0) {
       res.status(400).json({ error: 'INVALID_MESSAGES', code: 400 });
       return;
@@ -277,8 +277,19 @@ module.exports = async (req, res) => {
       });
     }
 
-    // Se vieram toolResults, anexar como functionResponse
+    // Se vieram toolResults, anexar como functionResponse precedido pelos functionCalls
     if (Array.isArray(toolResults) && toolResults.length > 0) {
+      if (Array.isArray(lastToolCalls) && lastToolCalls.length > 0) {
+        contents.push({
+          role: 'model',
+          parts: lastToolCalls.map(tc => ({
+            functionCall: {
+              name: tc.name,
+              args: tc.args || {}
+            }
+          })),
+        });
+      }
       contents.push({
         role: 'user',
         parts: toolResults.map(tr => ({

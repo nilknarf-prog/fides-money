@@ -306,10 +306,10 @@ function FidesAssistant() {
       const isoDate = `${yr}-${mm}-${dd}`;
       const dateStr = `${dd}/${mm}`;
       
-      const val = args.tipo === 'despesa' ? -Math.abs(Number(args.valor)) : Math.abs(Number(args.valor));
+      const val = Number(args.valor) || 0;
       return {
         resolved: {
-          tipo: args.tipo,
+          tipo: val >= 0 ? 'receita' : 'despesa',
           val,
           desc: args.descricao,
           cat: catId,
@@ -496,7 +496,7 @@ function FidesAssistant() {
     return map[errCode] || 'Não consegui responder agora. Tente de novo em instantes.';
   };
 
-  const callAssistant = async (history, toolResults, jwt, nonceStr) => {
+  const callAssistant = async (history, toolResults, lastToolCalls, jwt, nonceStr) => {
     const ctx = buildContext();
     const res = await fetch('/api/assistant', {
       method: 'POST',
@@ -508,6 +508,7 @@ function FidesAssistant() {
         messages: history,
         context: ctx,
         toolResults: toolResults || null,
+        lastToolCalls: lastToolCalls || null,
         nonce: nonceStr || null
       }),
     });
@@ -543,11 +544,12 @@ function FidesAssistant() {
         .map(m => ({ role: m.role, content: m.content }));
 
       let toolResults = null;
+      let lastToolCalls = null;
       let iteration = 0;
       let lastNonce = null;
 
       while (iteration < MAX_TOOL_ITERATIONS) {
-        const { ok, status, data } = await callAssistant(history, toolResults, jwt, lastNonce);
+        const { ok, status, data } = await callAssistant(history, toolResults, lastToolCalls, jwt, lastNonce);
 
         if (!ok) {
           const errCode = data?.error;
@@ -572,6 +574,7 @@ function FidesAssistant() {
 
         if (Array.isArray(data?.tool_calls) && data.tool_calls.length > 0) {
           if (data.nonce) lastNonce = data.nonce;
+          lastToolCalls = data.tool_calls;
           setThinkingLabel('consultando seus dados...');
           // executeTools agora é async (pode esperar confirmação)
           toolResults = await executeTools(data.tool_calls);

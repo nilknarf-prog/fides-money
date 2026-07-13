@@ -56,7 +56,10 @@ async function callGemini(payload, apiKey) {
 
   if (!geminiRes.ok) {
     const errBody = await geminiRes.text().catch(() => '');
-    console.error('[gemini] Gemini error', geminiRes.status, errBody);
+    console.error(`[gemini] Gemini error (HTTP ${geminiRes.status}):`, errBody);
+    if (geminiRes.status === 400) {
+      console.error('[gemini] Bad Request Payload:', JSON.stringify(payload, null, 2));
+    }
 
     let errorCode = 'GEMINI_ERROR';
     if (geminiRes.status === 429) errorCode = 'RATE_LIMIT';
@@ -64,6 +67,7 @@ async function callGemini(payload, apiKey) {
     else if (geminiRes.status === 503) errorCode = 'GEMINI_UNAVAILABLE';
     else if (geminiRes.status === 504) errorCode = 'GEMINI_TIMEOUT';
     else if (geminiRes.status === 500) errorCode = 'GEMINI_SERVER_ERROR';
+    else if (geminiRes.status === 403) errorCode = 'GEMINI_ERROR'; // Forçado para 403
 
     return { ok: false, status: geminiRes.status, errorCode, data: null };
   }
