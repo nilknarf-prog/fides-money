@@ -282,22 +282,20 @@ module.exports = async (req, res) => {
       if (Array.isArray(lastToolCalls) && lastToolCalls.length > 0) {
         contents.push({
           role: 'model',
-          parts: lastToolCalls.map(tc => ({
-            functionCall: {
-              name: tc.name,
-              args: tc.args || {}
-            }
-          })),
+          parts: lastToolCalls.map(tc => {
+            const fc = { name: tc.name, args: tc.args || {} };
+            if (tc.id) fc.id = tc.id;
+            return { functionCall: fc };
+          }),
         });
       }
       contents.push({
         role: 'user',
-        parts: toolResults.map(tr => ({
-          functionResponse: {
-            name: tr.name,
-            response: { result: tr.result },
-          },
-        })),
+        parts: toolResults.map(tr => {
+          const fr = { name: tr.name, response: { result: tr.result } };
+          if (tr.id) fr.id = tr.id;
+          return { functionResponse: fr };
+        }),
       });
     }
 

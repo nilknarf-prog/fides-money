@@ -439,7 +439,7 @@ function FidesAssistant() {
           // Resolver args (resolver UUIDs)
           const resolution = resolveWriteToolArgs(tc);
           if (resolution.error) {
-            results.push({ name: tc.name, args: tc.args, callId: tc.callId, result: { error: 'RESOLUTION_ERROR', message: resolution.error } });
+            results.push({ name: tc.name, args: tc.args, id: tc.id, result: { error: 'RESOLUTION_ERROR', message: resolution.error } });
             continue;
           }
           // Aguardar confirmação do usuário (Promise resolvida pelos botões)
@@ -452,25 +452,25 @@ function FidesAssistant() {
           });
           setPendingConfirmation(null);
           if (confirmed === 'cancel') {
-            results.push({ name: tc.name, args: tc.args, callId: tc.callId, result: { cancelled: true, message: 'Usuário cancelou a operação.' } });
+            results.push({ name: tc.name, args: tc.args, id: tc.id, result: { cancelled: true, message: 'Usuário cancelou a operação.' } });
             continue;
           }
           // Executar
           const execResult = await executeWriteTool(tc, resolution.resolved);
-          results.push({ name: tc.name, args: tc.args, callId: tc.callId, result: execResult });
+          results.push({ name: tc.name, args: tc.args, id: tc.id, result: execResult });
         } else {
           // Tool sem confirmação (READ ou WRITE leve)
           const fn = toolExecutors[tc.name];
           if (!fn) {
-            results.push({ name: tc.name, args: tc.args, callId: tc.callId, result: { error: 'TOOL_NOT_FOUND' } });
+            results.push({ name: tc.name, args: tc.args, id: tc.id, result: { error: 'TOOL_NOT_FOUND' } });
             continue;
           }
           const result = fn(tc.args || {});
-          results.push({ name: tc.name, args: tc.args, callId: tc.callId, result });
+          results.push({ name: tc.name, args: tc.args, id: tc.id, result });
         }
       } catch (err) {
         console.error('[FidesAssistant] tool exec error', tc.name, err);
-        results.push({ name: tc.name, args: tc.args, callId: tc.callId, result: { error: 'EXECUTION_ERROR', message: String(err?.message || err) } });
+        results.push({ name: tc.name, args: tc.args, id: tc.id, result: { error: 'EXECUTION_ERROR', message: String(err?.message || err) } });
       }
     }
     return results;

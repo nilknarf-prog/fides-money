@@ -90,6 +90,7 @@ function parseResponse(geminiData) {
   for (const p of parts) {
     if (p.functionCall) {
       toolCalls.push({
+        id: p.functionCall.id || undefined,
         name: p.functionCall.name,
         args: p.functionCall.args || {},
       });
