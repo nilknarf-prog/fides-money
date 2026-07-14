@@ -307,11 +307,36 @@ function FidesAssistant() {
     const { name, args } = toolCall;
     if (name === 'lancar_transacao') {
       const ref = args.conta_ou_cartao || '';
-      const acc = findAccountByName(ref);
-      const card = !acc ? findCardByName(ref) : null;
-      if (!acc && !card) {
+      const tipo = args.tipo_destino;
+      // AI-DEST-HOMONIMO-01: consultar SEMPRE os dois (nunca condicionar findCardByName a
+      // "nenhuma conta casou") — senão o qualificador "cartão" do usuário nunca entra na
+      // decisão e uma conta homônima sempre vence pela ordem (12-UAT Test 1).
+      const accMatch = findAccountByName(ref);
+      const cardMatch = findCardByName(ref);
+
+      let target = null;
+      if (tipo === 'cartao') {
+        if (!cardMatch) {
+          return { error: `Não encontrei um cartão chamado "${ref}". Cartões disponíveis: ${(cards||[]).map(c=>c.name).join(', ') || 'nenhum'}` };
+        }
+        target = { type: 'card', id: cardMatch.id, name: cardMatch.name, obj: cardMatch };
+      } else if (tipo === 'conta') {
+        if (!accMatch) {
+          return { error: `Não encontrei uma conta chamada "${ref}". Contas disponíveis: ${(accounts||[]).map(a=>a.name).join(', ') || 'nenhuma'}` };
+        }
+        target = { type: 'account', id: accMatch.id, name: accMatch.name };
+      } else if (accMatch && cardMatch) {
+        // Homônimo sem tipo declarado: NUNCA escolher pela ordem (fail-closed) — pedir
+        // desambiguação explícita ao usuário.
+        return { error: `Encontrei uma conta E um cartão chamados "${ref}" — qual você quis dizer? Diga "cartão ${ref}" para o cartão de crédito ou "conta ${ref}" para a conta corrente.` };
+      } else if (accMatch) {
+        target = { type: 'account', id: accMatch.id, name: accMatch.name };
+      } else if (cardMatch) {
+        target = { type: 'card', id: cardMatch.id, name: cardMatch.name, obj: cardMatch };
+      } else {
         return { error: `Não encontrei conta ou cartão chamado "${ref}". Contas/cartões disponíveis: ${[...(accounts||[]).map(a=>a.name), ...(cards||[]).map(c=>c.name)].join(', ')}` };
       }
+
       const cat = findCategoryByName(args.categoria);
       let catId, catLabel;
       let createCategory = null;
@@ -350,7 +375,7 @@ function FidesAssistant() {
           dateStr,
           ano: parseInt(yr, 10),
           status: args.status || 'pago',
-          target: acc ? { type: 'account', id: acc.id, name: acc.name } : { type: 'card', id: card.id, name: card.name, obj: card },
+          target,
         },
       };
     }
