@@ -1,4 +1,9 @@
 {
+  "functions": {
+    "api/assistant.js": {
+      "maxDuration": 30
+    }
+  },
   "rewrites": [
     {
       "source": "/fides-config.js",

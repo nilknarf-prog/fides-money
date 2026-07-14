@@ -2,13 +2,42 @@
 // Prefixo `_` no diretório garante que este arquivo nunca vira Serverless Function.
 // AI-SHARED-01: extrai payload/call/parse comuns entre api/assistant.js (hoje) e
 // api/whatsapp.js (fase 14). Escopo mínimo — auth/rate-limit/prompt ficam no handler.
-// Retry com backoff exponencial para erros transitórios (503/504/500/429).
+// Retry com backoff exponencial para erros transitórios (503/504/500/429) +
+// AI-FALLBACK-01: contingência de modelo quando o primário esgota (pool de capacidade
+// diferente no Google, então raramente sobrecarregado no mesmo instante).
 
 const GEMINI_MODEL = 'gemini-2.5-flash-lite';
+// AI-FALLBACK-01: modelo de contingência para quando o primário esgota os retries com erro
+// transitório de disponibilidade (503/504/500/429). Modelo diferente = pool de capacidade
+// separado do Google, raramente sobrecarregado no mesmo instante que o flash-lite. Suporta
+// function calling com o mesmo schema, então buildPayload/parseResponse não mudam.
+const GEMINI_FALLBACK_MODEL = 'gemini-2.0-flash';
 const GEMINI_ENDPOINT = `https://generativelanguage.googleapis.com/v1beta/models/${GEMINI_MODEL}:generateContent`;
 
-const MAX_RETRIES = 3;
+const MAX_RETRIES = 3;          // tentativas no modelo primário
+const MAX_FALLBACK_RETRIES = 2; // tentativas no fallback (orçamento menor p/ caber no timeout da função)
 const RETRY_BASE_MS = 1000;
+
+// Erros que valem RETRY no MESMO modelo (backoff ajuda: sobrecarga/erro transitório momentâneo).
+const MODEL_RETRY_STATUS = [503, 504, 500];
+// Erros que disparam FALLBACK p/ o outro modelo. Inclui 429: rate-limit por-minuto NÃO melhora
+// com backoff no mesmo modelo (a janela não reseta em 1-2s), mas o outro modelo tem bucket de
+// cota separado — então no 429 pula o retry inútil e vai direto pro fallback.
+// 400 (bad request) e 403 (auth) ficam de fora dos dois — falhariam igual em qualquer modelo.
+const FALLBACK_STATUS = [503, 504, 500, 429];
+
+function endpointFor(model) {
+  return `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent`;
+}
+
+function classifyError(status) {
+  if (status === 429) return 'RATE_LIMIT';
+  if (status === 400) return 'GEMINI_BAD_REQUEST';
+  if (status === 503) return 'GEMINI_UNAVAILABLE';
+  if (status === 504) return 'GEMINI_TIMEOUT';
+  if (status === 500) return 'GEMINI_SERVER_ERROR';
+  return 'GEMINI_ERROR'; // inclui 403 (forçado p/ não vazar detalhe de permissão)
+}
 
 /**
  * Monta o payload de generateContent do Gemini.
@@ -45,15 +74,18 @@ function buildPayload({ systemPrompt, contents, tools, toolMode, generationConfi
 }
 
 /**
- * Chama o endpoint generateContent do Gemini e normaliza o resultado.
- * NÃO escreve em `res` — o handler HTTP decide o status/response ao cliente.
+ * Chama um modelo específico com retry + backoff exponencial nos erros transitórios.
+ * NÃO escreve em `res` — devolve resultado normalizado ao chamador.
+ * @param {string} model
  * @param {object} payload
  * @param {string} apiKey
+ * @param {number} maxRetries
  * @returns {Promise<{ok: boolean, status: number, errorCode: (string|null), data: (object|null)}>}
  */
-async function callGemini(payload, apiKey) {
-  for (let attempt = 1; attempt <= MAX_RETRIES; attempt++) {
-    const geminiRes = await fetch(`${GEMINI_ENDPOINT}?key=${apiKey}`, {
+async function callModel(model, payload, apiKey, maxRetries) {
+  const endpoint = endpointFor(model);
+  for (let attempt = 1; attempt <= maxRetries; attempt++) {
+    const geminiRes = await fetch(`${endpoint}?key=${apiKey}`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(payload),
@@ -65,25 +97,17 @@ async function callGemini(payload, apiKey) {
     }
 
     const errBody = await geminiRes.text().catch(() => '');
-    console.error(`[gemini] Gemini error (HTTP ${geminiRes.status}) attempt ${attempt}/${MAX_RETRIES}:`, errBody);
+    console.error(`[gemini] ${model} error (HTTP ${geminiRes.status}) attempt ${attempt}/${maxRetries}:`, errBody);
     if (geminiRes.status === 400) {
       console.error('[gemini] Bad Request Payload:', JSON.stringify(payload, null, 2));
     }
 
-    let errorCode = 'GEMINI_ERROR';
-    if (geminiRes.status === 429) errorCode = 'RATE_LIMIT';
-    else if (geminiRes.status === 400) errorCode = 'GEMINI_BAD_REQUEST';
-    else if (geminiRes.status === 503) errorCode = 'GEMINI_UNAVAILABLE';
-    else if (geminiRes.status === 504) errorCode = 'GEMINI_TIMEOUT';
-    else if (geminiRes.status === 500) errorCode = 'GEMINI_SERVER_ERROR';
-    else if (geminiRes.status === 403) errorCode = 'GEMINI_ERROR'; // Forçado para 403
+    const errorCode = classifyError(geminiRes.status);
+    const retryable = MODEL_RETRY_STATUS.includes(geminiRes.status);
 
-    // Retries only on retryable errors (503, 504, 500, 429)
-    const retryable = [503, 504, 500, 429].includes(geminiRes.status);
-
-    if (retryable && attempt < MAX_RETRIES) {
+    if (retryable && attempt < maxRetries) {
       const waitMs = RETRY_BASE_MS * Math.pow(2, attempt - 1) + Math.random() * 500;
-      console.log(`[gemini] Retrying in ${Math.round(waitMs)}ms...`);
+      console.log(`[gemini] ${model} retrying in ${Math.round(waitMs)}ms...`);
       await new Promise(r => setTimeout(r, waitMs));
       continue;
     }
@@ -92,6 +116,27 @@ async function callGemini(payload, apiKey) {
   }
 
   return { ok: false, status: 503, errorCode: 'GEMINI_UNAVAILABLE', data: null };
+}
+
+/**
+ * Chama o Gemini com contingência de modelo. Tenta o primário (com retries); se esgotar
+ * com erro transitório de disponibilidade (503/504/500/429), cai UMA vez para o modelo de
+ * contingência (com orçamento de retries próprio). Assinatura pública preservada — é o que
+ * api/assistant.js consome: `callGemini(payload, apiKey)`.
+ * @param {object} payload
+ * @param {string} apiKey
+ * @returns {Promise<{ok: boolean, status: number, errorCode: (string|null), data: (object|null)}>}
+ */
+async function callGemini(payload, apiKey) {
+  const primary = await callModel(GEMINI_MODEL, payload, apiKey, MAX_RETRIES);
+  if (primary.ok) return primary;
+
+  // Só vale o fallback em erro de disponibilidade/rate-limit — 400/403 falhariam igual no outro modelo.
+  if (!FALLBACK_STATUS.includes(primary.status)) return primary;
+
+  console.warn(`[gemini] ${GEMINI_MODEL} esgotado (HTTP ${primary.status}); tentando fallback ${GEMINI_FALLBACK_MODEL}`);
+  // Sucesso ou não, o resultado do fallback é o mais recente — devolve ele ao handler.
+  return callModel(GEMINI_FALLBACK_MODEL, payload, apiKey, MAX_FALLBACK_RETRIES);
 }
 
 /**
@@ -125,6 +170,7 @@ function parseResponse(geminiData) {
 
 module.exports = {
   GEMINI_MODEL,
+  GEMINI_FALLBACK_MODEL,
   GEMINI_ENDPOINT,
   buildPayload,
   callGemini,

@@ -8,6 +8,13 @@ const MAX_TOOL_ITERATIONS = 2;
 const COOLDOWN_NORMAL_SEC = 10;
 const COOLDOWN_RATELIMIT_SEC = 60;
 const HISTORY_TIMEOUT_MS = 2 * 60 * 60 * 1000; // 2 horas
+// AI-RETRY-CLIENT-01: o backend já faz retry + fallback de modelo numa mesma request
+// (até 5 tentativas upstream em 2 pools, 1 slot de cota). Esta camada só cobre o caso raro
+// em que a request inteira ainda volta 503 (GEMINI_UNAVAILABLE): 1 retentativa transparente
+// esconde o blip. Mantido em 1 de propósito — cada request que chega ao backend consome 1
+// slot da cota diária mesmo quando o Gemini falha, então nada de tempestade de retries aqui.
+const ASSISTANT_RETRY_ON_503 = 1;
+const ASSISTANT_RETRY_DELAY_MS = 1200;
 const STORAGE_KEY_MESSAGES = 'fides_assistant_messages';
 const STORAGE_KEY_LAST_ACTIVITY = 'fides_assistant_last_activity';
 const TOAST_DURATION_MS = 3000;
@@ -150,12 +157,26 @@ function FidesAssistant() {
   const findCategoryByName = (query) => {
     if (!query) return null;
     const q = String(query).toLowerCase().trim();
-    // Tenta match exato por id
+    const cats = Object.entries(categories || {});
+    // 1. match exato por id (ex.: "mercado")
     if (categories[q]) return { id: q, ...categories[q] };
-    // Tenta match por label
-    const entry = Object.entries(categories || {}).find(([k, v]) =>
-      v && v.label && v.label.toLowerCase().includes(q)
-    );
+    // 2. match exato por label (ex.: "Presente")
+    let entry = cats.find(([, v]) => v && v.label && v.label.toLowerCase().trim() === q);
+    // 3. label contém a query (ex.: "aliment" → "Alimentação")
+    if (!entry) entry = cats.find(([, v]) => v && v.label && v.label.toLowerCase().includes(q));
+    // 4. a query contém o label (ex.: "presente de natal" → "Presente") — evita criar
+    //    categoria duplicada quando o usuário só detalhou a existente. Label de 1 palavra
+    //    casa por token exato (não deixa "conta" casar dentro de "descontos"); label de
+    //    várias palavras casa por substring (o espaço já torna o acerto improvável de errar).
+    if (!entry) {
+      const qTokens = q.split(/\s+/).filter(Boolean);
+      entry = cats.find(([, v]) => {
+        if (!v || !v.label) return false;
+        const lbl = v.label.toLowerCase().trim();
+        if (!lbl) return false;
+        return lbl.includes(' ') ? q.includes(lbl) : qTokens.includes(lbl);
+      });
+    }
     return entry ? { id: entry[0], ...entry[1] } : null;
   };
 
@@ -421,7 +442,7 @@ function FidesAssistant() {
       if (name === 'criar_categoria') {
         await addCategory(resolved.catKey, { label: resolved.label, emoji: resolved.emoji, group: resolved.group, custom: true });
         setToast({ text: `✓ Categoria "${resolved.label}" criada`, ts: Date.now() });
-        return { success: true, categoria_id: resolved.catKey, label: resolved.label, emoji: resolved.emoji, group: resolved.group };
+        return { success: true, categoria_id: resolved.catKey, label: resolved.label, emoji: resolved.emoji, group: resolved.group, message: `Criei a categoria "${resolved.label}".` };
       }
       return { error: 'UNKNOWN_TOOL' };
     } catch (err) {
@@ -516,6 +537,18 @@ function FidesAssistant() {
     return { ok: res.ok, status: res.status, data };
   };
 
+  // AI-RETRY-CLIENT-01: retentativa transparente só no 503 (GEMINI_UNAVAILABLE). O nonce é
+  // HMAC stateless (TTL 120s), então reenviar a mesma request com toolResults+nonce é seguro
+  // (sem replay nem gasto duplo). Erros não-503 (429/401/400/...) sobem na hora, sem retry.
+  const callAssistantWithRetry = async (history, toolResults, lastToolCalls, jwt, nonceStr) => {
+    let res = await callAssistant(history, toolResults, lastToolCalls, jwt, nonceStr);
+    for (let r = 0; r < ASSISTANT_RETRY_ON_503 && !res.ok && res.status === 503; r++) {
+      await new Promise(resolve => setTimeout(resolve, ASSISTANT_RETRY_DELAY_MS));
+      res = await callAssistant(history, toolResults, lastToolCalls, jwt, nonceStr);
+    }
+    return res;
+  };
+
   const send = async (q) => {
     const question = (q ?? input).trim();
     if (!question || thinking || cooldown > 0 || pendingConfirmation) return;
@@ -549,9 +582,25 @@ function FidesAssistant() {
       let lastNonce = null;
 
       while (iteration < MAX_TOOL_ITERATIONS) {
-        const { ok, status, data } = await callAssistant(history, toolResults, lastToolCalls, jwt, lastNonce);
+        const { ok, status, data } = await callAssistantWithRetry(history, toolResults, lastToolCalls, jwt, lastNonce);
 
         if (!ok) {
+          // AI-WRITE-DEGRADE-01: se um WRITE já executou neste turno (transação criada etc.),
+          // a ação do usuário ESTÁ concluída — esta chamada seguinte só geraria o texto de
+          // confirmação. Se ela falhar (429/503/timeout), NÃO mostrar erro nem travar 60s:
+          // sintetiza a confirmação a partir do resultado da tool que já rodou.
+          const doneWrites = Array.isArray(toolResults)
+            ? toolResults.filter(r => r && r.result && r.result.success)
+            : [];
+          if (doneWrites.length > 0) {
+            const msgs = doneWrites.map(r => r.result.message).filter(Boolean);
+            const reply = msgs.length ? `Pronto! ${msgs.join(' ')}` : 'Pronto, feito! ✓';
+            setMessages(prev => [...prev, { role: 'assistant', content: reply, ts: Date.now() }]);
+            setCooldown(COOLDOWN_NORMAL_SEC);
+            setThinking(false);
+            setThinkingLabel('');
+            return;
+          }
           const errCode = data?.error;
           if (status === 429) {
             if (errCode === 'USER_DAILY_LIMIT') {
