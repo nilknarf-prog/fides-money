@@ -418,6 +418,11 @@ Plans:
 
 - [ ] 12-05-PLAN.md — HONEST-01: guard de ⌘K não sobrepõe o card de confirmação WRITE pendente (P6) (Onda 4)
 
+**Gap closure · 12-UAT (2 gaps: 1 blocker, 1 major)**
+
+- [ ] 12-06-PLAN.md — WRITE-01/HONEST-01 (Test 4, BLOCKER): mata o falso "Ok, cancelei então" — desfechos WRITE sintéticos deixam de ser texto espelhável no history (tag `writeOutcome` + filtro), guard anti-espelho no reply, bump da storage key p/ desbloqueio, remoção do addendum de cancelamento (5e161e9) + security-reviewer [wave 4]
+- [ ] 12-07-PLAN.md — WRITE-01/HONEST-01 (Test 1, major): "cartão" homônimo resolve p/ cartão, não conta — `tipo_destino` (enum conta|cartao) na tool + prompt + security-reviewer; `resolveWriteToolArgs` honra o tipo (cartão → findCardByName exclusivo) e desambigua homônimo em vez de escolher conta-primeiro [wave 5, depende de 12-06]
+
 ### Phase 13: IA-3 Gating premium in-app
 
 **Goal:** O app passa a gatear capacidades por tier real. Hoje o front usa mock `plan:'Pro'` (`fides-data.jsx:31`) e o store live nem lê a coluna — `profiles.plan` (`free|pro|family`, já existe no schema) vira fonte da verdade. Premium = `plan <> 'free'` (usar `pro`, zero migração — D-4). Free: degustação de IA (~10 msg/mês de chat READ, sem WRITE — D-5) como funil de conversão. Premium: chat completo + WRITE + Análise da IA ilimitada dentro dos caps. Paywall suave + tela de upgrade que aponta para o checkout do M6.
