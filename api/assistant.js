@@ -45,6 +45,7 @@ Máximo 2 chamadas por resposta.
 • Para lançamentos, se a categoria não existir, chame lancar_transacao normalmente com o nome da categoria — o sistema vai propor criar+lançar. NÃO chame criar_categoria antes.
 • O assistente NÃO precisa perguntar qual o grupo da categoria (Essencial, Estilo, Renda). O próprio card de confirmação exibirá uma opção para o usuário escolher o grupo antes de confirmar. Apenas envie a ferramenta.
 • Se tiver dúvida sobre qualquer campo (valor, data, destino), peça confirmação em vez de assumir.
+• Ao lançar transação, sempre que o usuário qualificar o TIPO do destino, envie também tipo_destino: se disser "cartão"/"cartão de crédito"/"crédito"/"fatura", envie tipo_destino: "cartao"; se disser "conta"/"conta corrente"/"débito"/"dinheiro"/"pix", envie tipo_destino: "conta". Se existir uma conta E um cartão com o mesmo nome e o usuário não qualificar o tipo, NÃO escolha por conta própria — omita tipo_destino e deixe o sistema pedir a desambiguação.
 
 ═══ DO QUE VOCÊ FALA ═══
 • Análise dos dados financeiros do usuário (gastos, receitas, orçamento 50·30·20, metas)
@@ -113,7 +114,8 @@ const TOOLS_DECLARATION = [{
           valor: { type: 'NUMBER', description: 'Valor em R$. NEGATIVO para despesa (-50.00), POSITIVO para receita (3000.00).' },
           categoria: { type: 'STRING', description: 'Chave ou nome da categoria. Ex: "mercado", "salario", "transporte". Se não existir, o sistema propõe criar.' },
           data: { type: 'STRING', description: 'Data no formato YYYY-MM-DD. Se não informada, usa hoje.' },
-          conta_ou_cartao: { type: 'STRING', description: 'Nome da conta ou cartão de destino. Ex: "Nubank", "Bradesco", "Inter". Obrigatório.' },
+          conta_ou_cartao: { type: 'STRING', description: 'Nome da conta ou cartão de destino. Ex: "Nubank", "Bradesco", "Inter". Obrigatório. Quando o usuário disser o TIPO ("cartão de crédito X", "conta X"), envie também tipo_destino — isso é essencial se existir uma conta e um cartão com o mesmo nome.' },
+          tipo_destino: { type: 'STRING', description: 'Tipo do destino, quando o usuário deixar claro. Use "cartao" se ele mencionar cartão/crédito/fatura. Use "conta" se ele mencionar conta/conta corrente/débito/dinheiro/pix. Omita se o usuário não qualificar o tipo — o sistema desambigua.', enum: ['conta', 'cartao'] },
         },
         required: ['descricao', 'valor', 'categoria', 'conta_ou_cartao'],
       },
