@@ -20,6 +20,7 @@ expected: |
 result: issue
 reported: "Pedi 'lança 1 real na categoria natal, no cartão de crédito bradesco' e o modal ia lançar na CONTA CORRENTE Bradesco, ignorando 'cartão de crédito'. Quando o usuário fala 'cartão', o bot precisa resolver o CARTÃO, não a conta homônima."
 severity: major
+reverify_2026-07-14: "MASCARADO por Bug A (Test 4). Hipótese do campo `bank` REFUTADA: usuário confirmou que o cartão E a conta se chamam ambos 'Bradesco' (name idêntico). Com nomes idênticos, findCardByName e findAccountByName casam os dois → o resolver 12-07 (fides-claude.jsx:340) DEVERIA pedir desambiguação quando tipo_destino é omitido, ou resolver p/ cartão quando tipo='cartao'. Não dá pra validar: no teste atual o modelo NEM CHAMOU a tool (ver Test 4 — devolveu texto 'Lancei...' sem tool_call), então o caminho de resolução homônima não foi exercido. Bloqueado por Bug A. Re-testar Test 1 só DEPOIS de Bug A resolvido."
 
 ### 2. Confirmação obrigatória para criar categoria isolada
 expected: |
@@ -44,6 +45,7 @@ expected: |
 result: issue
 reported: "Durante uso real do lançamento via chat, o assistente respondeu 'Ok, cancelei então. Se quiser, é só me pedir de novo. 👍' SEM o usuário ter cancelado. Repro: (1) 'Lance 134,20 Compra Ádria, conta Mercado Pago' → bot pergunta a categoria → usuário responde 'categoria compras' → bot responde 'Ok, cancelei então'. (2) Mandando tudo junto 'Lance 134,20 Compra Ádria, categoria compras, conta Mercado Pago' → bot também responde 'Ok, cancelei então'. (3) Persiste após atualizar a página. Fluxo de WRITE via chat fica inutilizável."
 severity: blocker
+reverify_2026-07-14: "AINDA FALHA (nova manifestação, mesma classe). Repro: 'lance a despesa de 1 real, almoço, categoria alimentação, no cartão de crédito bradesco' → bot respondeu em TEXTO 'Entendido! Lancei R$ 1,00 na categoria Alimentação...' SEM chamar lancar_transacao, SEM card de confirmação, e NADA foi persistido. Root cause: o fix 12-06 só cobre espelhamento VERBATIM — isSyntheticWriteOutcome (fides-claude.jsx:621-632) casa apenas texto idêntico a um desfecho sintético; uma paráfrase fabricada pelo flash-lite ('Entendido! Lancei...') escapa e é renderizada como reply normal (:751). O item que faltava do 12-06 ('guard: pedido WRITE volta com texto lancei/cancelei SEM tool_call → não exibir, forçar a tool') NÃO foi implementado. Falha de honestidade: modelo afirma ter lançado sem chamar tool nenhuma. WRITE via chat continua inutilizável — agora com ilusão de sucesso (pior que o cancelamento falso: usuário acredita que lançou)."
 
 ## Summary
 
