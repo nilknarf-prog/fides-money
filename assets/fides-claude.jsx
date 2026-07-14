@@ -631,6 +631,20 @@ function FidesAssistant() {
     return false;
   };
 
+  // AI-WRITE-FABRICATION-01: o guard verbatim acima (isSyntheticWriteOutcome) só pega ECO de um
+  // desfecho sintético já emitido. Mas o flash-lite, sob toolMode AUTO, às vezes FABRICA um
+  // desfecho de escrita do zero em TEXTO ("Entendido! Lancei R$ 1,00...") sem chamar a ferramenta
+  // — o card nunca aparece e nada é salvo, mas o usuário é informado que "lancei" (12-UAT Test 4).
+  // Como TODA escrita real vira uma mensagem writeOutcome via card de confirmação, um reply de
+  // TEXTO (sem tool_call) que AFIRME conclusão de escrita é sempre mentira. Detecta paráfrases
+  // (não só verbatim) por verbo de conclusão em 1ª pessoa / particípio de desfecho. NÃO casa
+  // infinitivos ("posso lançar", "quer criar?") nem perguntas de esclarecimento legítimas.
+  const claimsWriteCompletion = (text) => {
+    const t = String(text || '').normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase();
+    if (!t.trim()) return false;
+    return /\b(lancei|lancado|lancada|lancados|lancadas|criei|criada|criado|criados|criadas|cancelei|cancelada|cancelado|editei|editada|editado|registrei|registrada|registrado|adicionei|adicionada|adicionado|recategorizei)\b/.test(t);
+  };
+
   const send = async (q) => {
     const question = (q ?? input).trim();
     if (!question || thinking || cooldown > 0 || pendingConfirmation) return;
@@ -665,6 +679,7 @@ function FidesAssistant() {
       let lastToolCalls = null;
       let iteration = 0;
       let lastNonce = null;
+      let forcedWriteRetry = false;
 
       while (iteration < MAX_TOOL_ITERATIONS) {
         const { ok, status, data } = await callAssistantWithRetry(history, toolResults, lastToolCalls, jwt, lastNonce);
@@ -743,6 +758,31 @@ function FidesAssistant() {
           // sintético (sem tool_call) é sempre espelhamento. Suprime (não exibe, não persiste) e
           // substitui por uma mensagem neutra, sem re-semear poluição.
           setMessages(prev => [...prev, { role: 'assistant', content: 'Não fiquei certo do que já foi feito — pode repetir o que você quer lançar?', ts: Date.now() }]);
+          setCooldown(COOLDOWN_NORMAL_SEC);
+          setThinking(false);
+          setThinkingLabel('');
+          return;
+        }
+        if (claimsWriteCompletion(reply)) {
+          // AI-WRITE-FABRICATION-01: chegar aqui significa que data.tool_calls veio VAZIO (o branch
+          // de tool_calls acima faz continue/return) — ou seja, o modelo AFIRMOU concluir uma escrita
+          // em texto sem chamar ferramenta nenhuma: NADA foi salvo. Nunca exibir a afirmação falsa.
+          // 1x: injeta correção no history e re-tenta em AUTO. NÃO forço mode 'ANY' de propósito —
+          // forçar a chamada faria o modelo INVENTAR campos que o usuário não deu (viola "NUNCA
+          // invente"; melhor ele perguntar). Se insistir na fabricação, cai no fail-safe honesto.
+          if (!forcedWriteRetry) {
+            forcedWriteRetry = true;
+            history.push({
+              role: 'user',
+              content: 'ATENÇÃO: sua última resposta afirmou que algo foi feito, mas você NÃO chamou nenhuma ferramenta — então NADA foi salvo. Se você tem todos os dados (valor, categoria, destino), CHAME a ferramenta agora. Se falta algum dado, PERGUNTE. Nunca afirme que lançou/criou/cancelou sem chamar a ferramenta.'
+            });
+            toolResults = null;
+            lastToolCalls = null;
+            lastNonce = null;
+            iteration++;
+            continue;
+          }
+          setMessages(prev => [...prev, { role: 'assistant', content: 'Não executei nada ainda — nenhum lançamento foi salvo. Pode repetir o pedido? Ex: "lance 50 no mercado, categoria alimentação, conta Nubank".', ts: Date.now() }]);
           setCooldown(COOLDOWN_NORMAL_SEC);
           setThinking(false);
           setThinkingLabel('');
