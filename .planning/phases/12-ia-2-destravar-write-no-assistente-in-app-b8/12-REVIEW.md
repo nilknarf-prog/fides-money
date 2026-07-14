@@ -7,10 +7,21 @@ files_reviewed_list:
   - api/assistant.js
   - assets/fides-claude.jsx
 findings:
+  critical: 0
+  warning: 1
+  info: 2
+  total: 3
+findings_as_reviewed:
   critical: 1
   warning: 2
   info: 2
   total: 5
+resolved:
+  - "CR-01 — fixed in 430b375 (guard now matches a verbatim writeOutcome message, not the 'Pronto! ' prefix)"
+  - "WR-01 — fixed in 430b375 (tipo_destino normalized + fail-closed on present-but-off-enum)"
+open:
+  - "WR-02 — deferred (mixed READ+WRITE cancellation honesty in api/assistant.js)"
+  - "IN-01, IN-02 — deferred (orphaned v1 keys; recovery wording)"
 status: issues_found
 ---
 
@@ -32,6 +43,8 @@ The homonym fail-closed rewrite is a genuine correctness improvement (explicit d
 ## Critical Issues
 
 ### CR-01: Anti-mirror guard's `startsWith('Pronto! ')` suppresses legitimate replies
+
+**Status:** ✅ RESOLVED — commit `430b375`. Implemented via exact match against messages tagged `writeOutcome: true` (the outcomes actually emitted this session) instead of the suggested `lastSynthesized` param — same intent (verbatim-only), no new plumbing since the tagged messages already exist. The two static-constant checks were kept.
 
 **File:** `assets/fides-claude.jsx:609-616` (guard) and `assets/fides-claude.jsx:725-734` (call site)
 **Issue:** `isSyntheticWriteOutcome` returns `true` for **any** Gemini text reply that begins with the prefix `WRITE_OUTCOME_SUCCESS_PREFIX = 'Pronto! '`. "Pronto!" is one of the most common conversational openers in Brazilian Portuguese, and the system prompt explicitly asks for short, direct prose. Any legitimate reply that opens with "Pronto! ..." is caught by the guard, discarded (not shown, not persisted), and replaced with a hardcoded, write-only recovery line: *"Não fiquei certo do que já foi feito — pode repetir o que você quer lançar?"*
@@ -62,6 +75,8 @@ Pass the string returned by the most recent `synthesizeWriteReply(toolResults)` 
 
 ### WR-01: Malformed `tipo_destino` value silently loses the explicit-type safety and can route to the wrong destination
 
+**Status:** ✅ RESOLVED — commit `430b375`. `tipo_destino` is now NFD-normalized (accented `'cartão'`/`'crédito'` → `cartao`; `'débito'`/`'pix'` → `conta`) and, when present but still unrecognized, fails closed with an explicit disambiguation error instead of falling through to positional resolution.
+
 **File:** `assets/fides-claude.jsx:310-338`
 **Issue:** The branch logic only trusts `tipo` when it is exactly `'cartao'` or `'conta'`. Any other value (e.g. Gemini emitting `'cartão'` with accent, `'credito'`, `'card'`, or an empty string) falls through to the positional branches (`accMatch && cardMatch` → disambiguate, `accMatch` → account, `cardMatch` → card). The enum in the tool schema (`api/assistant.js:118`) is a hint, not a hard guarantee — Gemini can and occasionally does emit off-enum strings.
 
@@ -77,6 +92,8 @@ if (tipo && tipo !== 'conta' && tipo !== 'cartao') {
 ```
 
 ### WR-02: Removing the cancellation honesty addendum weakens the guarantee for mixed READ+WRITE batches
+
+**Status:** ⏳ OPEN — deferred by user during gap-closure execution. Touches `api/assistant.js` (security-sensitive per CLAUDE.md); to be addressed with `/gsd-secure-phase 12` or a follow-up before ship.
 
 **File:** `api/assistant.js:48` (line removed by 12-06)
 **Issue:** The removed SYSTEM_PROMPT line instructed the model: on `cancelled: true`, acknowledge the cancellation and do **not** claim the action was completed. For the all-WRITE case this is now handled locally (the `allWrite && allTerminal` short-circuit at `fides-claude.jsx:705` never sends the cancellation to Gemini), so removal is fine there. But the assistant permits up to 2 tool calls per response; a **mixed batch** (one WRITE cancelled + one READ succeeding) leaves `allWrite === false`, so the turn still round-trips to Gemini with a `functionResponse` carrying `{ cancelled: true }`. Without the explicit honesty instruction, the model is more likely to narrate the cancelled write as done.
