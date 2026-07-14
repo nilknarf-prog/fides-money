@@ -307,7 +307,19 @@ function FidesAssistant() {
     const { name, args } = toolCall;
     if (name === 'lancar_transacao') {
       const ref = args.conta_ou_cartao || '';
-      const tipo = args.tipo_destino;
+      // WR-01: um tipo_destino presente mas fora do enum ('conta'|'cartao') — ex. 'cartão'/
+      // 'crédito' acentuado que o modelo às vezes emite — não pode cair no fallback posicional
+      // abaixo: isso reintroduz o destino errado silencioso que o 12-07 matou. Normaliza as
+      // variantes óbvias; se ainda assim não reconhecer, fail-closed (pede desambiguação).
+      let tipo = args.tipo_destino;
+      if (typeof tipo === 'string' && tipo.trim()) {
+        const norm = tipo.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase().trim();
+        if (norm === 'cartao' || norm === 'credito' || norm === 'cartao de credito') tipo = 'cartao';
+        else if (norm === 'conta' || norm === 'debito' || norm === 'pix' || norm === 'conta corrente') tipo = 'conta';
+        else return { error: `Não entendi se "${ref}" é uma conta ou um cartão. Diga "cartão ${ref}" para o cartão de crédito ou "conta ${ref}" para a conta corrente.` };
+      } else {
+        tipo = undefined;
+      }
       // AI-DEST-HOMONIMO-01: consultar SEMPRE os dois (nunca condicionar findCardByName a
       // "nenhuma conta casou") — senão o qualificador "cartão" do usuário nunca entra na
       // decisão e uma conta homônima sempre vence pela ordem (12-UAT Test 1).
@@ -611,7 +623,11 @@ function FidesAssistant() {
     if (!t) return false;
     if (t === WRITE_OUTCOME_CANCEL) return true;
     if (t === WRITE_OUTCOME_SUCCESS_NO_PARTS) return true;
-    if (t.startsWith(WRITE_OUTCOME_SUCCESS_PREFIX)) return true;
+    // CR-01: só é espelhamento se reproduzir VERBATIM um desfecho sintético de fato emitido
+    // nesta sessão (mensagens marcadas writeOutcome). Casar o prefixo genérico 'Pronto! '
+    // descartava respostas legítimas — inclusive o turno de texto após um tool READ
+    // (consultar_saldo/consultar_extrato), onde 'Pronto! ...' é resposta válida, não espelho.
+    if (messages.some(m => m && m.writeOutcome && String(m.content || '').trim() === t)) return true;
     return false;
   };
 
