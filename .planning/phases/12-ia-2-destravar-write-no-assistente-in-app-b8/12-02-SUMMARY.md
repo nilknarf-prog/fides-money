@@ -1,0 +1,15 @@
+# Plan 12-02 Summary
+
+> Reconstruído retroativamente em 2026-07-14 durante reparo de saúde do `.planning/` (o SUMMARY não foi escrito na execução original). Fonte: `12-02-PLAN.md`, código em `api/assistant.js` + `api/_lib/nonce.js`, commit `9abd83e`.
+
+**Requirements:** WRITE-01..04, HONEST-01 · **Commit:** `9abd83e` · **Onda:** 1
+
+- **4 tools WRITE reativadas (B8)**: `lancar_transacao`, `recategorizar_transacao`, `editar_transacao`, `criar_categoria` restauradas em `TOOLS_DECLARATION.functionDeclarations` de `api/assistant.js` (revertendo a remoção do commit `6018f66`), no mesmo array das 2 tools READ. Total: 6 tools declaradas ao Gemini. O call-site `tools: isAnalysisMode ? undefined : TOOLS_DECLARATION` foi preservado — o modo análise (Fase 11) continua sem tools.
+- **D-05 preservado**: `editar_transacao` mantém o schema `{valor, descricao, data, status}` (patch) — SEM `conta_ou_cartao`; não se troca conta/cartão por essa tool.
+- **SD-1 na descrição das tools**: `criar_categoria` e `lancar_transacao` descrevem a ação como PROPOSTA num card de confirmação (não execução direta). `lancar_transacao` instrui que categoria inexistente NÃO deve virar chamada separada de `criar_categoria` — o sistema propõe criar+lançar numa confirmação só (D-04).
+- **HONEST-01 (SYSTEM_PROMPT)**: a frase de manutenção "MODO ATUAL: apenas consulta" foi substituída pela seção de ferramentas WRITE com regra de honestidade — nunca inventar valor/conta/categoria; campo ausente/ambíguo → perguntar antes de chamar a tool; no máximo 2 tool calls por resposta.
+- **Nonce anti-replay (D-06) — novo `api/_lib/nonce.js`**: módulo CommonJS não-roteável, HMAC-SHA256 stateless via `crypto` nativo. `sign(uid, secret)` monta claim `{uid, iat, exp}` (base64url + assinatura); `verify(token, uid, secret)` recomputa a assinatura e compara com `crypto.timingSafeEqual` (buffers de mesmo tamanho; `===` proibido — timing leak), rejeitando uid trocado, token adulterado/malformado ou expirado sem lançar. `NONCE_TTL_MS = 120 * 1000` (SD-2 — cobre o tempo de confirmação humana do card WRITE).
+- **Gate de cota fechado (T-12-nonce-01)**: `isFirstCallOfTurn = !hasToolResults || !nonceValid`, onde `nonceValid = hasToolResults && clientNonce && NONCE_SECRET ? nonce.verify(...) : false`. Um `toolResults` forjado SEM nonce válido volta a contar na cota `USER_DAILY_LIMIT` (bypass anterior fechado). A resposta com `tool_calls` emite `nonce: NONCE_SECRET ? nonce.sign(userId, NONCE_SECRET) : null`.
+- **Fail-safe (T-12-nonce-05)**: nonce ausente/inválido/expirado NUNCA bloqueia a requisição nem retorna 4xx/5xx — só faz a chamada contar cota. Segredo lido só de `process.env.ASSISTANT_NONCE_SECRET` (nunca hardcoded); degrada com segurança se ausente.
+- **Gate sensível (`api/`)**: `security-reviewer` executado sobre `api/assistant.js` + `api/_lib/nonce.js` antes do commit — PASS (zero findings `high`).
+- **⚠️ Setup pendente de deploy**: `ASSISTANT_NONCE_SECRET` (32+ bytes aleatórios) precisa estar setado na aba **Project** do Vercel para o gate anti-replay operar; sem ele o sistema degrada para fail-safe (só volta a cobrar cota).

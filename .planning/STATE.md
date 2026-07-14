@@ -1,118 +1,111 @@
 ---
 gsd_state_version: 1.0
-milestone: v1.1
-milestone_name: CRUD Metas + IA-3
+milestone: ia-whatsapp
+milestone_name: "Épico IA/WhatsApp (Phases 11–14) — milestone formal pendente"
+milestone_formalized: false
 current_phase: 13
-current_phase_name: IA-3
+current_phase_name: IA-3 Gating Premium
 status: executing
 stopped_at: Phase 13 planning
-last_updated: "2026-07-12T21:05:00.000Z"
-last_activity: 2026-07-12
-last_activity_desc: Phase 12 complete, transitioned to Phase 13
+last_updated: "2026-07-14T00:00:00.000Z"
+last_activity: 2026-07-14
+last_activity_desc: "Reparo de saúde do .planning/ (STATE limpo + summaries 12-01/12-02); Phase 13 pronta para planejar"
 progress:
-  total_phases: 8
-  completed_phases: 5
-  total_plans: 22
-  completed_plans: 22
-  percent: 62
+  scope: "Épico IA/WhatsApp (Phases 11–14; Phase 15 favicon é polish avulso)"
+  total_phases: 4
+  completed_phases: 2
+  total_plans_so_far: 9
+  completed_plans_so_far: 9
+  percent: 50
 ---
 
 # Project State
 
+> **Nota de saúde (2026-07-14):** o milestone atual (épico IA/WhatsApp, Phases 11–14) ainda **não foi aberto formalmente** — v1.0 e v1.1 já foram shipadas com tag. Próximo passo estrutural: `/gsd-new-milestone` para versionar o épico. Enquanto isso, `milestone_formalized: false`.
+
 ## Current Position
 
-Phase: 13 — IA-3
-Plan: Not started
-Status: Ready to execute
-Last activity: 2026-07-12 — Phase 12 complete, transitioned to Phase 13
+Phase: 13 — IA-3 Gating Premium
+Plan: Não iniciado (só `.gitkeep` no diretório)
+Status: Pronta para planejar (`/gsd-plan-phase 13`)
+Last activity: 2026-07-14 — reparo de saúde do `.planning/`; Phase 12 implementada, UAT humano pendente
 
 ## Project Reference
 
-See: .planning/PROJECT.md (updated 2026-07-01)
+See: .planning/PROJECT.md (updated 2026-07-06)
 
 **Core value:** Finanças pessoais por registro manual (fricção intencional → consciência); nunca número que impressiona mas engana.
-**Current focus:** Phase 13
+**Current focus:** Phase 13 (gating premium via `profiles.plan`) dentro do épico IA/WhatsApp.
 
 ## Phase Overview
 
 | Phase | Name | Requirements | Status |
 |-------|------|--------------|--------|
-| 03 | Limpeza + Tokens | CLEAN-01, DESIGN-01/02/03/04 | ✅ Complete |
-| 04 | UX Mobile + Motion | MOBILE-01, MOTION-01/02 | ✅ Complete |
-| 05 | IA Real | AI-01, AI-02 | ✅ Complete |
-| 06 | Fix v1.0 tech debt | DEBT-01/02/03/04 | ✅ Complete |
-| 07 | CRUD Metas | META-01/02/03/04 | ⏳ Not started |
-| 12 | IA-2 WRITE in-app (B8) | WRITE-01..04, HONEST-01, DERIVED-SAFE-01 | ✅ Implemented — UAT pendente |
-| 13 | IA-3 Gating Premium | PENDING | 📋 Planning |
+| 11 | IA-1 Hardening Gemini | WR-01/02/03, AI-SHARED-01, AI-TELEM-01 | ✅ Complete (VERIFICATION: PASSED, UAT A–D) |
+| 12 | IA-2 WRITE in-app (B8) | WRITE-01..04, HONEST-01, DERIVED-SAFE-01 | ✅ Implementado — ⚠️ UAT humano pendente (0/4) |
+| 13 | IA-3 Gating Premium | GATE-01/02/03, PAYWALL-01 (a formalizar) | 📋 Não planejada |
+| 14 | IA-4 Bot WhatsApp | WA-* (a formalizar) | ⏳ Não iniciada |
+| 15 | UI Polish (favicon) | — | ⏳ Polish avulso, não iniciado |
 
-## Deferred Items
+> v1.0 (Phases 03–06) e v1.1 (Phases 07–10) shipadas — detalhe em `MILESTONES.md` e `milestones/`.
 
-Items acknowledged and deferred at milestone close on 2026-07-01:
+## Deferred / Open Items
 
-| Category | Item | Status |
-|----------|------|--------|
-| verification | fatura-ciclo-VERIFICATION.md | human_needed |
-
-> UAT humano de feature já shipada no M4 (`ade84f7`), fora do escopo v1.0. Rodar no app pós-deploy.
-
-**v1.1 deferred (out of scope, see REQUIREMENTS.md):** fonte do valor atual da meta (aportes vs vínculo a conta/reserva) — decisão a tomar em `/gsd-discuss-phase 07`; aportes/progresso/ajuste de plano (M5+); import CSV/OFX (M5); busca ⌘K (M5).
+| Categoria | Item | Status |
+|-----------|------|--------|
+| verification | Phase 12 — 4 UATs humanos (WRITE in-app) | pending → rodar `/gsd-verify-work 12` |
+| verification | `fatura-ciclo-VERIFICATION.md` (feature v1.0/M4 `ade84f7`) | human_needed (desde 2026-07-01) |
+| security todo | `todos/pending/ratelimit-bypass-toolresults.md` (high) | aberto — endereçar durante o épico IA |
+| deploy setup | `ASSISTANT_NONCE_SECRET` no Vercel Project (nonce D-06) | verificar setado pós-deploy |
+| product | Fonte do valor atual da meta (aportes vs vínculo a conta) | deferido p/ M5+ |
 
 ## Next Action
 
-**Phase 13 (IA-3) — planejar gating premium:**
+**Ordem recomendada (reparo de saúde 2026-07-14):**
 
-Phase 12 (IA-2 B8) foi implementada em 5 commits (`9a9ead5` → `6714d3f`). UAT pendente — rodar com `/gsd-verify-work 12` após validar no app.
+1. `/gsd-verify-work 12` — fechar os 4 UATs da IA WRITE (gate de segurança) antes de avançar.
+2. `/gsd-new-milestone` — abrir formalmente o épico IA/WhatsApp (corrige `milestone_formalized: false`).
+3. `/gsd-cleanup` — arquivar as fases v1.1 (07–10) para `milestones/v1.1-phases/`.
+4. `/gsd-plan-phase 13` — quebrar a IA-3 (gating premium via `profiles.plan`).
 
-Phase 13 é o próximo passo do épico IA/WhatsApp (13→14): gating premium via `profiles.plan`. Planejar com `/gsd-plan-phase 13`.
+Phase 12 (IA-2 B8) implementada em 5 commits (`9a9ead5` → `6714d3f`).
 
-## Phase Overview
+## Plan Execution Log
 
-| Phase | Name | Requirements | Status |
-|-------|------|--------------|--------|
-| 03 | Limpeza + Tokens | CLEAN-01, DESIGN-01/02/03/04 | ✅ Complete |
-| 04 | UX Mobile + Motion | MOBILE-01, MOTION-01/02 | ✅ Complete |
-| 05 | IA Real | AI-01, AI-02 | ✅ Complete |
-| 06 | Fix v1.0 tech debt | DEBT-01/02/03/04 | ✅ Complete |
-| 07 | CRUD Metas | META-01/02/03/04 | ⏳ Not started |
-| 12 | IA-2 WRITE in-app (B8) | WRITE-01..04, HONEST-01, DERIVED-SAFE-01 | ✅ Implemented — UAT pendente |
-| 13 | IA-3 Gating Premium | PENDING | 📋 Planning |
-
-## Phase Overview
-
-| Phase | Plan | Duration | Notes |
-|-------|------|----------|-------|
-| Phase 03 P01 | 112 | 3 tasks | 2 files |
-| Phase 03 P01 | 208 | 4 tasks | 2 files |
-| Phase 03 P02 | audit | 3 tasks (T3 checkpoint aprovado) | 1 file |
-| Phase 04 P03 | 8min | 3 tasks | 3 files |
-| Phase 04 P02 | ~15min | 3 tasks | 3 files |
-| Phase 04 P04 | 5min | 2 tasks | 2 files |
-| Phase 05 P01 | ~20min | 4 tasks | 2 files |
-| Phase 06 P01 | 8min | 3 tasks | 3 files |
-| Phase 06 P02 | ~10min | 2 tasks | 1 files |
-| Phase 07 P02 | 6min | 3 tasks | 1 files |
-| Phase 07 P03 | 12min | 3 tasks | 1 files |
-| Phase 08 P07 | 12min | 3 tasks | 2 files |
-| Phase 08 P08 | 20min | 3 tasks | 3 files |
-| Phase 09 P01 | 8min | 2 tasks | 1 files |
-| Phase 09 P02 | ~15min | 2 tasks | 2 files |
-| Phase 09 P03 | 7min | 3 tasks | 2 files |
-| Phase 09 P04 | 12min | 3 tasks | 2 files |
-| Phase 09 P05 | ~15min | 3 tasks | 2 files |
-| Phase 10 P01 | 6min | 2 tasks | 2 files |
-| Phase 10 P02 | ~20min | 2 tasks | 1 files |
-| Phase 10 P03 | ~15min | 2 tasks | 1 files |
-| Phase 10 P04 | ~12min | 2 tasks | 1 files |
-| Phase 10 P06 | ~5min | 1 tasks | 1 files |
-| Phase 11 P01 | ~5min | 2 tasks | 2 files |
-| Phase 11 P02 | ~10min | 2 tasks | 1 files |
-| Phase 11 P04 | ~10min | 3 tasks | 2 files |
-| Phase 12 P01 | 15min | 3 tasks | 2 files |
-| Phase 12 P02 | 25min | 3 tasks | 2 files |
-| Phase 12 P03 | 20min | 2 tasks | 1 files |
-| Phase 12 P04 | 15min | 2 tasks | 1 files |
-| Phase 12 P05 | 5min | 1 tasks | 1 files |
-| Phase 13 P01 | — | — | — |
+| Phase / Plan | Duração | Tasks | Arquivos |
+|--------------|---------|-------|----------|
+| 03 P01 | 112 | 3 | 2 |
+| 03 P01 | 208 | 4 | 2 |
+| 03 P02 | audit | 3 (T3 checkpoint aprovado) | 1 |
+| 04 P03 | 8min | 3 | 3 |
+| 04 P02 | ~15min | 3 | 3 |
+| 04 P04 | 5min | 2 | 2 |
+| 05 P01 | ~20min | 4 | 2 |
+| 06 P01 | 8min | 3 | 3 |
+| 06 P02 | ~10min | 2 | 1 |
+| 07 P02 | 6min | 3 | 1 |
+| 07 P03 | 12min | 3 | 1 |
+| 08 P07 | 12min | 3 | 2 |
+| 08 P08 | 20min | 3 | 3 |
+| 09 P01 | 8min | 2 | 1 |
+| 09 P02 | ~15min | 2 | 2 |
+| 09 P03 | 7min | 3 | 2 |
+| 09 P04 | 12min | 3 | 2 |
+| 09 P05 | ~15min | 3 | 2 |
+| 10 P01 | 6min | 2 | 2 |
+| 10 P02 | ~20min | 2 | 1 |
+| 10 P03 | ~15min | 2 | 1 |
+| 10 P04 | ~12min | 2 | 1 |
+| 10 P06 | ~5min | 1 | 1 |
+| 11 P01 | ~5min | 2 | 2 |
+| 11 P02 | ~10min | 2 | 1 |
+| 11 P04 | ~10min | 3 | 2 |
+| 12 P01 | 15min | 3 | 2 |
+| 12 P02 | 25min | 3 | 2 |
+| 12 P03 | 20min | 2 | 1 |
+| 12 P04 | 15min | 2 | 1 |
+| 12 P05 | 5min | 1 | 1 |
+| 13 P01 | — | — | — |
 
 ## Decisions
 
@@ -167,7 +160,6 @@ Phase 13 é o próximo passo do épico IA/WhatsApp (13→14): gating premium via
 - [Phase ?]: 11-04: cooldown do botao de analise nao arma no caminho JWT_MISSING, espelhando o chat
 - [Phase ?]: 11-04: erro !res.ok arma 60s quando res.status===429 OU errCode USER_DAILY_LIMIT/RATE_LIMIT; demais erros armam 4s
 - [Phase ?]: 11-04: branch morto de function-calling removido do handleAiClick (servidor em mode=analysis nunca retorna tool_calls)
-
 - [Phase 12]: 12-01: wa_log_transaction RPC — SECURITY DEFINER + owner-guard + recalc_account_balance (D-01)
 - [Phase 12]: 12-02: 4 tools WRITE restauradas (lancar/recategorizar/editar/criar_categoria) + system prompt honestidade + nonce anti-replay (D-06, TTL 120s) + security-reviewer PASS
 - [Phase 12]: 12-03: lancar_transacao reescrito p/ RPC + mês derivado de data real (mesFaturaFor) + status pendente em cartão + D-04 categoria bundlada
@@ -177,15 +169,13 @@ Phase 13 é o próximo passo do épico IA/WhatsApp (13→14): gating premium via
 
 ## Session
 
-**Last session:** 2026-07-12T20:55:00.000Z
-**Stopped at:** Phase 13 planning
+**Last session:** 2026-07-14T00:00:00.000Z
+**Stopped at:** Phase 13 planning (após reparo de saúde do `.planning/`)
 **Resume file:** .planning/phases/12-ia-2-destravar-write-no-assistente-in-app-b8/12-CONTEXT.md
 
 ## Accumulated Context
 
-Milestone v1.0 decisions log moved to PROJECT.md Key Decisions. No open blockers.
-
-Milestone v1.1 (CRUD Metas) roadmap: single phase (Phase 07) given tight scope — create/edit/delete/list are one cohesive capability sharing `fides-metas.jsx` and the `goals` table. Open item carried into phase discussion: source of a goal's "current value" (manual contributions vs linking to account/reserve) is explicitly deferred to `/gsd-discuss-phase 07` and must not be designed around before that decision is made.
+Milestone v1.0 e v1.1 shipadas (tags `v1.0`/`v1.1`); decisões arquivadas em PROJECT.md Key Decisions e MILESTONES.md. Épico IA/WhatsApp (Phases 11–14) em andamento — Phase 11 completa (VERIFICATION PASSED), Phase 12 implementada com UAT humano pendente. Sem blockers de código.
 
 ### Roadmap Evolution
 
@@ -193,18 +183,16 @@ Milestone v1.1 (CRUD Metas) roadmap: single phase (Phase 07) given tight scope �
 - Phase 07 added for milestone v1.1: CRUD Metas — continues phase numbering from v1.0 (06 → 07), single phase covering all 4 META requirements.
 - Phase 08 added: Metas vision-board redesign — spec em docs/superpowers/specs/2026-07-02-metas-vision-board-design.md; eleva a tela Metas ao nível visual do PlannerFin.
 - Phases 11–14 added (2026-07-06): épico IA/WhatsApp. Fonte de design `.planning/research/whatsapp-e-ia-arquitetura.md` (decisões D-1..D-11 resolvidas). Ordem travada 11→12→13→14. Phase 11 (IA-1 hardening WR-01/02/03 + módulo Gemini + telemetria); Phase 12 (IA-2 destravar B8/WRITE in-app); Phase 13 (IA-3 gating premium `profiles.plan`); Phase 14 (IA-4 bot WhatsApp Meta Cloud API — sem CNPJ não bloqueia, adendo D-8). Precificação P-2 (Free + Premium R$ 89,90/ano Mercado Pago/Pix).
+- Phase 15 added: UI Polish (favicon) — polish avulso, fora do épico IA.
 
 ## Operator Next Steps
 
-- **Phase 11 (IA-1) planejada e verificada (PLAN CHECK: PASS, 2026-07-06).** 4 plans em 3 ondas (commit `9a39110`). Executar com `/gsd-execute-phase 11`.
-  - **Warning W-1 (deploy atomicidade — honrar na execução):** WR-03 exige que 11-02 (servidor passa a EXIGIR JWT no header) e 11-04 (os 2 callers migram para header) subam no MESMO push. Se 11-02 pushar isolado, produção quebra com 401 até 11-04 deployar. Segurar o push de 11-02 até 11-04 concluir → um único push com `api/assistant.js` + os 2 `.jsx`. NÃO auto-pushar por plano nesta fase.
-  - **Warning W-2 (prova estática extra):** ao executar 11-02 T1 / 11-04 T2 / 11-04 T3, adicionar grep negativo confirmando que `jwt` saiu do body (desestruturação de `req.body` sem `jwt`; `JSON.stringify` do fetch sem `jwt`).
-  - Caminhos sensíveis: `security-reviewer` (todos os plans de `api/`) + `database-reviewer` (11-03, schema) antes de cada commit.
+- **Phase 11 (IA-1) completa e verificada (VERIFICATION: PASSED, 2026-07-07).** 4 plans, push atômico `e40f7e7`/`9a39110`, migração de telemetria aplicada, UAT humana A–D aprovada.
 - **Phase 12 (IA-2 B8) implementada em 5 commits (`9a9ead5` → `6714d3f`). UAT pendente (4 testes humanos no app).**
-  - 12-01: RPC `wa_log_transaction` (SECURITY DEFINER + owner-guard + recalc_account_balance)
-  - 12-02: 4 tools WRITE restauradas + system prompt honestidade + nonce anti-replay (D-06)
-  - 12-03: `lancar_transacao` → RPC + mês derivado de data real (mesFaturaFor) + status pendente em cartão + D-04 bundlada
-  - 12-04: `criar_categoria` confirmado (SD-1) + await addCategory (P5 morto) + nonce round-trip + flag `__fidesWriteConfirmPending`
+  - 12-01 (`9a9ead5`): RPC `wa_log_transaction` (SECURITY DEFINER + owner-guard + recalc_account_balance)
+  - 12-02 (`9abd83e`): 4 tools WRITE restauradas + system prompt honestidade + nonce anti-replay (D-06)
+  - 12-03 (`d6fddaa`): `lancar_transacao` → RPC + mês derivado de data real (mesFaturaFor) + status pendente em cartão + D-04 bundlada
+  - 12-04 (`eb9c63f`): `criar_categoria` confirmado (SD-1) + await addCategory (P5 morto) + nonce round-trip + flag `__fidesWriteConfirmPending`
   - 12-05: guard ⌘K (P6)
-- **Phase 13 (IA-3):** gating premium via `profiles.plan` — ainda não planejada.
-- (Anterior) Phase 07 goal-value data-model: `/gsd-discuss-phase 07` se/quando retomar Metas.
+  - ⚠️ Verificar `ASSISTANT_NONCE_SECRET` setado no Vercel Project (nonce D-06). Rodar `/gsd-verify-work 12`.
+- **Phase 13 (IA-3):** gating premium via `profiles.plan` — ainda não planejada (`/gsd-plan-phase 13`).
