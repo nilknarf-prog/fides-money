@@ -549,6 +549,24 @@ function FidesAssistant() {
     return res;
   };
 
+  // AI-WRITE-NOCALL-01: monta a confirmação de um lote de tools WRITE 100% localmente, a partir
+  // dos resultados que já temos — sem gastar uma 2ª chamada ao Gemini só pro texto. Usado tanto
+  // no atalho pós-WRITE (corta ~50% da cota/tokens em lançamentos) quanto na degradação quando
+  // a chamada seguinte falha.
+  const synthesizeWriteReply = (results) => {
+    const parts = [];
+    let anySuccess = false, anyCancel = false;
+    for (const r of (results || [])) {
+      const res = r && r.result;
+      if (!res) continue;
+      if (res.success) { anySuccess = true; if (res.message) parts.push(res.message); }
+      else if (res.cancelled) { anyCancel = true; }
+    }
+    if (anySuccess) return parts.length ? `Pronto! ${parts.join(' ')}` : 'Pronto, feito! ✓';
+    if (anyCancel) return 'Ok, cancelei então. Se quiser, é só me pedir de novo. 👍';
+    return 'Feito.';
+  };
+
   const send = async (q) => {
     const question = (q ?? input).trim();
     if (!question || thinking || cooldown > 0 || pendingConfirmation) return;
@@ -589,13 +607,10 @@ function FidesAssistant() {
           // a ação do usuário ESTÁ concluída — esta chamada seguinte só geraria o texto de
           // confirmação. Se ela falhar (429/503/timeout), NÃO mostrar erro nem travar 60s:
           // sintetiza a confirmação a partir do resultado da tool que já rodou.
-          const doneWrites = Array.isArray(toolResults)
-            ? toolResults.filter(r => r && r.result && r.result.success)
-            : [];
-          if (doneWrites.length > 0) {
-            const msgs = doneWrites.map(r => r.result.message).filter(Boolean);
-            const reply = msgs.length ? `Pronto! ${msgs.join(' ')}` : 'Pronto, feito! ✓';
-            setMessages(prev => [...prev, { role: 'assistant', content: reply, ts: Date.now() }]);
+          const hadSuccessfulWrite = Array.isArray(toolResults)
+            && toolResults.some(r => r && r.result && r.result.success);
+          if (hadSuccessfulWrite) {
+            setMessages(prev => [...prev, { role: 'assistant', content: synthesizeWriteReply(toolResults), ts: Date.now() }]);
             setCooldown(COOLDOWN_NORMAL_SEC);
             setThinking(false);
             setThinkingLabel('');
@@ -627,6 +642,23 @@ function FidesAssistant() {
           setThinkingLabel('consultando seus dados...');
           // executeTools agora é async (pode esperar confirmação)
           toolResults = await executeTools(data.tool_calls);
+
+          // AI-WRITE-NOCALL-01: se TODAS as tools deste lote são WRITE e terminaram num estado
+          // final (sucesso ou cancelado), a resposta já está inteira no resultado local — pula a
+          // 2ª chamada ao Gemini (que só geraria o textinho) e sintetiza aqui. Corta ~50% da cota
+          // gasta em lançamentos. READ (consultar_*) e erros de WRITE seguem pro modelo, que
+          // precisa interpretar os dados / ajudar a recuperar.
+          const allWrite = data.tool_calls.every(tc => TOOLS_REQUIRING_CONFIRMATION.includes(tc.name));
+          const allTerminal = Array.isArray(toolResults) && toolResults.length > 0
+            && toolResults.every(r => r && r.result && (r.result.success || r.result.cancelled));
+          if (allWrite && allTerminal) {
+            setMessages(prev => [...prev, { role: 'assistant', content: synthesizeWriteReply(toolResults), ts: Date.now() }]);
+            setCooldown(COOLDOWN_NORMAL_SEC);
+            setThinking(false);
+            setThinkingLabel('');
+            return;
+          }
+
           iteration++;
           continue;
         }
