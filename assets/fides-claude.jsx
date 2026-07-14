@@ -15,9 +15,19 @@ const HISTORY_TIMEOUT_MS = 2 * 60 * 60 * 1000; // 2 horas
 // slot da cota diária mesmo quando o Gemini falha, então nada de tempestade de retries aqui.
 const ASSISTANT_RETRY_ON_503 = 1;
 const ASSISTANT_RETRY_DELAY_MS = 1200;
-const STORAGE_KEY_MESSAGES = 'fides_assistant_messages';
-const STORAGE_KEY_LAST_ACTIVITY = 'fides_assistant_last_activity';
+// AI-WRITE-MIRROR-01: bump de versão da chave de sessão — invalida sessões já poluídas pelo
+// espelhamento de desfecho WRITE (12-06) num único deploy, sem esperar HISTORY_TIMEOUT_MS.
+const STORAGE_KEY_MESSAGES = 'fides_assistant_messages_v2';
+const STORAGE_KEY_LAST_ACTIVITY = 'fides_assistant_last_activity_v2';
 const TOAST_DURATION_MS = 3000;
+
+// AI-WRITE-MIRROR-01: constantes de desfecho sintético (synthesizeWriteReply) — fonte única,
+// reusada pelo guard anti-espelho (isSyntheticWriteOutcome). Mensagens compostas a partir
+// destas constantes são marcadas `writeOutcome: true` e NUNCA reenviadas ao Gemini como
+// texto de histórico (ver o `.filter` da montagem do history em `send`).
+const WRITE_OUTCOME_CANCEL = 'Ok, cancelei então. Se quiser, é só me pedir de novo. 👍';
+const WRITE_OUTCOME_SUCCESS_PREFIX = 'Pronto! ';
+const WRITE_OUTCOME_SUCCESS_NO_PARTS = 'Pronto, feito! ✓';
 
 // Tools que requerem confirmação visual antes de executar
 const TOOLS_REQUIRING_CONFIRMATION = ['lancar_transacao', 'recategorizar_transacao', 'editar_transacao', 'criar_categoria'];
@@ -562,8 +572,8 @@ function FidesAssistant() {
       if (res.success) { anySuccess = true; if (res.message) parts.push(res.message); }
       else if (res.cancelled) { anyCancel = true; }
     }
-    if (anySuccess) return parts.length ? `Pronto! ${parts.join(' ')}` : 'Pronto, feito! ✓';
-    if (anyCancel) return 'Ok, cancelei então. Se quiser, é só me pedir de novo. 👍';
+    if (anySuccess) return parts.length ? `${WRITE_OUTCOME_SUCCESS_PREFIX}${parts.join(' ')}` : WRITE_OUTCOME_SUCCESS_NO_PARTS;
+    if (anyCancel) return WRITE_OUTCOME_CANCEL;
     return 'Feito.';
   };
 
@@ -590,8 +600,11 @@ function FidesAssistant() {
         return;
       }
 
+      // AI-WRITE-MIRROR-01: exclui desfechos WRITE sintéticos (writeOutcome) do history enviado
+      // ao Gemini — permanecem visíveis na UI (array `messages` intacto), mas deixam de ser a
+      // fonte que o modelo espelhava verbatim em turnos seguintes.
       const history = [...messages, userMsg]
-        .filter(m => m.role === 'user' || m.role === 'assistant')
+        .filter(m => (m.role === 'user' || m.role === 'assistant') && !m.writeOutcome)
         .map(m => ({ role: m.role, content: m.content }));
 
       let toolResults = null;
@@ -610,7 +623,7 @@ function FidesAssistant() {
           const hadSuccessfulWrite = Array.isArray(toolResults)
             && toolResults.some(r => r && r.result && r.result.success);
           if (hadSuccessfulWrite) {
-            setMessages(prev => [...prev, { role: 'assistant', content: synthesizeWriteReply(toolResults), ts: Date.now() }]);
+            setMessages(prev => [...prev, { role: 'assistant', content: synthesizeWriteReply(toolResults), ts: Date.now(), writeOutcome: true }]);
             setCooldown(COOLDOWN_NORMAL_SEC);
             setThinking(false);
             setThinkingLabel('');
@@ -652,7 +665,7 @@ function FidesAssistant() {
           const allTerminal = Array.isArray(toolResults) && toolResults.length > 0
             && toolResults.every(r => r && r.result && (r.result.success || r.result.cancelled));
           if (allWrite && allTerminal) {
-            setMessages(prev => [...prev, { role: 'assistant', content: synthesizeWriteReply(toolResults), ts: Date.now() }]);
+            setMessages(prev => [...prev, { role: 'assistant', content: synthesizeWriteReply(toolResults), ts: Date.now(), writeOutcome: true }]);
             setCooldown(COOLDOWN_NORMAL_SEC);
             setThinking(false);
             setThinkingLabel('');
