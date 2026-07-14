@@ -421,7 +421,7 @@ Plans:
 **Gap closure · 12-UAT (2 gaps: 1 blocker, 1 major)**
 
 - [x] 12-06-PLAN.md — WRITE-01/HONEST-01 (Test 4, BLOCKER): mata o falso "Ok, cancelei então" — desfechos WRITE sintéticos deixam de ser texto espelhável no history (tag `writeOutcome` + filtro), guard anti-espelho no reply, bump da storage key p/ desbloqueio, remoção do addendum de cancelamento (5e161e9) + security-reviewer [wave 4]
-- [ ] 12-07-PLAN.md — WRITE-01/HONEST-01 (Test 1, major): "cartão" homônimo resolve p/ cartão, não conta — `tipo_destino` (enum conta|cartao) na tool + prompt + security-reviewer; `resolveWriteToolArgs` honra o tipo (cartão → findCardByName exclusivo) e desambigua homônimo em vez de escolher conta-primeiro [wave 5, depende de 12-06]
+- [x] 12-07-PLAN.md — WRITE-01/HONEST-01 (Test 1, major): "cartão" homônimo resolve p/ cartão, não conta — `tipo_destino` (enum conta|cartao) na tool + prompt + security-reviewer; `resolveWriteToolArgs` honra o tipo (cartão → findCardByName exclusivo) e desambigua homônimo em vez de escolher conta-primeiro [wave 5, depende de 12-06]
 
 ### Phase 13: IA-3 Gating premium in-app
 
@@ -455,7 +455,7 @@ Plans:
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
 | 11 - IA-1 Hardening Gemini | 4/4 | Complete    | 2026-07-07 |
-| 12 - IA-2 WRITE in-app (B8) | 6/7 | In Progress|  |
+| 12 - IA-2 WRITE in-app (B8) | 7/7 | Complete   | 2026-07-14 |
 | 13 - IA-3 Gating premium | 0/? | Not started | - |
 | 14 - IA-4 Bot WhatsApp | 0/? | Not started | - |
 | 15 - UI Polish (Favicon) | 0/? | Not started | - |

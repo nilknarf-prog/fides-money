@@ -6,15 +6,15 @@ current_phase: 12
 current_phase_name: ia-2-destravar-write-no-assistente-in-app-b8
 status: executing
 stopped_at: Completed 12-06-PLAN.md
-last_updated: "2026-07-14T17:39:14.384Z"
+last_updated: "2026-07-14T17:46:59.912Z"
 last_activity: 2026-07-14
 last_activity_desc: Phase 12 execution started
 progress:
   total_phases: 5
-  completed_phases: 1
+  completed_phases: 2
   total_plans: 11
-  completed_plans: 10
-  percent: 20
+  completed_plans: 11
+  percent: 40
 ---
 
 # Project State
@@ -24,7 +24,7 @@ progress:
 ## Current Position
 
 Phase: 12 (ia-2-destravar-write-no-assistente-in-app-b8) — EXECUTING
-Plan: 2 of 7
+Plan: 3 of 7
 Status: Ready to execute
 Last activity: 2026-07-14 — Phase 12 execution started
 
@@ -167,10 +167,12 @@ Phase 12 (IA-2 B8) implementada em 5 commits (`9a9ead5` → `6714d3f`).
 - [Phase 12]: 12-06: writeOutcome flag + history filter + guard anti-espelho (isSyntheticWriteOutcome) fecham o espelhamento de desfecho WRITE via chat
 - [Phase 12]: 12-06: STORAGE_KEY_MESSAGES/STORAGE_KEY_LAST_ACTIVITY versionadas para _v2 (purga sessoes poluidas no deploy sem esperar TTL)
 - [Phase 12]: 12-06: bullet ATENCAO AO CANCELAMENTO removido do SYSTEM_PROMPT (5e161e9) - letra morta pos-68ed3ca; security-review sem findings
+- [Phase 12]: 12-07: tipo_destino enum ['conta','cartao'] opcional em lancar_transacao; findAccountByName/findCardByName sempre consultados no resolver (precedencia conta-primeiro removida); homonimo sem tipo retorna erro de desambiguacao fail-closed
+- [Phase 12]: 12-07: security-review conduzida diretamente pelo executor (sem Task-launcher de subagente ECC disponivel) - PASS zero findings, mesmo veiculo ja usado em 12-06
 
 ## Session
 
-**Last session:** 2026-07-14T17:39:14.365Z
+**Last session:** 2026-07-14T17:45:50.460Z
 **Stopped at:** Completed 12-06-PLAN.md
 **Resume file:** None
 
@@ -203,3 +205,4 @@ Milestone v1.0 e v1.1 shipadas (tags `v1.0`/`v1.1`); decisões arquivadas em PRO
 | Phase | Plan | Duration | Notes |
 |-------|------|----------|-------|
 | Phase 12 P06 | 12min | 3 tasks | 2 files |
+| Phase 12 P07 | ~10min | 2 tasks | 2 files |
