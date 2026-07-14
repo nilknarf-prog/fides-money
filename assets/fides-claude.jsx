@@ -577,6 +577,19 @@ function FidesAssistant() {
     return 'Feito.';
   };
 
+  // AI-WRITE-MIRROR-01: defesa em profundidade — os textos de desfecho WRITE são artefatos
+  // 100% locais (só synthesizeWriteReply os produz) e um cancelamento real é resolvido
+  // localmente (short-circuit allWrite && allTerminal) antes de chegar ao Gemini. Logo, um
+  // reply de TEXTO (sem tool_call) que reproduza um desses textos só pode ser espelhamento.
+  const isSyntheticWriteOutcome = (text) => {
+    const t = String(text || '').trim();
+    if (!t) return false;
+    if (t === WRITE_OUTCOME_CANCEL) return true;
+    if (t === WRITE_OUTCOME_SUCCESS_NO_PARTS) return true;
+    if (t.startsWith(WRITE_OUTCOME_SUCCESS_PREFIX)) return true;
+    return false;
+  };
+
   const send = async (q) => {
     const question = (q ?? input).trim();
     if (!question || thinking || cooldown > 0 || pendingConfirmation) return;
@@ -679,6 +692,16 @@ function FidesAssistant() {
         const reply = data?.reply;
         if (!reply) {
           setError(friendlyError('EMPTY_REPLY'));
+          setCooldown(COOLDOWN_NORMAL_SEC);
+          setThinking(false);
+          setThinkingLabel('');
+          return;
+        }
+        if (isSyntheticWriteOutcome(reply)) {
+          // AI-WRITE-MIRROR-01: guard anti-espelho — reply de texto idêntico a um desfecho WRITE
+          // sintético (sem tool_call) é sempre espelhamento. Suprime (não exibe, não persiste) e
+          // substitui por uma mensagem neutra, sem re-semear poluição.
+          setMessages(prev => [...prev, { role: 'assistant', content: 'Não fiquei certo do que já foi feito — pode repetir o que você quer lançar?', ts: Date.now() }]);
           setCooldown(COOLDOWN_NORMAL_SEC);
           setThinking(false);
           setThinkingLabel('');
