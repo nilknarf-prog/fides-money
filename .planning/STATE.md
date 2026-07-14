@@ -1,22 +1,20 @@
 ---
 gsd_state_version: 1.0
 milestone: ia-whatsapp
-milestone_name: "Épico IA/WhatsApp (Phases 11–14) — milestone formal pendente"
-milestone_formalized: false
-current_phase: 13
-current_phase_name: IA-3 Gating Premium
+milestone_name: Épico IA/WhatsApp (Phases 11–14) — milestone formal pendente
+current_phase: 12
+current_phase_name: ia-2-destravar-write-no-assistente-in-app-b8
 status: executing
-stopped_at: Phase 13 planning
-last_updated: "2026-07-14T00:00:00.000Z"
+stopped_at: Completed 12-06-PLAN.md
+last_updated: "2026-07-14T17:39:14.384Z"
 last_activity: 2026-07-14
-last_activity_desc: "Reparo de saúde do .planning/ (STATE limpo + summaries 12-01/12-02); Phase 13 pronta para planejar"
+last_activity_desc: Phase 12 execution started
 progress:
-  scope: "Épico IA/WhatsApp (Phases 11–14; Phase 15 favicon é polish avulso)"
-  total_phases: 4
-  completed_phases: 2
-  total_plans_so_far: 9
-  completed_plans_so_far: 9
-  percent: 50
+  total_phases: 5
+  completed_phases: 1
+  total_plans: 11
+  completed_plans: 10
+  percent: 20
 ---
 
 # Project State
@@ -25,17 +23,17 @@ progress:
 
 ## Current Position
 
-Phase: 13 — IA-3 Gating Premium
-Plan: Não iniciado (só `.gitkeep` no diretório)
-Status: Pronta para planejar (`/gsd-plan-phase 13`)
-Last activity: 2026-07-14 — reparo de saúde do `.planning/`; Phase 12 implementada, UAT humano pendente
+Phase: 12 (ia-2-destravar-write-no-assistente-in-app-b8) — EXECUTING
+Plan: 2 of 7
+Status: Ready to execute
+Last activity: 2026-07-14 — Phase 12 execution started
 
 ## Project Reference
 
 See: .planning/PROJECT.md (updated 2026-07-06)
 
 **Core value:** Finanças pessoais por registro manual (fricção intencional → consciência); nunca número que impressiona mas engana.
-**Current focus:** Phase 13 (gating premium via `profiles.plan`) dentro do épico IA/WhatsApp.
+**Current focus:** Phase 12 — ia-2-destravar-write-no-assistente-in-app-b8
 
 ## Phase Overview
 
@@ -166,12 +164,15 @@ Phase 12 (IA-2 B8) implementada em 5 commits (`9a9ead5` → `6714d3f`).
 - [Phase 12]: 12-04: criar_categoria em TOOLS_REQUIRING_CONFIRMATION (SD-1) + await addCategory (P5 morto) + nonce round-trip + window.__fidesWriteConfirmPending
 - [Phase 12]: 12-05: guard ⌘K — early-return quando __fidesWriteConfirmPending (P6)
 - [Phase 13]: P01: planejamento gating premium via profiles.plan — pendente
+- [Phase 12]: 12-06: writeOutcome flag + history filter + guard anti-espelho (isSyntheticWriteOutcome) fecham o espelhamento de desfecho WRITE via chat
+- [Phase 12]: 12-06: STORAGE_KEY_MESSAGES/STORAGE_KEY_LAST_ACTIVITY versionadas para _v2 (purga sessoes poluidas no deploy sem esperar TTL)
+- [Phase 12]: 12-06: bullet ATENCAO AO CANCELAMENTO removido do SYSTEM_PROMPT (5e161e9) - letra morta pos-68ed3ca; security-review sem findings
 
 ## Session
 
-**Last session:** 2026-07-14T00:00:00.000Z
-**Stopped at:** Phase 13 planning (após reparo de saúde do `.planning/`)
-**Resume file:** .planning/phases/12-ia-2-destravar-write-no-assistente-in-app-b8/12-CONTEXT.md
+**Last session:** 2026-07-14T17:39:14.365Z
+**Stopped at:** Completed 12-06-PLAN.md
+**Resume file:** None
 
 ## Accumulated Context
 
@@ -196,3 +197,9 @@ Milestone v1.0 e v1.1 shipadas (tags `v1.0`/`v1.1`); decisões arquivadas em PRO
   - 12-05: guard ⌘K (P6)
   - ⚠️ Verificar `ASSISTANT_NONCE_SECRET` setado no Vercel Project (nonce D-06). Rodar `/gsd-verify-work 12`.
 - **Phase 13 (IA-3):** gating premium via `profiles.plan` — ainda não planejada (`/gsd-plan-phase 13`).
+
+## Performance Metrics
+
+| Phase | Plan | Duration | Notes |
+|-------|------|----------|-------|
+| Phase 12 P06 | 12min | 3 tasks | 2 files |

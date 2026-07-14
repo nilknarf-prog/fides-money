@@ -403,24 +403,24 @@ Plans:
 Plans:
 **Wave 1**
 
-- [ ] 12-01-PLAN.md — WRITE-01/DERIVED-SAFE-01: RPC `wa_log_transaction` (SECURITY DEFINER + owner-guard, espelha pay_card_invoice) aplicada no Supabase LIVE via MCP + database-reviewer (Onda 1)
-- [ ] 12-02-PLAN.md — WRITE-01..04/HONEST-01: servidor religa `TOOLS_DECLARATION` (4 WRITE) + system prompt de honestidade + nonce anti-replay `api/_lib/nonce.js` (D-06, TTL 120s) + security-reviewer (Onda 1)
+- [x] 12-01-PLAN.md — WRITE-01/DERIVED-SAFE-01: RPC `wa_log_transaction` (SECURITY DEFINER + owner-guard, espelha pay_card_invoice) aplicada no Supabase LIVE via MCP + database-reviewer (Onda 1)
+- [x] 12-02-PLAN.md — WRITE-01..04/HONEST-01: servidor religa `TOOLS_DECLARATION` (4 WRITE) + system prompt de honestidade + nonce anti-replay `api/_lib/nonce.js` (D-06, TTL 120s) + security-reviewer (Onda 1)
 
 **Wave 2** *(blocked on Wave 1 completion)*
 
-- [ ] 12-03-PLAN.md — WRITE-01/WRITE-04/DERIVED-SAFE-01: cliente reescreve `lancar_transacao` p/ a RPC + fix P2 (mês real, não selectedMonth) + status pendente em cartão + D-04 categoria bundlada (Onda 2)
+- [x] 12-03-PLAN.md — WRITE-01/WRITE-04/DERIVED-SAFE-01: cliente reescreve `lancar_transacao` p/ a RPC + fix P2 (mês real, não selectedMonth) + status pendente em cartão + D-04 categoria bundlada (Onda 2)
 
 **Wave 3** *(blocked on Wave 2 completion)*
 
-- [ ] 12-04-PLAN.md — WRITE-04/HONEST-01: `criar_categoria` passa a exigir confirmação (SD-1) + mata toast falso (P5, await) + threading do nonce (cliente) + flag de confirmação pendente (Onda 3)
+- [x] 12-04-PLAN.md — WRITE-04/HONEST-01: `criar_categoria` passa a exigir confirmação (SD-1) + mata toast falso (P5, await) + threading do nonce (cliente) + flag de confirmação pendente (Onda 3)
 
 **Wave 4** *(blocked on Wave 3 completion)*
 
-- [ ] 12-05-PLAN.md — HONEST-01: guard de ⌘K não sobrepõe o card de confirmação WRITE pendente (P6) (Onda 4)
+- [x] 12-05-PLAN.md — HONEST-01: guard de ⌘K não sobrepõe o card de confirmação WRITE pendente (P6) (Onda 4)
 
 **Gap closure · 12-UAT (2 gaps: 1 blocker, 1 major)**
 
-- [ ] 12-06-PLAN.md — WRITE-01/HONEST-01 (Test 4, BLOCKER): mata o falso "Ok, cancelei então" — desfechos WRITE sintéticos deixam de ser texto espelhável no history (tag `writeOutcome` + filtro), guard anti-espelho no reply, bump da storage key p/ desbloqueio, remoção do addendum de cancelamento (5e161e9) + security-reviewer [wave 4]
+- [x] 12-06-PLAN.md — WRITE-01/HONEST-01 (Test 4, BLOCKER): mata o falso "Ok, cancelei então" — desfechos WRITE sintéticos deixam de ser texto espelhável no history (tag `writeOutcome` + filtro), guard anti-espelho no reply, bump da storage key p/ desbloqueio, remoção do addendum de cancelamento (5e161e9) + security-reviewer [wave 4]
 - [ ] 12-07-PLAN.md — WRITE-01/HONEST-01 (Test 1, major): "cartão" homônimo resolve p/ cartão, não conta — `tipo_destino` (enum conta|cartao) na tool + prompt + security-reviewer; `resolveWriteToolArgs` honra o tipo (cartão → findCardByName exclusivo) e desambigua homônimo em vez de escolher conta-primeiro [wave 5, depende de 12-06]
 
 ### Phase 13: IA-3 Gating premium in-app
@@ -455,12 +455,13 @@ Plans:
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
 | 11 - IA-1 Hardening Gemini | 4/4 | Complete    | 2026-07-07 |
-| 12 - IA-2 WRITE in-app (B8) | 5/5 | Complete | 2026-07-12 |
+| 12 - IA-2 WRITE in-app (B8) | 6/7 | In Progress|  |
 | 13 - IA-3 Gating premium | 0/? | Not started | - |
 | 14 - IA-4 Bot WhatsApp | 0/? | Not started | - |
 | 15 - UI Polish (Favicon) | 0/? | Not started | - |
 
 ### Phase 15: UI Polish (Favicon)
+
 **Goal:** Adicionar o ícone do Fides como favicon do site (atualmente está sem favicon).
 **Plans:** 0 plans
 
