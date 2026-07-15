@@ -1,9 +1,9 @@
 ---
-status: diagnosed
+status: complete
 phase: 12-ia-2-destravar-write-no-assistente-in-app-b8
 source: [12-01-SUMMARY.md, 12-02-SUMMARY.md, 12-03-SUMMARY.md, 12-04-SUMMARY.md, 12-05-SUMMARY.md]
 started: 2026-07-12T20:55:00Z
-updated: 2026-07-14T00:00:00Z
+updated: 2026-07-14T12:00:00Z
 ---
 
 ## Current Test
@@ -17,10 +17,11 @@ expected: |
   1. No chat, peça para adicionar uma despesa num cartão em uma categoria que **não existe** (ex: "Gastei 50 no cartão Nubank em dezembro com 'Presentes de Natal'").
   2. O assistente deve exibir um **único card de confirmação** informando que vai criar a categoria "Presentes de Natal" E lançar os 50 reais no cartão.
   3. Ao clicar em "Confirmar", a transação é criada, o status no cartão fica como "Pendente" e o mês da transação segue a data de fechamento da fatura (ignorando o mês selecionado atualmente na UI).
-result: issue
+result: pass
 reported: "Pedi 'lança 1 real na categoria natal, no cartão de crédito bradesco' e o modal ia lançar na CONTA CORRENTE Bradesco, ignorando 'cartão de crédito'. Quando o usuário fala 'cartão', o bot precisa resolver o CARTÃO, não a conta homônima."
 severity: major
 reverify_2026-07-14: "MASCARADO por Bug A (Test 4). Hipótese do campo `bank` REFUTADA: usuário confirmou que o cartão E a conta se chamam ambos 'Bradesco' (name idêntico). Com nomes idênticos, findCardByName e findAccountByName casam os dois → o resolver 12-07 (fides-claude.jsx:340) DEVERIA pedir desambiguação quando tipo_destino é omitido, ou resolver p/ cartão quando tipo='cartao'. Não dá pra validar: no teste atual o modelo NEM CHAMOU a tool (ver Test 4 — devolveu texto 'Lancei...' sem tool_call), então o caminho de resolução homônima não foi exercido. Bloqueado por Bug A. Re-testar Test 1 só DEPOIS de Bug A resolvido."
+resolved_2026-07-14: "PASS após fix 3233aa0. Com Bug A resolvido, o modelo passa a chamar lancar_transacao e a resolução homônima (tipo_destino + desambiguação, 12-07) é exercida. Re-teste do usuário confirmou destino correto (cartão vs conta)."
 
 ### 2. Confirmação obrigatória para criar categoria isolada
 expected: |
@@ -42,23 +43,24 @@ expected: |
   1. Realize um lançamento com sucesso e confirme.
   2. Inspecione a rede (DevTools) ou use o app normalmente repetindo a operação num cenário simulado de retry/lag de rede (ou simplesmente não haverá erros de 'Rate Limit' em uso contínuo se o LLM decidir usar tools repetidamente na mesma iteração sem quebrar a cota real).
   3. Apenas certifique-se de que operações normais fluem sem erro 429 indevido.
-result: issue
+result: pass
 reported: "Durante uso real do lançamento via chat, o assistente respondeu 'Ok, cancelei então. Se quiser, é só me pedir de novo. 👍' SEM o usuário ter cancelado. Repro: (1) 'Lance 134,20 Compra Ádria, conta Mercado Pago' → bot pergunta a categoria → usuário responde 'categoria compras' → bot responde 'Ok, cancelei então'. (2) Mandando tudo junto 'Lance 134,20 Compra Ádria, categoria compras, conta Mercado Pago' → bot também responde 'Ok, cancelei então'. (3) Persiste após atualizar a página. Fluxo de WRITE via chat fica inutilizável."
 severity: blocker
 reverify_2026-07-14: "AINDA FALHA (nova manifestação, mesma classe). Repro: 'lance a despesa de 1 real, almoço, categoria alimentação, no cartão de crédito bradesco' → bot respondeu em TEXTO 'Entendido! Lancei R$ 1,00 na categoria Alimentação...' SEM chamar lancar_transacao, SEM card de confirmação, e NADA foi persistido. Root cause: o fix 12-06 só cobre espelhamento VERBATIM — isSyntheticWriteOutcome (fides-claude.jsx:621-632) casa apenas texto idêntico a um desfecho sintético; uma paráfrase fabricada pelo flash-lite ('Entendido! Lancei...') escapa e é renderizada como reply normal (:751). O item que faltava do 12-06 ('guard: pedido WRITE volta com texto lancei/cancelei SEM tool_call → não exibir, forçar a tool') NÃO foi implementado. Falha de honestidade: modelo afirma ter lançado sem chamar tool nenhuma. WRITE via chat continua inutilizável — agora com ilusão de sucesso (pior que o cancelamento falso: usuário acredita que lançou)."
+resolved_2026-07-14: "PASS após fix 3233aa0 (guard claimsWriteCompletion paráfrase-aware + regra de honestidade no prompt + retry corretivo). Re-teste do usuário: fluxo WRITE via chat funcional — sem 'Ok, cancelei' nem 'Lancei' fabricado sem card."
 
 ## Summary
 
 total: 4
-passed: 2
-issues: 2
+passed: 4
+issues: 0
 pending: 0
 skipped: 0
 
 ## Gaps
 
 - truth: "Ao lançar com destino explícito 'cartão de crédito Bradesco', a transação deve ir para o CARTÃO Bradesco (status Pendente, mês pela data de fechamento da fatura), nunca para a conta corrente Bradesco homônima"
-  status: failed
+  status: resolved
   reason: "User reported: 'lança 1 real na categoria natal, no cartão de crédito bradesco' abriu o modal apontando para a CONTA CORRENTE Bradesco, ignorando 'cartão de crédito'. A resolução de conta/cartão por nome (findAccountByName/findCardByName no cliente + args da tool) não desambigua cartão vs conta de mesmo nome quando o usuário diz 'cartão'."
   severity: major
   test: 1
@@ -75,7 +77,7 @@ skipped: 0
   debug_session: .planning/debug/cartao-homonimo-vira-conta.md
 
 - truth: "Ao fornecer os dados de um lançamento via chat (numa mensagem ou em follow-up com a categoria/conta), o assistente deve montar o card de confirmação de WRITE — nunca responder 'Ok, cancelei então' sem o usuário ter cancelado"
-  status: failed
+  status: resolved
   reason: "User reported: fluxo de lançamento via chat responde 'Ok, cancelei então. Se quiser, é só me pedir de novo. 👍' sem cancelamento. Ocorre tanto no follow-up (usuário responde 'categoria compras') quanto mandando tudo junto; persiste após reload. Provável falso-positivo na detecção de tool cancelada (commit 5e161e9 'recognize cancelled write tools correctly') interpretando resposta/tool_result normal como cancelamento."
   severity: blocker
   test: 4
