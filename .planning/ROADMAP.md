@@ -429,11 +429,19 @@ Plans:
 **Requirements**: GATE-01 (store lê plan real), GATE-02 (free degustação limitada), GATE-03 (premium libera WRITE/IA), PAYWALL-01 (a formalizar)
 **Depends on:** Phase 12
 **Fonte:** `.planning/research/whatsapp-e-ia-arquitetura.md` §B3 (Fase IA-3), §B4 (precificação P-2)
-**Plans:** 0 plans
+**Plans:** 4 plans (waves 1→2)
 
 Plans:
 
-- [ ] TBD (run /gsd-plan-phase 13 to break down)
+**Wave 1** *(arquivos disjuntos — em paralelo)*
+
+- [ ] 13-01-PLAN.md — GATE-01: store lê `plan` de `profiles` + expõe `userPlan`/`isPremium` (allow-list fail-closed) no `useFides()`
+- [ ] 13-02-PLAN.md — [BLOCKING] P1 (integridade de GATE-03): REVOKE/GRANT column-level em `profiles.plan` (autonomous:false — apply manual no SQL Editor). Sem isso o tier é auto-outorgável via client SDK
+- [ ] 13-03-PLAN.md — GATE-02/GATE-03: gate server-side em `api/assistant.js` (lê plan fail-closed; Análise premium-only 403; split READ/WRITE tools por tier via `buildToolsForPlan`; cap 10/mês free sobre `assistant_usage`; `FREE_TIER_ADDENDUM`)
+
+**Wave 2** *(depende de 13-01 + 13-03)*
+
+- [ ] 13-04-PLAN.md — GATE-03/PAYWALL-01: paywall suave (copy `FREE_MONTHLY_LIMIT`/`PREMIUM_REQUIRED` nos 2 mapas de erro) + gate do botão Análise da IA + `PerfilView` badge/CTA + `UpgradeModal` (checkout M6 em breve)
 
 ### Phase 14: IA-4 Bot WhatsApp via Meta Cloud API
 
@@ -456,7 +464,7 @@ Plans:
 |-------|----------------|--------|-----------|
 | 11 - IA-1 Hardening Gemini | 4/4 | Complete    | 2026-07-07 |
 | 12 - IA-2 WRITE in-app (B8) | 7/7 | Complete    | 2026-07-14 |
-| 13 - IA-3 Gating premium | 0/? | Not started | - |
+| 13 - IA-3 Gating premium | 0/4 | Not started | - |
 | 14 - IA-4 Bot WhatsApp | 0/? | Not started | - |
 | 15 - UI Polish (Favicon) | 0/? | Not started | - |
 
