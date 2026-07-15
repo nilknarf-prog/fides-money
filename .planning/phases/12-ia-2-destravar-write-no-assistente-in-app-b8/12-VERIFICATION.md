@@ -1,24 +1,28 @@
 ---
 phase: 12-ia-2-destravar-write-no-assistente-in-app-b8
 verified: 2026-07-14T00:00:00Z
-status: human_needed
+status: passed
 score: 7/9 must-haves verified
 behavior_unverified: 2
 overrides_applied: 0
 gaps_closure_verification: true
 scope: "Re-verificação goal-backward focada no fechamento dos 2 gaps do 12-UAT (plans 12-06 e 12-07). 12-01..12-05 não foram re-verificados do zero — apenas checados por regressão nos arquivos tocados."
 behavior_unverified_items:
+
   - truth: "Um pedido WRITE via chat nunca mais volta 'Ok, cancelei então' sem o usuário ter clicado Cancelar (12-UAT Test 4 fechado)"
     test: "No chat: (1) mandar lançar e CANCELAR um card de verdade (semeia o desfecho de cancelamento no histórico visível); (2) em seguida pedir um novo lançamento (via follow-up de categoria OU tudo junto numa mensagem só); (3) recarregar a página e repetir o passo 2."
     expected: "O bot nunca responde 'Ok, cancelei então' para o novo pedido — sempre monta o card de confirmação (ou pergunta o campo faltante). O comportamento se mantém idêntico após reload."
     why_human: "Depende do Gemini (flash-lite) decidir, em tempo real, se espelha texto de histórico — não é determinístico e requer sessionStorage real de browser + chamada de rede ao /api/assistant; grep/leitura de código prova que os mecanismos de defesa (filtro writeOutcome, guard anti-espelho, bump de storage, remoção do addendum) estão implementados e wired, mas não prova que o modelo deixa de espelhar em produção."
+
   - truth: "Dizer 'cartão de crédito Bradesco' ao lançar resolve para o CARTÃO Bradesco (status Pendente, mês pela data de fechamento da fatura), nunca para a conta corrente Bradesco homônima (12-UAT Test 1 fechado)"
     test: "Com uma CONTA e um CARTÃO cadastrados com o mesmo nome (ex. 'Bradesco'): (1) 'lança 1 real na categoria natal, no cartão de crédito bradesco' → conferir que o card de confirmação aponta pro CARTÃO (status Pendente, mês pela fatura) e checar via Supabase MCP que `card_id` foi preenchido e `account_id` ficou nulo; (2) 'lança 1 real na conta corrente bradesco' → card aponta pra CONTA; (3) 'lança 1 real no bradesco' sem qualificar → o assistente pede desambiguação, não escolhe sozinho."
     why_human: "Depende do Gemini extrair `tipo_destino` corretamente da linguagem natural do usuário (não determinístico) e de existir de fato uma conta e um cartão homônimos nos dados de teste do usuário; leitura de código confirma que o resolver honra `tipo_destino` e desambigua quando ausente, mas não prova o comportamento fim-a-fim com o modelo real."
 human_verification:
+
   - test: "Regressão 12-UAT Test 4 (falso cancelamento): cancelar um card de verdade, depois pedir um novo lançamento (follow-up e tudo-junto), recarregar e repetir."
     expected: "Nunca mais 'Ok, cancelei então' sem cancelamento real; card de confirmação monta normalmente; comportamento sobrevive a reload."
     why_human: "Comportamento de LLM (Gemini) não é determinístico; requer sessão real de chat no browser."
+
   - test: "Regressão 12-UAT Test 1 (cartão homônimo): com conta E cartão 'Bradesco' cadastrados, testar 'cartão de crédito bradesco', 'conta corrente bradesco' e 'bradesco' sem qualificar."
     expected: "Cartão → cartão (Pendente, mês pela fatura). Conta → conta. Sem qualificar → pedido de desambiguação explícito."
     why_human: "Depende do Gemini extrair tipo_destino da linguagem natural + de dados reais de conta/cartão homônimos no Supabase do usuário de teste."
@@ -35,6 +39,7 @@ human_verification:
 ## Contexto
 
 O 12-UAT.md (4 testes manuais) reportou 2 issues:
+
 - **Test 4 (BLOCKER):** o assistente respondia "Ok, cancelei então" sem o usuário ter cancelado — WRITE via chat inutilizável, persistindo após reload.
 - **Test 1 (major):** "cartão de crédito bradesco" resolvia para a CONTA CORRENTE Bradesco homônima, ignorando "cartão de crédito".
 

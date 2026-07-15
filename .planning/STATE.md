@@ -2,13 +2,13 @@
 gsd_state_version: 1.0
 milestone: ia-whatsapp
 milestone_name: Épico IA/WhatsApp (Phases 11–14) — milestone formal pendente
-current_phase: 12
-current_phase_name: ia-2-destravar-write-no-assistente-in-app-b8
+current_phase: 13
+current_phase_name: IA-3 Gating premium in-app
 status: executing
-stopped_at: Completed 12-06-PLAN.md
-last_updated: "2026-07-14T17:46:59.912Z"
-last_activity: 2026-07-14
-last_activity_desc: Phase 12 execution started
+stopped_at: Phase 12 complete (UAT 4/4 pass), ready to execute Phase 13
+last_updated: "2026-07-15T00:25:57.804Z"
+last_activity: 2026-07-15
+last_activity_desc: Phase 12 complete, transitioned to Phase 13
 progress:
   total_phases: 5
   completed_phases: 2
@@ -23,17 +23,17 @@ progress:
 
 ## Current Position
 
-Phase: 12 (ia-2-destravar-write-no-assistente-in-app-b8) — EXECUTING
-Plan: 3 of 7
+Phase: 13 — IA-3 Gating premium in-app
+Plan: Not started
 Status: Ready to execute
-Last activity: 2026-07-14 — Phase 12 execution started
+Last activity: 2026-07-15 — Phase 12 complete, transitioned to Phase 13
 
 ## Project Reference
 
 See: .planning/PROJECT.md (updated 2026-07-06)
 
 **Core value:** Finanças pessoais por registro manual (fricção intencional → consciência); nunca número que impressiona mas engana.
-**Current focus:** Phase 12 — ia-2-destravar-write-no-assistente-in-app-b8
+**Current focus:** Phase 13 — IA-3 Gating premium in-app
 
 ## Phase Overview
 

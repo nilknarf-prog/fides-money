@@ -398,7 +398,7 @@ Plans:
 **Depends on:** Phase 11
 **Fonte:** `.planning/research/whatsapp-e-ia-arquitetura.md` §6, §7, §B3 (Fase IA-2). Gate B8 em `v1.0-ROADMAP.md:258`.
 **Caminho sensível:** `api/assistant.js` + RPC Supabase → security-reviewer + database-reviewer
-**Plans:** 5 plans (4 ondas)
+**Plans:** 7/7 plans complete
 
 Plans:
 **Wave 1**
@@ -455,7 +455,7 @@ Plans:
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
 | 11 - IA-1 Hardening Gemini | 4/4 | Complete    | 2026-07-07 |
-| 12 - IA-2 WRITE in-app (B8) | 7/7 | Complete   | 2026-07-14 |
+| 12 - IA-2 WRITE in-app (B8) | 7/7 | Complete    | 2026-07-14 |
 | 13 - IA-3 Gating premium | 0/? | Not started | - |
 | 14 - IA-4 Bot WhatsApp | 0/? | Not started | - |
 | 15 - UI Polish (Favicon) | 0/? | Not started | - |
