@@ -52,10 +52,12 @@ See: .planning/PROJECT.md (updated 2026-07-06)
 | Categoria | Item | Status |
 |-----------|------|--------|
 | verification | Phase 12 — 4 UATs humanos (WRITE in-app) | pending → rodar `/gsd-verify-work 12` |
+| verification | Phase 13 — 5 UATs humanos (gating free/pro) | pending → rodar `/gsd-verify-work 13` (13-UAT.md) |
 | verification | `fatura-ciclo-VERIFICATION.md` (feature v1.0/M4 `ade84f7`) | human_needed (desde 2026-07-01) |
 | security todo | `todos/pending/ratelimit-bypass-toolresults.md` (high) | aberto — endereçar durante o épico IA |
 | bug (assistente WRITE) | `todos/pending/2026-07-16-assistente-modais-write-stale-acumulados.md` (high) | aberto — modais de confirmação stale/acumulados; puxar p/ próxima fase de IA in-app |
 | deploy setup | `ASSISTANT_NONCE_SECRET` no Vercel Project (nonce D-06) | verificar setado pós-deploy |
+| demanda (nova fase) | Painel admin/backoffice — ver/gerir contas, trocar tier free/pro, audit, etc. | contexto em `.planning/research/painel-admin-backoffice.md` — planejar em sessão dedicada |
 | product | Fonte do valor atual da meta (aportes vs vínculo a conta) | deferido p/ M5+ |
 
 ## Next Action

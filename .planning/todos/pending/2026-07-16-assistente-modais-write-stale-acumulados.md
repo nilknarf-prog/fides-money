@@ -35,3 +35,17 @@ TBD — investigar com `/gsd-debug`. Hipótese de causa raiz: **estado residual 
 Ao investigar, confirmar: (a) onde a fila/estado de confirmação vive em `assets/fides-claude.jsx`; (b) se cancelar realmente remove o item da fila ou só avança um índice; (c) se um novo turno limpa pendências antigas. Reproduzir lançando 2-4 transações seguidas via assistente.
 
 **Nota de planejamento:** capturado durante `/gsd-execute-phase 13`. O usuário pediu explicitamente para incluir isto numa **fase futura**. Puxar este todo ao planejar a próxima fase de IA in-app (não cabe em 13-gating, 14-WhatsApp nem 15-favicon).
+
+## Update — 2026-07-16 (pós-13-05)
+
+- **Reconfirmado pelo usuário:** o bug **persiste** após a Phase 13. O repro relatado bate 1:1 com
+  o descrito acima (lançar 20 reais → OK; pedir outra despesa → surge o card da despesa ANTERIOR;
+  cancelar → aparece o próximo; acumula, quanto mais lançamentos mais cards a cancelar até chegar
+  no atual).
+- **Importante — o 13-05 NÃO corrige isto.** O plano 13-05 mexeu em `executeTools`
+  (`assets/fides-claude.jsx`), mas por outro motivo (guard de tier: bloquear WRITE para conta
+  **free** antes do card, gating premium). A causa raiz aqui é a **fila/estado de confirmação
+  pendente que não é drenado entre turnos** — independe do tier e continua aberta. Não confundir
+  os dois: 13-05 = gating; este todo = bug de estado da fila de confirmação WRITE.
+- Continua candidato a uma fase de **hardening/UX do assistente WRITE in-app**. Prioridade **high**
+  (toca dinheiro real).
