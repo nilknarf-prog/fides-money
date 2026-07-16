@@ -211,6 +211,36 @@ module.exports = async (req, res) => {
     }
     const userId = userData.user.id;
 
+    // ─── TIER (profiles.plan) ──────────────────────
+    // GATE-02/GATE-03 (D-01/D-02): fonte da verdade é o BANCO, sempre relida por
+    // request — nunca confiar em nada vindo do client. Default fail-closed 'free':
+    // erro de leitura, linha ausente, ou valor de plan desconhecido caem em free.
+    let plan = 'free';
+    try {
+      const { data: profileRow, error: profileError } = await supabase
+        .from('profiles')
+        .select('plan')
+        .eq('id', userId)
+        .single();
+      if (!profileError && profileRow && typeof profileRow.plan === 'string') {
+        plan = profileRow.plan;
+      }
+    } catch (profileFetchErr) {
+      console.error('[assistant] profile plan fetch exception', profileFetchErr);
+      // fail-closed — plan permanece 'free'
+    }
+    // Allow-list (D-02): NUNCA reduzir a uma negação direta contra o valor 'free' —
+    // um valor desconhecido/corrompido deve cair em free, não em premium.
+    const isPremium = plan === 'pro' || plan === 'family';
+
+    // GATE-03 parte 1: Análise da IA é premium-only. Roda SEMPRE, antes do Gemini,
+    // independente de toolResults/nonce — fecha o bypass por chamada direta com
+    // mode:'analysis' (D-01).
+    if (isAnalysisMode && !isPremium) {
+      res.status(403).json({ error: 'PREMIUM_REQUIRED', code: 403 });
+      return;
+    }
+
     // ─── RATE LIMIT POR USUÁRIO ──────────────────────
     // D-06: nonce anti-replay — toolResults forjado sem nonce válido conta na cota.
     // Fail-safe: nonce ausente/inválido/expirado NUNCA bloqueia (só faz contar cota).
