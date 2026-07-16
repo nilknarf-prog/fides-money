@@ -1376,6 +1376,8 @@ function FidesProvider({ children }) {
     // Mode & auth
     mode, userId, isLoading, isEmpty,
     userName, firstName, userEmail,
+    // GATE-01: tier real (D-02, allow-list fail-closed — nunca negação !== 'free')
+    userPlan, isPremium: userPlan === 'pro' || userPlan === 'family',
     refreshData: () => refreshData(userId),
     goals, addGoal, updateGoal, deleteGoal,
     uploadGoalCover, deleteGoalCover,
@@ -1427,6 +1429,7 @@ function useFides() {
   return {
     mode: 'mock', userId: null, isLoading: false, isEmpty: false,
     userName: '', firstName: '', userEmail: '',
+    userPlan: 'free', isPremium: false,
     refreshData: async () => {},
     goals: [], addGoal: () => {}, updateGoal: () => {}, deleteGoal: () => {},
     uploadGoalCover: async () => {}, deleteGoalCover: async () => {},
