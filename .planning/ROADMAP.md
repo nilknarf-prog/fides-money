@@ -429,7 +429,7 @@ Plans:
 **Requirements**: GATE-01 (store lê plan real), GATE-02 (free degustação limitada), GATE-03 (premium libera WRITE/IA), PAYWALL-01 (a formalizar)
 **Depends on:** Phase 12
 **Fonte:** `.planning/research/whatsapp-e-ia-arquitetura.md` §B3 (Fase IA-3), §B4 (precificação P-2)
-**Plans:** 4 plans (waves 1→2)
+**Plans:** 5 plans (waves 1→2 + gap closure)
 
 Plans:
 
@@ -442,6 +442,10 @@ Plans:
 **Wave 2** *(depende de 13-01 + 13-03)*
 
 - [x] 13-04-PLAN.md — GATE-03/PAYWALL-01: paywall suave (copy `FREE_MONTHLY_LIMIT`/`PREMIUM_REQUIRED` nos 2 mapas de erro) + gate do botão Análise da IA + `PerfilView` badge/CTA + `UpgradeModal` (checkout M6 em breve)
+
+**Gap closure** *(fecha VERIFICATION truth #9 / CR-01 — defesa em profundidade)*
+
+- [ ] 13-05-PLAN.md — GATE-03 (gap): revalida server-side o nome de todo `tool_call` retornado contra o tier (`WRITE_NAMES` de `WRITE_FUNCTIONS` → 403 `PREMIUM_REQUIRED` sem relay, CR-01) + guarda cliente `!fs.isPremium` em `executeTools` + reescrita comportamental de `FREE_TIER_ADDENDUM` (WR-04)
 
 ### Phase 14: IA-4 Bot WhatsApp via Meta Cloud API
 
