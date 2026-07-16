@@ -5,15 +5,15 @@ milestone_name: Épico IA/WhatsApp (Phases 11–14) — milestone formal pendent
 current_phase: 13
 current_phase_name: ia-3-gating-premium-in-app
 status: executing
-stopped_at: Completed 13-01-PLAN.md
-last_updated: "2026-07-16T16:48:42.631Z"
+stopped_at: Completed 13-03-PLAN.md
+last_updated: "2026-07-16T16:59:38.389Z"
 last_activity: 2026-07-16
 last_activity_desc: Phase 13 execution started
 progress:
   total_phases: 5
   completed_phases: 2
   total_plans: 15
-  completed_plans: 12
+  completed_plans: 13
   percent: 40
 ---
 
@@ -24,7 +24,7 @@ progress:
 ## Current Position
 
 Phase: 13 (ia-3-gating-premium-in-app) — EXECUTING
-Plan: 2 of 4
+Plan: 3 of 4
 Status: Ready to execute
 Last activity: 2026-07-16 — Phase 13 execution started
 
@@ -170,11 +170,12 @@ Phase 12 (IA-2 B8) implementada em 5 commits (`9a9ead5` → `6714d3f`).
 - [Phase 12]: 12-07: tipo_destino enum ['conta','cartao'] opcional em lancar_transacao; findAccountByName/findCardByName sempre consultados no resolver (precedencia conta-primeiro removida); homonimo sem tipo retorna erro de desambiguacao fail-closed
 - [Phase 12]: 12-07: security-review conduzida diretamente pelo executor (sem Task-launcher de subagente ECC disponivel) - PASS zero findings, mesmo veiculo ja usado em 12-06
 - [Phase 13-01]: resetToMock zera userPlan no logout (fail-closed D-02) - extensao do escopo literal da plan, evita isPremium stale apos logout
+- [Phase 13]: 13-03: gate de tier server-side em api/assistant.js (GATE-02/GATE-03) - plan lido fail-closed via allow-list, Analise da IA 403 premium-only, buildToolsForPlan(isPremium) monta READ/WRITE por tier, FREE_TIER_ADDENDUM, cap mensal 10 msg/mes sobre assistant_usage (429 FREE_MONTHLY_LIMIT)
 
 ## Session
 
-**Last session:** 2026-07-16T16:48:42.612Z
-**Stopped at:** Completed 13-01-PLAN.md
+**Last session:** 2026-07-16T16:59:38.243Z
+**Stopped at:** Completed 13-03-PLAN.md
 **Resume file:** None
 
 ## Accumulated Context
@@ -208,3 +209,4 @@ Milestone v1.0 e v1.1 shipadas (tags `v1.0`/`v1.1`); decisões arquivadas em PRO
 | Phase 12 P06 | 12min | 3 tasks | 2 files |
 | Phase 12 P07 | ~10min | 2 tasks | 2 files |
 | Phase 13 P01 | 3min | 2 tasks | 1 files |
+| Phase 13 P03 | ~10min | 3 tasks | 1 files |
