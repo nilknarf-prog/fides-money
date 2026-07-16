@@ -66,108 +66,119 @@ Máximo 2 chamadas por resposta.
 • Nunca exponha IDs internos, tokens, chaves de API ou estrutura técnica do app.
 • Investimentos: sempre lembre que rentabilidade passada não garante futura. Uma vez por conversa basta.`;
 
-// Tools no formato Gemini function calling
-const TOOLS_DECLARATION = [{
-  functionDeclarations: [
-    {
-      name: 'consultar_saldo',
-      description: 'Retorna um snapshot das finanças atuais do usuário: lista de contas com saldos, cartões com limite/usado/disponível, e totais do mês (receitas, despesas pagas, despesas pendentes). Use quando o usuário perguntar sobre saldo, situação das contas, quanto tem disponível, ou totais do mês.',
-      parameters: {
-        type: 'OBJECT',
-        properties: {},
-      },
+// Tools no formato Gemini function calling — split por tier (GATE-03).
+// READ_FUNCTIONS: disponível para todos (free + premium).
+// WRITE_FUNCTIONS: SÓ premium recebe as declarações — o modelo Gemini fisicamente
+// não sabe que essas ferramentas existem quando !isPremium (buildToolsForPlan abaixo).
+const READ_FUNCTIONS = [
+  {
+    name: 'consultar_saldo',
+    description: 'Retorna um snapshot das finanças atuais do usuário: lista de contas com saldos, cartões com limite/usado/disponível, e totais do mês (receitas, despesas pagas, despesas pendentes). Use quando o usuário perguntar sobre saldo, situação das contas, quanto tem disponível, ou totais do mês.',
+    parameters: {
+      type: 'OBJECT',
+      properties: {},
     },
-    {
-      name: 'consultar_extrato',
-      description: 'Retorna lista de transações filtradas. Use para perguntas tipo "o que eu gastei essa semana", "extrato do Nubank", "minhas transações de ontem". Cada transação inclui descrição, valor, categoria, data, conta/cartão e status.',
-      parameters: {
-        type: 'OBJECT',
-        properties: {
-          periodo: {
-            type: 'STRING',
-            description: 'Período do extrato. Valores aceitos: "hoje", "semana" (últimos 7 dias), "mes" (mês selecionado no app), "prev_mes" (mês anterior).',
-            enum: ['hoje', 'semana', 'mes', 'prev_mes'],
-          },
-          conta: {
-            type: 'STRING',
-            description: 'Filtro opcional por nome da conta (busca aproximada). Ex: "Nubank", "Bradesco".',
-          },
-          cartao: {
-            type: 'STRING',
-            description: 'Filtro opcional por nome do cartão (busca aproximada). Ex: "Nubank", "Inter".',
-          },
-          limite: {
-            type: 'INTEGER',
-            description: 'Máximo de transações a retornar. Padrão 20.',
+  },
+  {
+    name: 'consultar_extrato',
+    description: 'Retorna lista de transações filtradas. Use para perguntas tipo "o que eu gastei essa semana", "extrato do Nubank", "minhas transações de ontem". Cada transação inclui descrição, valor, categoria, data, conta/cartão e status.',
+    parameters: {
+      type: 'OBJECT',
+      properties: {
+        periodo: {
+          type: 'STRING',
+          description: 'Período do extrato. Valores aceitos: "hoje", "semana" (últimos 7 dias), "mes" (mês selecionado no app), "prev_mes" (mês anterior).',
+          enum: ['hoje', 'semana', 'mes', 'prev_mes'],
+        },
+        conta: {
+          type: 'STRING',
+          description: 'Filtro opcional por nome da conta (busca aproximada). Ex: "Nubank", "Bradesco".',
+        },
+        cartao: {
+          type: 'STRING',
+          description: 'Filtro opcional por nome do cartão (busca aproximada). Ex: "Nubank", "Inter".',
+        },
+        limite: {
+          type: 'INTEGER',
+          description: 'Máximo de transações a retornar. Padrão 20.',
+        },
+      },
+      required: ['periodo'],
+    },
+  },
+];
+
+// ── WRITE tools (Phase 12 — B8 gate open; Phase 13 — premium-only, GATE-03) ──
+const WRITE_FUNCTIONS = [
+  {
+    name: 'lancar_transacao',
+    description: 'Lança uma transação (despesa ou receita) para o usuário. Valor NEGATIVO = despesa, POSITIVO = receita. A ação é PROPOSTA num card de confirmação visual — o usuário confirma ou cancela. Se a categoria informada não existir, o sistema vai propor criar a categoria e lançar numa confirmação só — NÃO chame criar_categoria separadamente.',
+    parameters: {
+      type: 'OBJECT',
+      properties: {
+        descricao: { type: 'STRING', description: 'Descrição curta da transação. Ex: "Mercado Extra", "Salário junho".' },
+        valor: { type: 'NUMBER', description: 'Valor em R$. NEGATIVO para despesa (-50.00), POSITIVO para receita (3000.00).' },
+        categoria: { type: 'STRING', description: 'Chave ou nome da categoria. Ex: "mercado", "salario", "transporte". Se não existir, o sistema propõe criar.' },
+        data: { type: 'STRING', description: 'Data no formato YYYY-MM-DD. Se não informada, usa hoje.' },
+        conta_ou_cartao: { type: 'STRING', description: 'Nome da conta ou cartão de destino. Ex: "Nubank", "Bradesco", "Inter". Obrigatório. Quando o usuário disser o TIPO ("cartão de crédito X", "conta X"), envie também tipo_destino — isso é essencial se existir uma conta e um cartão com o mesmo nome.' },
+        tipo_destino: { type: 'STRING', description: 'Tipo do destino, quando o usuário deixar claro. Use "cartao" se ele mencionar cartão/crédito/fatura. Use "conta" se ele mencionar conta/conta corrente/débito/dinheiro/pix. Omita se o usuário não qualificar o tipo — o sistema desambigua.', enum: ['conta', 'cartao'] },
+      },
+      required: ['descricao', 'valor', 'categoria', 'conta_ou_cartao'],
+    },
+  },
+  {
+    name: 'recategorizar_transacao',
+    description: 'Muda a categoria de uma transação existente. A ação é PROPOSTA ao usuário para confirmação.',
+    parameters: {
+      type: 'OBJECT',
+      properties: {
+        transacao_id: { type: 'STRING', description: 'ID da transação a recategorizar (do extrato).' },
+        nova_categoria: { type: 'STRING', description: 'Chave ou nome da nova categoria.' },
+      },
+      required: ['transacao_id', 'nova_categoria'],
+    },
+  },
+  {
+    name: 'editar_transacao',
+    description: 'Edita campos de uma transação existente (valor, descrição, data, status). NÃO permite trocar conta/cartão. A ação é PROPOSTA ao usuário para confirmação.',
+    parameters: {
+      type: 'OBJECT',
+      properties: {
+        transacao_id: { type: 'STRING', description: 'ID da transação a editar (do extrato).' },
+        patch: {
+          type: 'OBJECT',
+          description: 'Campos a alterar. Envie apenas os que mudam.',
+          properties: {
+            valor: { type: 'NUMBER', description: 'Novo valor (mantém o sinal original da transação).' },
+            descricao: { type: 'STRING', description: 'Nova descrição.' },
+            data: { type: 'STRING', description: 'Nova data (YYYY-MM-DD).' },
+            status: { type: 'STRING', description: 'Novo status.', enum: ['pago', 'pendente'] },
           },
         },
-        required: ['periodo'],
       },
+      required: ['transacao_id', 'patch'],
     },
-    // ── WRITE tools (Phase 12 — B8 gate open) ──
-    {
-      name: 'lancar_transacao',
-      description: 'Lança uma transação (despesa ou receita) para o usuário. Valor NEGATIVO = despesa, POSITIVO = receita. A ação é PROPOSTA num card de confirmação visual — o usuário confirma ou cancela. Se a categoria informada não existir, o sistema vai propor criar a categoria e lançar numa confirmação só — NÃO chame criar_categoria separadamente.',
-      parameters: {
-        type: 'OBJECT',
-        properties: {
-          descricao: { type: 'STRING', description: 'Descrição curta da transação. Ex: "Mercado Extra", "Salário junho".' },
-          valor: { type: 'NUMBER', description: 'Valor em R$. NEGATIVO para despesa (-50.00), POSITIVO para receita (3000.00).' },
-          categoria: { type: 'STRING', description: 'Chave ou nome da categoria. Ex: "mercado", "salario", "transporte". Se não existir, o sistema propõe criar.' },
-          data: { type: 'STRING', description: 'Data no formato YYYY-MM-DD. Se não informada, usa hoje.' },
-          conta_ou_cartao: { type: 'STRING', description: 'Nome da conta ou cartão de destino. Ex: "Nubank", "Bradesco", "Inter". Obrigatório. Quando o usuário disser o TIPO ("cartão de crédito X", "conta X"), envie também tipo_destino — isso é essencial se existir uma conta e um cartão com o mesmo nome.' },
-          tipo_destino: { type: 'STRING', description: 'Tipo do destino, quando o usuário deixar claro. Use "cartao" se ele mencionar cartão/crédito/fatura. Use "conta" se ele mencionar conta/conta corrente/débito/dinheiro/pix. Omita se o usuário não qualificar o tipo — o sistema desambigua.', enum: ['conta', 'cartao'] },
-        },
-        required: ['descricao', 'valor', 'categoria', 'conta_ou_cartao'],
+  },
+  {
+    name: 'criar_categoria',
+    description: 'Cria uma nova categoria customizada. A ação é PROPOSTA ao usuário num card de confirmação — ele confirma ou cancela. Para lançar uma transação com categoria nova, use lancar_transacao (o sistema propõe criar+lançar junto).',
+    parameters: {
+      type: 'OBJECT',
+      properties: {
+        nome: { type: 'STRING', description: 'Nome da categoria a criar. Ex: "Pet", "Saúde Mental".' },
+        emoji: { type: 'STRING', description: 'Emoji para a categoria. Opcional, padrão 🏷️.' },
       },
+      required: ['nome'],
     },
-    {
-      name: 'recategorizar_transacao',
-      description: 'Muda a categoria de uma transação existente. A ação é PROPOSTA ao usuário para confirmação.',
-      parameters: {
-        type: 'OBJECT',
-        properties: {
-          transacao_id: { type: 'STRING', description: 'ID da transação a recategorizar (do extrato).' },
-          nova_categoria: { type: 'STRING', description: 'Chave ou nome da nova categoria.' },
-        },
-        required: ['transacao_id', 'nova_categoria'],
-      },
-    },
-    {
-      name: 'editar_transacao',
-      description: 'Edita campos de uma transação existente (valor, descrição, data, status). NÃO permite trocar conta/cartão. A ação é PROPOSTA ao usuário para confirmação.',
-      parameters: {
-        type: 'OBJECT',
-        properties: {
-          transacao_id: { type: 'STRING', description: 'ID da transação a editar (do extrato).' },
-          patch: {
-            type: 'OBJECT',
-            description: 'Campos a alterar. Envie apenas os que mudam.',
-            properties: {
-              valor: { type: 'NUMBER', description: 'Novo valor (mantém o sinal original da transação).' },
-              descricao: { type: 'STRING', description: 'Nova descrição.' },
-              data: { type: 'STRING', description: 'Nova data (YYYY-MM-DD).' },
-              status: { type: 'STRING', description: 'Novo status.', enum: ['pago', 'pendente'] },
-            },
-          },
-        },
-        required: ['transacao_id', 'patch'],
-      },
-    },
-    {
-      name: 'criar_categoria',
-      description: 'Cria uma nova categoria customizada. A ação é PROPOSTA ao usuário num card de confirmação — ele confirma ou cancela. Para lançar uma transação com categoria nova, use lancar_transacao (o sistema propõe criar+lançar junto).',
-      parameters: {
-        type: 'OBJECT',
-        properties: {
-          nome: { type: 'STRING', description: 'Nome da categoria a criar. Ex: "Pet", "Saúde Mental".' },
-          emoji: { type: 'STRING', description: 'Emoji para a categoria. Opcional, padrão 🏷️.' },
-        },
-        required: ['nome'],
-      },
-    },
-  ],
-}];
+  },
+];
+
+// GATE-03: monta o array de tools por tier. Free recebe SÓ READ — o array de
+// declarações WRITE nem é serializado no payload do Gemini quando !isPremium.
+function buildToolsForPlan(isPremium) {
+  const fns = isPremium ? [...READ_FUNCTIONS, ...WRITE_FUNCTIONS] : READ_FUNCTIONS;
+  return [{ functionDeclarations: fns }];
+}
 
 module.exports = async (req, res) => {
   if (req.method !== 'POST') {
@@ -295,8 +306,14 @@ module.exports = async (req, res) => {
     // que o usuário não tem como responder nesta tela. Aponta o chat para aprofundar.
     const ANALYSIS_ADDENDUM = '\n\n═══ MODO ANÁLISE (resposta única) ═══\nEsta é uma análise pontual, NÃO um chat: o usuário NÃO pode responder aqui. Entregue uma resposta completa e autocontida com conclusões acionáveis. NÃO faça perguntas de follow-up nem convide o usuário a continuar a conversa ou a enviar dados (ex.: "podemos analisar o extrato?"). Se um aprofundamento fizer sentido, apenas oriente-o a abrir o chat "Assistente Fides" para detalhar — sem terminar com pergunta.';
 
+    // GATE-03 (Pitfall 3): quando !isPremium o array de tools nem contém as WRITE
+    // — este addendum garante que o modelo saiba disso e nunca prometa uma ação
+    // de escrita que ele fisicamente não tem como executar.
+    const FREE_TIER_ADDENDUM = '\n\n═══ CONTA GRATUITA (somente leitura) ═══\nEsta conta é do plano gratuito: você SÓ tem as ferramentas consultar_saldo e consultar_extrato (leitura). Você NÃO tem lancar_transacao, recategorizar_transacao, editar_transacao nem criar_categoria — elas não existem para esta conversa. Se o usuário pedir para lançar, editar, recategorizar ou criar algo, NÃO tente chamar nenhuma ferramenta de escrita e NUNCA finja executar a ação. Explique com gentileza que isso é um recurso do plano Premium e que ele pode continuar registrando manualmente pelo app, ou considerar o upgrade para liberar isso pelo assistente.';
+
     const fullSystem = SYSTEM_PROMPT
       + (isAnalysisMode ? ANALYSIS_ADDENDUM : '')
+      + (!isPremium ? FREE_TIER_ADDENDUM : '')
       + (context ? `\n\n═══ CONTEXTO ATUAL DO USUÁRIO ═══\n${context}` : '');
 
     // Montar contents do Gemini
@@ -334,7 +351,7 @@ module.exports = async (req, res) => {
     const payload = gemini.buildPayload({
       systemPrompt: fullSystem,
       contents,
-      tools: isAnalysisMode ? undefined : TOOLS_DECLARATION,
+      tools: isAnalysisMode ? undefined : buildToolsForPlan(isPremium),
       toolMode: isAnalysisMode ? 'NONE' : 'AUTO',
       generationConfig: {
         temperature: 0.6,
