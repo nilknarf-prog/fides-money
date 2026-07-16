@@ -986,6 +986,7 @@
     var groups  = props.groups  || [];
     var totals  = props.totals  || {};
     var prevTxs = props.prevTxs || [];
+    var isPremium = props.isPremium || false;
 
     var stAI = React.useState(false);
     var aiLoading = stAI[0]; var setAiLoading = stAI[1];
@@ -1026,6 +1027,8 @@
         GEMINI_KEY_MISSING: 'O assistente está temporariamente indisponível. Tente novamente em instantes.',
         GEMINI_BAD_REQUEST: 'O assistente está temporariamente indisponível. Tente novamente em instantes.',
         NETWORK:            'Sem conexão. Verifique a internet e tente de novo.',
+        FREE_MONTHLY_LIMIT: 'Você usou toda a degustação gratuita de IA deste mês. O Premium libera análises ilimitadas — veja os planos no seu Perfil.',
+        PREMIUM_REQUIRED:   'A Análise da IA é um recurso do plano Premium. Veja os planos no seu Perfil.',
       };
       return map[errCode] || 'Não consegui gerar a análise agora. Tente novamente em instantes.';
     }
@@ -1145,18 +1148,23 @@
           ? React.createElement('p', { className: 'pln-mi-hint' },
               'Insights de tendência aparecem quando houver histórico do mês anterior.')
           : null,
-        React.createElement('button', {
-          type: 'button',
-          className: 'pln-mi-ai-btn',
-          disabled: aiLoading || cooldown > 0,
-          onClick: handleAiClick
-        },
-          aiLoading
-            ? React.createElement('span', { className: 'pln-mi-spin' })
-            : React.createElement('span', null, '🤖'),
-          React.createElement('span', null,
-            aiLoading ? 'Analisando…' : (cooldown > 0 ? ('Aguarde ' + cooldown + 's') : 'Análise da IA'))
-        ),
+        isPremium
+          ? React.createElement('button', {
+              type: 'button',
+              className: 'pln-mi-ai-btn',
+              disabled: aiLoading || cooldown > 0,
+              onClick: handleAiClick
+            },
+              aiLoading
+                ? React.createElement('span', { className: 'pln-mi-spin' })
+                : React.createElement('span', null, '🤖'),
+              React.createElement('span', null,
+                aiLoading ? 'Analisando…' : (cooldown > 0 ? ('Aguarde ' + cooldown + 's') : 'Análise da IA'))
+            )
+          : React.createElement('div', { className: 'pln-mi-ai-upsell' },
+              React.createElement('span', null, '🔒'),
+              React.createElement('span', null, 'Análise da IA é um recurso Premium — veja os planos no seu Perfil.')
+            ),
         (aiResult && !aiError)
           ? React.createElement('div', { className: 'pln-mi-ai-result' },
               aiResult.split('\n').map(function(line, j) {
@@ -1547,7 +1555,8 @@
               React.createElement(PlnMesInsights, {
                 groups: groups,
                 totals: totals,
-                prevTxs: store.prevMonthTransactions || []
+                prevTxs: store.prevMonthTransactions || [],
+                isPremium: !!store.isPremium
               })
             ),
             React.createElement('div', { className: 'pln-main' },
