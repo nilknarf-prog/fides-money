@@ -3,17 +3,17 @@ gsd_state_version: 1.0
 milestone: ia-whatsapp
 milestone_name: Épico IA/WhatsApp (Phases 11–14) — milestone formal pendente
 current_phase: 13
-current_phase_name: IA-3 Gating premium in-app
+current_phase_name: ia-3-gating-premium-in-app
 status: executing
-stopped_at: Phase 13 context gathered
-last_updated: "2026-07-15T01:42:50.706Z"
-last_activity: 2026-07-15
-last_activity_desc: Phase 12 complete, transitioned to Phase 13
+stopped_at: Completed 13-01-PLAN.md
+last_updated: "2026-07-16T16:48:42.631Z"
+last_activity: 2026-07-16
+last_activity_desc: Phase 13 execution started
 progress:
   total_phases: 5
   completed_phases: 2
-  total_plans: 11
-  completed_plans: 11
+  total_plans: 15
+  completed_plans: 12
   percent: 40
 ---
 
@@ -23,17 +23,17 @@ progress:
 
 ## Current Position
 
-Phase: 13 — IA-3 Gating premium in-app
-Plan: Not started
+Phase: 13 (ia-3-gating-premium-in-app) — EXECUTING
+Plan: 2 of 4
 Status: Ready to execute
-Last activity: 2026-07-15 — Phase 12 complete, transitioned to Phase 13
+Last activity: 2026-07-16 — Phase 13 execution started
 
 ## Project Reference
 
 See: .planning/PROJECT.md (updated 2026-07-06)
 
 **Core value:** Finanças pessoais por registro manual (fricção intencional → consciência); nunca número que impressiona mas engana.
-**Current focus:** Phase 13 — IA-3 Gating premium in-app
+**Current focus:** Phase 13 — ia-3-gating-premium-in-app
 
 ## Phase Overview
 
@@ -169,12 +169,13 @@ Phase 12 (IA-2 B8) implementada em 5 commits (`9a9ead5` → `6714d3f`).
 - [Phase 12]: 12-06: bullet ATENCAO AO CANCELAMENTO removido do SYSTEM_PROMPT (5e161e9) - letra morta pos-68ed3ca; security-review sem findings
 - [Phase 12]: 12-07: tipo_destino enum ['conta','cartao'] opcional em lancar_transacao; findAccountByName/findCardByName sempre consultados no resolver (precedencia conta-primeiro removida); homonimo sem tipo retorna erro de desambiguacao fail-closed
 - [Phase 12]: 12-07: security-review conduzida diretamente pelo executor (sem Task-launcher de subagente ECC disponivel) - PASS zero findings, mesmo veiculo ja usado em 12-06
+- [Phase 13-01]: resetToMock zera userPlan no logout (fail-closed D-02) - extensao do escopo literal da plan, evita isPremium stale apos logout
 
 ## Session
 
-**Last session:** 2026-07-15T01:42:50.531Z
-**Stopped at:** Phase 13 context gathered
-**Resume file:** .planning/phases/13-ia-3-gating-premium-in-app/13-CONTEXT.md
+**Last session:** 2026-07-16T16:48:42.612Z
+**Stopped at:** Completed 13-01-PLAN.md
+**Resume file:** None
 
 ## Accumulated Context
 
@@ -206,3 +207,4 @@ Milestone v1.0 e v1.1 shipadas (tags `v1.0`/`v1.1`); decisões arquivadas em PRO
 |-------|------|----------|-------|
 | Phase 12 P06 | 12min | 3 tasks | 2 files |
 | Phase 12 P07 | ~10min | 2 tasks | 2 files |
+| Phase 13 P01 | 3min | 2 tasks | 1 files |
