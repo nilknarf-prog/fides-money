@@ -503,6 +503,15 @@ function FidesAssistant() {
     const results = [];
     for (const tc of toolCalls) {
       try {
+        // CR-01 (13-05, defesa em profundidade / D-01): guarda redundante do
+        // lado cliente — mesmo que o servidor já revalide (api/assistant.js),
+        // conta free nunca abre o card de confirmação de uma WRITE tool.
+        // Reusa fs.isPremium capturado no topo do componente (useFides(), linha
+        // 36) — NÃO adicionar novo useFides()/hook aqui (Rules of Hooks).
+        if (TOOLS_REQUIRING_CONFIRMATION.includes(tc.name) && !fs.isPremium) {
+          results.push({ name: tc.name, args: tc.args, id: tc.id, result: { error: 'PREMIUM_REQUIRED', message: 'Recurso Premium. Continue registrando manualmente pelo app ou faça upgrade para lançar via assistente.' } });
+          continue;
+        }
         if (TOOLS_REQUIRING_CONFIRMATION.includes(tc.name)) {
           // Resolver args (resolver UUIDs)
           const resolution = resolveWriteToolArgs(tc);
