@@ -157,6 +157,8 @@ function FidesProvider({ children }) {
   const [userId, setUserId] = React.useState(null);
   const [userName,  setUserName]  = React.useState('');
   const [userEmail, setUserEmail] = React.useState('');
+  // GATE-01: tier real do usuário — default 'free' é o fail-closed do cliente (D-02)
+  const [userPlan,  setUserPlan]  = React.useState('free');
   // LOTE-NAME: primeiro nome para saudacoes
   const firstName = React.useMemo(function () {
     if (!userName) return '';
@@ -302,6 +304,7 @@ function FidesProvider({ children }) {
     setGoals(METAS.slice());
     setUserName('');
     setUserEmail('');
+    setUserPlan('free');
   }, []);
 
   React.useEffect(() => {
@@ -327,9 +330,10 @@ function FidesProvider({ children }) {
         setTransactions([]); setAccounts([]); setCards([]); setGoals([]);
         refreshData(user.id);
         try {
-          const { data: profile } = await window.fidesDb.from('profiles').select('name, group_targets').eq('id', user.id).single();
+          const { data: profile } = await window.fidesDb.from('profiles').select('name, group_targets, plan').eq('id', user.id).single();
           if (mounted) {
             setUserName(profile?.name || '');
+            setUserPlan(profile?.plan || 'free');
             if (profile?.group_targets && typeof profile.group_targets === 'object') {
               setGroupTargetsState({
                 essencial: Number(profile.group_targets.essencial) || 0.50,
@@ -361,9 +365,10 @@ function FidesProvider({ children }) {
           refreshData(user.id);
           (async () => {
             try {
-              const { data: profile } = await window.fidesDb.from('profiles').select('name, group_targets').eq('id', user.id).single();
+              const { data: profile } = await window.fidesDb.from('profiles').select('name, group_targets, plan').eq('id', user.id).single();
               if (mounted) {
                 setUserName(profile?.name || '');
+                setUserPlan(profile?.plan || 'free');
                 if (profile?.group_targets && typeof profile.group_targets === 'object') {
                   setGroupTargetsState({
                     essencial: Number(profile.group_targets.essencial) || 0.50,
