@@ -14,6 +14,9 @@ const NONCE_SECRET = process.env.ASSISTANT_NONCE_SECRET;
 // Cota diária por usuário (24h rolling window)
 const USER_DAILY_LIMIT = 100;
 
+// GATE-02 (D-5): cota mensal de degustação do plano free (janela = mês calendário UTC).
+const FREE_TIER_MONTHLY_LIMIT = 10;
+
 const SYSTEM_PROMPT = `Você é o Assistente Fides — o consultor financeiro pessoal embutido no Fides Money, um app brasileiro de finanças pessoais. Você conversa com o usuário sobre as próprias finanças dele(a), com base nos dados reais que estão sendo mostrados no app agora.
 
 ═══ COMO RESPONDER ═══
@@ -279,6 +282,29 @@ module.exports = async (req, res) => {
       } else if ((count || 0) >= USER_DAILY_LIMIT) {
         res.status(429).json({ error: 'USER_DAILY_LIMIT', code: 429, limit: USER_DAILY_LIMIT });
         return;
+      }
+
+      // GATE-02: cap de degustação mensal do plano free — só conta 1x por turno
+      // (mesma flag isFirstCallOfTurn, evita double-count no round-trip de tool,
+      // Pitfall 2). Janela = mês calendário em UTC, sem tabela/coluna nova nem job
+      // de reset: o filtro gte(startOfMonthUTC) recalculado a cada request já
+      // "reseta" sozinho no dia 1 (Don't Hand-Roll). Premium nunca é afetado.
+      if (!isPremium) {
+        const now = new Date();
+        const startOfMonthUTC = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), 1)).toISOString();
+        const { count: monthlyCount, error: monthlyCountError } = await supabase
+          .from('assistant_usage')
+          .select('id', { count: 'exact', head: true })
+          .eq('user_id', userId)
+          .gte('created_at', startOfMonthUTC);
+
+        if (monthlyCountError) {
+          console.error('[assistant] free monthly usage count error', monthlyCountError);
+          // fail-open — erro de leitura do count nunca bloqueia
+        } else if ((monthlyCount || 0) >= FREE_TIER_MONTHLY_LIMIT) {
+          res.status(429).json({ error: 'FREE_MONTHLY_LIMIT', code: 429, limit: FREE_TIER_MONTHLY_LIMIT });
+          return;
+        }
       }
 
       const { data: insertData, error: insertError } = await supabase
