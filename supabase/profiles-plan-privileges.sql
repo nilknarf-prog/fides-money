@@ -1,0 +1,45 @@
+-- Fides Money — profiles-plan-privileges
+-- Privilégio de coluna (column-level security) que impede o client SDK
+-- autenticado de escrever `profiles.plan` — padrão oficial do Supabase para
+-- restringir COLUNAS quando RLS só restringe LINHAS.
+--
+-- Referência de decisão: RESEARCH.md Pitfall 1 (CRÍTICO) / CONTEXT D-01 / D-02.
+-- A policy RLS de `profiles` (schema.sql:190-191) é
+--   `for all using (auth.uid() = id)` sem `WITH CHECK` restritivo por coluna.
+-- RLS garante que o usuário só toca a PRÓPRIA linha, mas não impede que ele
+-- escreva em QUALQUER coluna dessa linha — incluindo `plan`, a fonte da
+-- verdade de quem é premium. Sem esta trava, qualquer usuário autenticado
+-- pode rodar no console do browser:
+--   window.fidesDb.from('profiles').update({plan:'pro'}).eq('id', meuId)
+-- e virar premium sem pagar (self-elevation via RLS sem column-check).
+--
+-- NOTA DE ESCOPO (D-04, IMPORTANTE): este REVOKE só atinge a role
+-- `authenticated` (o client SDK logado no app). O SQL Editor do dashboard
+-- Supabase roda como owner/`service_role`, que SEMPRE ignora privilégios de
+-- coluna de `authenticated` — o toggle manual de tier do dev
+-- (`UPDATE profiles SET plan='pro'` direto no SQL Editor, usado para testar
+-- free/pro sem checkout) continua funcionando sem nenhuma alteração.
+-- Este arquivo NÃO altera a policy RLS (que fica row-level como está, por
+-- D-01) — é aditivo: só adiciona uma restrição de coluna por cima da policy
+-- de linha já existente.
+--
+-- Lista de colunas re-concedidas (name, group_targets): confirmada por grep
+-- de TODAS as chamadas `.from('profiles').update(` no repo — 3 ocorrências,
+-- todas em assets/fides-store.jsx:
+--   linha 1038 — updateProfile:      .update({ name: cleaned })
+--   linha 1052 — setGroupTargets:    .update({ group_targets: next })
+--   linha 1064 — resetGroupTargets:  .update({ group_targets: def })
+-- `plan` NÃO aparece em nenhuma chamada de update do client — é exatamente a
+-- coluna que se quer travar. CAVEAT (RESEARCH Assumption A1/A2): esta lista
+-- foi confirmada contra o CÓDIGO-FONTE nesta sessão, não contra o banco live
+-- (schema.sql já diverge do live em outros pontos — `group_targets` nem
+-- aparece no CREATE TABLE, ROADMAP B10). Re-confirmar a policy RLS live e a
+-- ausência de uma 3ª coluna client-editável ANTES de aplicar (Task 2 desta
+-- plan, passos 1-2 do how-to-verify).
+--
+-- Idempotência: REVOKE/GRANT são idempotentes por natureza no Postgres —
+-- reaplicar este arquivo integralmente é seguro (não há efeito cumulativo).
+
+revoke update on public.profiles from authenticated;
+
+grant update (name, group_targets) on public.profiles to authenticated;
