@@ -54,6 +54,7 @@ See: .planning/PROJECT.md (updated 2026-07-06)
 | verification | Phase 12 — 4 UATs humanos (WRITE in-app) | pending → rodar `/gsd-verify-work 12` |
 | verification | `fatura-ciclo-VERIFICATION.md` (feature v1.0/M4 `ade84f7`) | human_needed (desde 2026-07-01) |
 | security todo | `todos/pending/ratelimit-bypass-toolresults.md` (high) | aberto — endereçar durante o épico IA |
+| bug (assistente WRITE) | `todos/pending/2026-07-16-assistente-modais-write-stale-acumulados.md` (high) | aberto — modais de confirmação stale/acumulados; puxar p/ próxima fase de IA in-app |
 | deploy setup | `ASSISTANT_NONCE_SECRET` no Vercel Project (nonce D-06) | verificar setado pós-deploy |
 | product | Fonte do valor atual da meta (aportes vs vínculo a conta) | deferido p/ M5+ |
 
