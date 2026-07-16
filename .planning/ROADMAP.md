@@ -445,7 +445,7 @@ Plans:
 
 **Gap closure** *(fecha VERIFICATION truth #9 / CR-01 — defesa em profundidade)*
 
-- [ ] 13-05-PLAN.md — GATE-03 (gap): revalida server-side o nome de todo `tool_call` retornado contra o tier (`WRITE_NAMES` de `WRITE_FUNCTIONS` → 403 `PREMIUM_REQUIRED` sem relay, CR-01) + guarda cliente `!fs.isPremium` em `executeTools` + reescrita comportamental de `FREE_TIER_ADDENDUM` (WR-04)
+- [x] 13-05-PLAN.md — GATE-03 (gap): revalida server-side o nome de todo `tool_call` retornado contra o tier (`WRITE_NAMES` de `WRITE_FUNCTIONS` → 403 `PREMIUM_REQUIRED` sem relay, CR-01) + guarda cliente `!fs.isPremium` em `executeTools` + reescrita comportamental de `FREE_TIER_ADDENDUM` (WR-04)
 
 ### Phase 14: IA-4 Bot WhatsApp via Meta Cloud API
 
@@ -468,7 +468,7 @@ Plans:
 |-------|----------------|--------|-----------|
 | 11 - IA-1 Hardening Gemini | 4/4 | Complete    | 2026-07-07 |
 | 12 - IA-2 WRITE in-app (B8) | 7/7 | Complete    | 2026-07-14 |
-| 13 - IA-3 Gating premium | 4/4 | Gaps (15/16) — gap closure | - |
+| 13 - IA-3 Gating premium | 5/5 | Complete   | 2026-07-16 |
 | 14 - IA-4 Bot WhatsApp | 0/? | Not started | - |
 | 15 - UI Polish (Favicon) | 0/? | Not started | - |
 
