@@ -196,6 +196,7 @@ Milestone v1.0 e v1.1 shipadas (tags `v1.0`/`v1.1`); decisões arquivadas em PRO
 - Phase 08 added: Metas vision-board redesign — spec em docs/superpowers/specs/2026-07-02-metas-vision-board-design.md; eleva a tela Metas ao nível visual do PlannerFin.
 - Phases 11–14 added (2026-07-06): épico IA/WhatsApp. Fonte de design `.planning/research/whatsapp-e-ia-arquitetura.md` (decisões D-1..D-11 resolvidas). Ordem travada 11→12→13→14. Phase 11 (IA-1 hardening WR-01/02/03 + módulo Gemini + telemetria); Phase 12 (IA-2 destravar B8/WRITE in-app); Phase 13 (IA-3 gating premium `profiles.plan`); Phase 14 (IA-4 bot WhatsApp Meta Cloud API — sem CNPJ não bloqueia, adendo D-8). Precificação P-2 (Free + Premium R$ 89,90/ano Mercado Pago/Pix).
 - Phase 15 added: UI Polish (favicon) — polish avulso, fora do épico IA.
+- Phase 16 added (2026-07-16): Painel de administração / backoffice (admin online, ex. `/painel`) — ver/gerir contas, usos, privilégios e tier free/pro/family sem depender do Supabase SQL Editor; superfície server-side via `service_role` (não reabrir a trava do 13-02) + audit log. Demanda-contexto em `.planning/research/painel-admin-backoffice.md`; **ainda não planejada** — planejar em sessão dedicada.
 
 ## Operator Next Steps
 

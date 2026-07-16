@@ -460,6 +460,19 @@ Plans:
 
 - [ ] TBD (run /gsd-plan-phase 14 to break down)
 
+### Phase 16: Painel de administração / backoffice (admin online)
+
+**Goal:** Painel de administração acessível online (ex.: `fides-money.vercel.app/painel`) para o admin gerir o produto **sem depender do Supabase SQL Editor** (complicado e visualmente pobre): listar contas cadastradas, ver usos (`assistant_usage`, métricas), gerir privilégios e **alternar o tier free/pro/family**, com controle detalhado. Superfície de admin **server-side via `service_role`** (NUNCA client SDK — não reabrir a brecha fechada na Phase 13-02), **audit log** de toda ação admin e **autenticação de admin dedicada**. Escopo amplo (gestão de contas/usuários, billing/assinaturas do M6, observabilidade/métricas, feature flags, suporte) — MVP provável = "listar contas + trocar tier + audit log".
+**Requirements**: ADMIN-* (a formalizar no discuss/spec)
+**Depends on:** Phase 13 (tier via `profiles.plan` + trava de coluna 13-02)
+**Fonte:** `.planning/research/painel-admin-backoffice.md` (demanda-contexto capturada 2026-07-16)
+**Caminho sensível:** superfície admin com `service_role` + auth + dados de terceiros (LGPD) → `security-reviewer` + `database-reviewer` obrigatórios. Provável gatilho da migração p/ Vite/Next (ROADMAP B11).
+**Plans:** 0 plans
+
+Plans:
+
+- [ ] TBD (run /gsd-plan-phase 16 to break down)
+
 ---
 
 ### Progress Table — Próximo milestone (IA/WhatsApp)
@@ -471,6 +484,7 @@ Plans:
 | 13 - IA-3 Gating premium | 5/5 | Complete   | 2026-07-16 |
 | 14 - IA-4 Bot WhatsApp | 0/? | Not started | - |
 | 15 - UI Polish (Favicon) | 0/? | Not started | - |
+| 16 - Painel admin/backoffice | 0/? | Not started (não planejada) | - |
 
 ### Phase 15: UI Polish (Favicon)
 
