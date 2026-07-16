@@ -708,12 +708,16 @@ function PerfilView({ onNav }) {
   var userName = _s.userName;
   var firstName = _s.firstName;
   var updateProfile = _s.updateProfile;
+  var userPlan = _s.userPlan;
+  var isPremium = _s.isPremium;
   var _st0 = React.useState(userName || '');
   var nameVal = _st0[0]; var setNameVal = _st0[1];
   var _st1 = React.useState(false);
   var saving = _st1[0]; var setSaving = _st1[1];
   var _st2 = React.useState(null);
   var msg = _st2[0]; var setMsg = _st2[1];
+  var _st3 = React.useState(false);
+  var upgradeOpen = _st3[0]; var setUpgradeOpen = _st3[1];
 
   React.useEffect(function () { setNameVal(userName || ''); }, [userName]);
 
@@ -746,6 +750,16 @@ function PerfilView({ onNav }) {
           (firstName || '?').charAt(0).toUpperCase()
         )
       ),
+      React.createElement('div', {
+        className: 'prf-badge ' + (isPremium ? 'prf-badge--premium' : 'prf-badge--free')
+      }, isPremium ? 'Premium' : 'Free'),
+      !isPremium
+        ? React.createElement('button', {
+            type: 'button',
+            className: 'fds-btn-primary prf-upgrade-btn',
+            onClick: function () { setUpgradeOpen(true); }
+          }, '✨ Vire Premium')
+        : null,
       React.createElement('div', { className: 'fds-field' },
         React.createElement('label', { className: 'fds-label', htmlFor: 'prf-name-input' }, 'Nome completo'),
         React.createElement('input', {
@@ -775,6 +789,54 @@ function PerfilView({ onNav }) {
         disabled: saving || nameVal.trim().length < 2,
         onClick: handleSave
       }, saving ? 'Salvando…' : 'Salvar')
+    ),
+    React.createElement(UpgradeModal, {
+      open: upgradeOpen,
+      onClose: function () { setUpgradeOpen(false); }
+    })
+  );
+}
+
+// ─── Modal: Vire Premium (placeholder de upgrade — checkout real chega no M6) ──
+// React.createElement (não JSX) para casar com o estilo local de PerfilView.
+function UpgradeModal({ open, onClose }) {
+  var mc = window.FidesUI.useModalClose(open, onClose);
+  var rendered = mc.rendered;
+  var closing = mc.closing;
+  var requestClose = mc.requestClose;
+  if (!rendered) return null;
+  return React.createElement('div', {
+    className: 'fds-modal-backdrop' + (closing ? ' is-closing' : ''),
+    onClick: requestClose
+  },
+    React.createElement('div', {
+      className: 'fds-modal' + (closing ? ' is-closing' : ''),
+      style: { maxWidth: 380 },
+      onClick: function (e) { e.stopPropagation(); }
+    },
+      React.createElement('div', { className: 'fds-modal-head' },
+        React.createElement('div', { className: 'fds-modal-title' }, 'Vire Premium'),
+        React.createElement('button', { className: 'fds-icon-btn', onClick: requestClose },
+          React.createElement(Icon.X, { size: 16 })
+        )
+      ),
+      React.createElement('div', { className: 'fds-modal-body' },
+        React.createElement('p', {
+          style: { fontSize: 14, color: 'var(--ink-3)', lineHeight: 1.6, margin: '0 0 10px' }
+        }, 'O Premium libera IA ilimitada (chat + Análise), lançamentos via WhatsApp e análises avançadas.'),
+        React.createElement('p', {
+          style: { fontSize: 14, color: 'var(--ink-2)', lineHeight: 1.6, margin: 0, fontWeight: 700 }
+        }, 'R$ 89,90/ano — checkout em breve.')
+      ),
+      React.createElement('div', { className: 'fds-modal-foot', style: { justifyContent: 'flex-end' } },
+        React.createElement('button', {
+          className: 'fds-btn-primary',
+          onClick: requestClose,
+          style: { touchAction: 'manipulation', WebkitTapHighlightColor: 'transparent' }
+        },
+          React.createElement(Icon.Check, { size: 13 }), ' Entendi'
+        )
+      )
     )
   );
 }

@@ -832,6 +832,29 @@
   color: #fff;
   line-height: 1;
 }
+.prf-badge {
+  align-self: center;
+  display: inline-flex;
+  align-items: center;
+  padding: 0.3rem 0.75rem;
+  border-radius: var(--radius-pill, 999px);
+  font-size: 0.75rem;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+}
+.prf-badge--free {
+  background: var(--card-soft);
+  color: var(--ink-3);
+  border: 1px solid var(--border-strong);
+}
+.prf-badge--premium {
+  background: var(--accent-soft, var(--accent));
+  color: var(--accent);
+  border: 1px solid var(--accent);
+}
+.prf-upgrade-btn {
+  align-self: center;
+}
 .prf-hint {
   font-size: 0.78rem;
   margin-top: 0.25rem;
