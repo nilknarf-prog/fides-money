@@ -560,6 +560,8 @@ function FidesAssistant() {
       INTERNAL_ERROR:      'Algo deu errado do nosso lado. Tente novamente.',
       NETWORK:             'Sem conexão. Verifique a internet.',
       TOOL_LIMIT:          'O assistente ficou em loop. Tente reformular a pergunta.',
+      FREE_MONTHLY_LIMIT:  'Você usou toda a degustação gratuita de IA deste mês. O Premium libera mensagens ilimitadas — veja os planos no seu Perfil.',
+      PREMIUM_REQUIRED:    'Esse recurso é exclusivo do plano Premium. Veja os planos no seu Perfil.',
     };
     return map[errCode] || 'Não consegui responder agora. Tente de novo em instantes.';
   };
@@ -702,6 +704,10 @@ function FidesAssistant() {
           if (status === 429) {
             if (errCode === 'USER_DAILY_LIMIT') {
               setError(friendlyError('USER_DAILY_LIMIT'));
+              setRateLimitMode('user');
+              setCooldown(COOLDOWN_RATELIMIT_SEC);
+            } else if (errCode === 'FREE_MONTHLY_LIMIT') {
+              setError(friendlyError('FREE_MONTHLY_LIMIT'));
               setRateLimitMode('user');
               setCooldown(COOLDOWN_RATELIMIT_SEC);
             } else {
