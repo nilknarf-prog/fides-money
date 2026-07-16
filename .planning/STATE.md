@@ -6,14 +6,14 @@ current_phase: 13
 current_phase_name: ia-3-gating-premium-in-app
 status: executing
 stopped_at: Completed 13-03-PLAN.md
-last_updated: "2026-07-16T16:59:38.389Z"
+last_updated: "2026-07-16T17:27:56.111Z"
 last_activity: 2026-07-16
 last_activity_desc: Phase 13 execution started
 progress:
   total_phases: 5
   completed_phases: 2
   total_plans: 15
-  completed_plans: 13
+  completed_plans: 14
   percent: 40
 ---
 
@@ -24,7 +24,7 @@ progress:
 ## Current Position
 
 Phase: 13 (ia-3-gating-premium-in-app) — EXECUTING
-Plan: 3 of 4
+Plan: 4 of 4
 Status: Ready to execute
 Last activity: 2026-07-16 — Phase 13 execution started
 
@@ -171,10 +171,11 @@ Phase 12 (IA-2 B8) implementada em 5 commits (`9a9ead5` → `6714d3f`).
 - [Phase 12]: 12-07: security-review conduzida diretamente pelo executor (sem Task-launcher de subagente ECC disponivel) - PASS zero findings, mesmo veiculo ja usado em 12-06
 - [Phase 13-01]: resetToMock zera userPlan no logout (fail-closed D-02) - extensao do escopo literal da plan, evita isPremium stale apos logout
 - [Phase 13]: 13-03: gate de tier server-side em api/assistant.js (GATE-02/GATE-03) - plan lido fail-closed via allow-list, Analise da IA 403 premium-only, buildToolsForPlan(isPremium) monta READ/WRITE por tier, FREE_TIER_ADDENDUM, cap mensal 10 msg/mes sobre assistant_usage (429 FREE_MONTHLY_LIMIT)
+- [Phase ?]: 13-02: REVOKE/GRANT column-level em profiles.plan trava self-elevation de tier via client SDK - authenticated so escreve name/group_targets; owner/service_role (SQL Editor, D-04) ignora e segue alternando tier. Aplicado no banco live (checkpoint human-action), verificado (trava de plan/nao-regressao/D-04). database+security review PASS zero findings.
 
 ## Session
 
-**Last session:** 2026-07-16T16:59:38.243Z
+**Last session:** 2026-07-16T17:27:18.676Z
 **Stopped at:** Completed 13-03-PLAN.md
 **Resume file:** None
 
@@ -210,3 +211,4 @@ Milestone v1.0 e v1.1 shipadas (tags `v1.0`/`v1.1`); decisões arquivadas em PRO
 | Phase 12 P07 | ~10min | 2 tasks | 2 files |
 | Phase 13 P01 | 3min | 2 tasks | 1 files |
 | Phase 13 P03 | ~10min | 3 tasks | 1 files |
+| Phase 13 P02 | 18min | 2 tasks | 1 files |

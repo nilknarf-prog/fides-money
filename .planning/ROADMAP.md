@@ -436,7 +436,7 @@ Plans:
 **Wave 1** *(arquivos disjuntos — em paralelo)*
 
 - [x] 13-01-PLAN.md — GATE-01: store lê `plan` de `profiles` + expõe `userPlan`/`isPremium` (allow-list fail-closed) no `useFides()`
-- [ ] 13-02-PLAN.md — [BLOCKING] P1 (integridade de GATE-03): REVOKE/GRANT column-level em `profiles.plan` (autonomous:false — apply manual no SQL Editor). Sem isso o tier é auto-outorgável via client SDK
+- [x] 13-02-PLAN.md — [BLOCKING] P1 (integridade de GATE-03): REVOKE/GRANT column-level em `profiles.plan` (autonomous:false — apply manual no SQL Editor). Sem isso o tier é auto-outorgável via client SDK
 - [x] 13-03-PLAN.md — GATE-02/GATE-03: gate server-side em `api/assistant.js` (lê plan fail-closed; Análise premium-only 403; split READ/WRITE tools por tier via `buildToolsForPlan`; cap 10/mês free sobre `assistant_usage`; `FREE_TIER_ADDENDUM`)
 
 **Wave 2** *(depende de 13-01 + 13-03)*
@@ -464,7 +464,7 @@ Plans:
 |-------|----------------|--------|-----------|
 | 11 - IA-1 Hardening Gemini | 4/4 | Complete    | 2026-07-07 |
 | 12 - IA-2 WRITE in-app (B8) | 7/7 | Complete    | 2026-07-14 |
-| 13 - IA-3 Gating premium | 2/4 | In Progress|  |
+| 13 - IA-3 Gating premium | 3/4 | In Progress|  |
 | 14 - IA-4 Bot WhatsApp | 0/? | Not started | - |
 | 15 - UI Polish (Favicon) | 0/? | Not started | - |
 
