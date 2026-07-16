@@ -441,7 +441,7 @@ Plans:
 
 **Wave 2** *(depende de 13-01 + 13-03)*
 
-- [ ] 13-04-PLAN.md — GATE-03/PAYWALL-01: paywall suave (copy `FREE_MONTHLY_LIMIT`/`PREMIUM_REQUIRED` nos 2 mapas de erro) + gate do botão Análise da IA + `PerfilView` badge/CTA + `UpgradeModal` (checkout M6 em breve)
+- [x] 13-04-PLAN.md — GATE-03/PAYWALL-01: paywall suave (copy `FREE_MONTHLY_LIMIT`/`PREMIUM_REQUIRED` nos 2 mapas de erro) + gate do botão Análise da IA + `PerfilView` badge/CTA + `UpgradeModal` (checkout M6 em breve)
 
 ### Phase 14: IA-4 Bot WhatsApp via Meta Cloud API
 
@@ -464,7 +464,7 @@ Plans:
 |-------|----------------|--------|-----------|
 | 11 - IA-1 Hardening Gemini | 4/4 | Complete    | 2026-07-07 |
 | 12 - IA-2 WRITE in-app (B8) | 7/7 | Complete    | 2026-07-14 |
-| 13 - IA-3 Gating premium | 3/4 | In Progress|  |
+| 13 - IA-3 Gating premium | 4/4 | Gaps (15/16) — gap closure | - |
 | 14 - IA-4 Bot WhatsApp | 0/? | Not started | - |
 | 15 - UI Polish (Favicon) | 0/? | Not started | - |
 
