@@ -183,6 +183,12 @@ function buildToolsForPlan(isPremium) {
   return [{ functionDeclarations: fns }];
 }
 
+// CR-01 (13-05, defesa em profundidade / D-01): fonte única de verdade dos nomes
+// WRITE, derivada de WRITE_FUNCTIONS — NUNCA re-hardcodar esta lista. Usado no
+// guard de revalidação de tier no caminho de RETORNO do Gemini (após parseResponse,
+// antes do relay de tool_calls ao cliente), não substitui buildToolsForPlan.
+const WRITE_NAMES = new Set(WRITE_FUNCTIONS.map(f => f.name));
+
 module.exports = async (req, res) => {
   if (req.method !== 'POST') {
     res.status(405).json({ error: 'METHOD_NOT_ALLOWED', code: 405 });
@@ -335,7 +341,10 @@ module.exports = async (req, res) => {
     // GATE-03 (Pitfall 3): quando !isPremium o array de tools nem contém as WRITE
     // — este addendum garante que o modelo saiba disso e nunca prometa uma ação
     // de escrita que ele fisicamente não tem como executar.
-    const FREE_TIER_ADDENDUM = '\n\n═══ CONTA GRATUITA (somente leitura) ═══\nEsta conta é do plano gratuito: você SÓ tem as ferramentas consultar_saldo e consultar_extrato (leitura). Você NÃO tem lancar_transacao, recategorizar_transacao, editar_transacao nem criar_categoria — elas não existem para esta conversa. Se o usuário pedir para lançar, editar, recategorizar ou criar algo, NÃO tente chamar nenhuma ferramenta de escrita e NUNCA finja executar a ação. Explique com gentileza que isso é um recurso do plano Premium e que ele pode continuar registrando manualmente pelo app, ou considerar o upgrade para liberar isso pelo assistente.';
+    // WR-04 (13-05): descrito de forma COMPORTAMENTAL, sem citar os 4 identificadores
+    // literais das funções WRITE — reduz a superfície de prompt injection (não é a
+    // única defesa: combinado com o guard CR-01 de revalidação de tier abaixo).
+    const FREE_TIER_ADDENDUM = '\n\n═══ CONTA GRATUITA (somente leitura) ═══\nEsta conta é do plano gratuito: você SÓ tem ferramentas de consulta (saldo e extrato). Você NÃO pode lançar, editar, recategorizar ou criar nada — nenhuma ferramenta de escrita existe para esta conversa. Se o usuário pedir para lançar, editar, recategorizar ou criar algo, NÃO tente chamar nenhuma ferramenta de escrita e NUNCA finja executar a ação. Explique com gentileza que isso é um recurso do plano Premium e que ele pode continuar registrando manualmente pelo app, ou considerar o upgrade para liberar isso pelo assistente.';
 
     const fullSystem = SYSTEM_PROMPT
       + (isAnalysisMode ? ANALYSIS_ADDENDUM : '')
@@ -438,6 +447,16 @@ module.exports = async (req, res) => {
     }
 
     if (toolCalls.length > 0) {
+      // CR-01 (13-05, defesa em profundidade / D-01): revalida o NOME de cada
+      // tool_call retornada pelo Gemini contra o tier ANTES do relay — não confia
+      // que o modelo só chame o que buildToolsForPlan(isPremium) declarou (guarda
+      // contra alucinação, fallback de modelo com tool-calling diferente, ou
+      // prompt injection). isPremium já foi lido fail-closed acima (D-02).
+      if (!isPremium && toolCalls.some(tc => WRITE_NAMES.has(tc.name))) {
+        console.error('[assistant] GATE-03 violation: free tier got WRITE toolCall(s)', toolCalls.map(t => t.name));
+        res.status(403).json({ error: 'PREMIUM_REQUIRED', code: 403 });
+        return;
+      }
       const nextNonce = NONCE_SECRET ? nonce.sign(userId, NONCE_SECRET) : null;
       res.status(200).json({ tool_calls: toolCalls, nonce: nextNonce });
       return;
