@@ -342,7 +342,12 @@ Não aplicável nesta fase — o domínio (Supabase Auth JWT + Postgres RPC + Ve
 
 **Pressupostos JÁ verificados nesta sessão (não entram nesta tabela — promovidos a [VERIFIED]):** rewrites do `vercel.json` avaliados em ordem (prova viva: par `/teste`); `index.html:15` usa supabase-js v2 UMD (`auth.storageKey` é opção v2 suportada); convenção `security definer set search_path` já existe no projeto; REVOKE/GRANT da 13-02 é exatamente como o draft descreve; `service_role` tem zero ocorrências em `api/` hoje (`grep` retornou vazio nesta sessão).
 
-## Open Questions
+## Open Questions (RESOLVED — resolução via planos, 2026-07-16)
+
+> **Resolução (pós plan-phase 16):** as 3 questões abaixo foram endereçadas pelos PLAN.md — nenhuma bloqueia execução.
+> 1. **(RESOLVED)** Variante do sketch → 16-03 usa `.planning/sketches/001-painel-admin/index.html` como direção revisável e adia a escolha do `winner` para a execução (registrar no README/SUMMARY), consistente com "Claude's Discretion" do CONTEXT.
+> 2. **(RESOLVED)** Caminho do sketch → 16-03 já referencia o caminho real (correção propagada); o path stale do draft/CONTEXT foi descartado.
+> 3. **(RESOLVED)** Retenção de 2 anos → 16-04 ratifica com o dono no checkpoint humano (decisão de produto, não risco técnico).
 
 1. **Qual variante do sketch (A/B/C) é a vencedora?**
    - What we know: `.planning/sketches/001-painel-admin/index.html` tem 3 variantes completas (A: sidebar admin; B: masthead editorial; C: console escuro) — todas com as 3 telas do MVP funcionais. `winner: null` no front-matter do README.
