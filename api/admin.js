@@ -38,27 +38,41 @@ module.exports = async (req, res) => {
   const userAgent = getUserAgent(req);
   const action = (req.query && req.query.action) || (req.body && req.body.action) || null;
 
+  // Grava UMA linha de audit para o request corrente. Fail-open (logAction nunca
+  // lança). É o que faz o rate-limit geral — que conta linhas de admin_audit_log na
+  // janela — enxergar TODA requisição pós-guard, SUCESSO E FALHA. Sem isso, um
+  // request que não grava linha (ex.: set_plan com input inválido, 405, action
+  // desconhecida) nunca conta e o teto de 30/60s (T-16-15) fica trivialmente
+  // burlável. Em erro, target_user vai SEMPRE null: o valor pode ser um uuid
+  // inválido, e um INSERT que falha no cast da coluna uuid não gravaria linha —
+  // reabrindo o bypass. Só o caminho de sucesso do set_plan não usa este helper
+  // (a RPC 16-01 já grava a linha before/after/reason na mesma transação, que
+  // também conta para o rate-limit).
+  const audit = (fields) =>
+    logAction(adminClient, {
+      admin_id: user.id,
+      admin_email: user.email,
+      ip,
+      user_agent: userAgent,
+      ...fields,
+    });
+
   try {
     switch (action) {
       case 'whoami': {
         if (req.method !== 'GET') {
+          await audit({ action: 'whoami', status: 'error' });
           res.status(405).json({ error: 'METHOD_NOT_ALLOWED' });
           return;
         }
-        // Toda action grava audit — inclusive whoami, que não toca outras tabelas.
-        await logAction(adminClient, {
-          action: 'whoami',
-          admin_id: user.id,
-          admin_email: user.email,
-          ip,
-          user_agent: userAgent,
-        });
+        await audit({ action: 'whoami' });
         res.status(200).json({ id: user.id, email: user.email });
         return;
       }
 
       case 'accounts': {
         if (req.method !== 'GET') {
+          await audit({ action: 'list_accounts', status: 'error' });
           res.status(405).json({ error: 'METHOD_NOT_ALLOWED' });
           return;
         }
@@ -71,22 +85,18 @@ module.exports = async (req, res) => {
         });
         if (result.error) {
           console.error('[admin] accounts rpc error', result.error);
+          await audit({ action: 'list_accounts', status: 'error' });
           res.status(500).json({ error: 'ACCOUNTS_QUERY_FAILED' });
           return;
         }
-        await logAction(adminClient, {
-          action: 'list_accounts',
-          admin_id: user.id,
-          admin_email: user.email,
-          ip,
-          user_agent: userAgent,
-        });
+        await audit({ action: 'list_accounts' });
         res.status(200).json(result.data);
         return;
       }
 
       case 'audit': {
         if (req.method !== 'GET') {
+          await audit({ action: 'view_audit', status: 'error' });
           res.status(405).json({ error: 'METHOD_NOT_ALLOWED' });
           return;
         }
@@ -94,22 +104,18 @@ module.exports = async (req, res) => {
         const result = await listAudit(adminClient, { limit: q.limit, offset: q.offset });
         if (result.error) {
           console.error('[admin] audit query error', result.error);
+          await audit({ action: 'view_audit', status: 'error' });
           res.status(500).json({ error: 'AUDIT_QUERY_FAILED' });
           return;
         }
-        await logAction(adminClient, {
-          action: 'view_audit',
-          admin_id: user.id,
-          admin_email: user.email,
-          ip,
-          user_agent: userAgent,
-        });
+        await audit({ action: 'view_audit' });
         res.status(200).json(result.data);
         return;
       }
 
       case 'set_plan': {
         if (req.method !== 'POST') {
+          await audit({ action: 'set_plan', status: 'error' });
           res.status(405).json({ error: 'METHOD_NOT_ALLOWED' });
           return;
         }
@@ -122,11 +128,14 @@ module.exports = async (req, res) => {
           reason: body.reason,
         });
         if (result.validationError) {
+          // target_user pode ser inválido → null (não arriscar cast uuid no INSERT).
+          await audit({ action: 'set_plan', status: 'error' });
           res.status(400).json({ error: result.validationError });
           return;
         }
         if (result.error) {
           const msg = String((result.error && result.error.message) || '');
+          await audit({ action: 'set_plan', status: 'error' });
           if (msg.includes('ALVO_INEXISTENTE')) {
             res.status(404).json({ error: 'ALVO_INEXISTENTE' });
             return;
@@ -140,12 +149,13 @@ module.exports = async (req, res) => {
           return;
         }
         // A RPC admin_set_plan já grava o audit before/after/reason na MESMA
-        // transação (16-01) — NÃO duplicar INSERT aqui.
+        // transação (16-01) — NÃO duplicar INSERT aqui (e essa linha conta p/ o rate-limit).
         res.status(200).json(result.data);
         return;
       }
 
       default:
+        await audit({ action: 'unknown', status: 'error' });
         res.status(400).json({ error: 'UNKNOWN_ACTION' });
     }
   } catch (err) {
