@@ -42,6 +42,15 @@
 > - **Phase 13 (IA-3 · gating):** GATE-01/02/03, PAYWALL-01
 > - **Phase 14 (IA-4 · bot):** WA-WEBHOOK-01, WA-OPTIN-01, WA-GATE-01, WA-PARSE-01, WA-CONFIRM-01, WA-INSERT-01, WA-LGPD-01
 
+## Phase 16 Requirements (painel admin/backoffice — não planejada, capturada 2026-07-16)
+
+> Fora do épico IA/WhatsApp; demanda capturada em `.planning/research/painel-admin-backoffice.md` e decidida no draft `.planning/research/painel-admin-backoffice-PLAN-DRAFT.md` (3x revisado). IDs `ADMIN-*` formalizados ao planejar (a ROADMAP marcava "a formalizar no discuss/spec"). Caminho sensível `api/`/`supabase/` → `security-reviewer` + `database-reviewer` obrigatórios. MVP = listar contas + trocar tier + audit log.
+
+- [ ] **ADMIN-01**: Fundação SQL — RPCs `admin_list_accounts` + `admin_set_plan` (`SECURITY DEFINER`, `set search_path = public`, `REVOKE EXECUTE FROM public, anon, authenticated` + `GRANT` só a `service_role`) e tabela `admin_audit_log` (RLS on, zero policies, REVOKE anon/authenticated); `admin_set_plan` faz update + insert de audit na MESMA transação. Trava 13-02 intacta (admin muta plano via RPC service_role, não via grant de coluna)
+- [ ] **ADMIN-02**: Guard `requireAdmin` fail-closed no roteador único `api/admin.js` — ordem load-bearing 401 sem token → 401 token inválido → 403 não-allowlisted (+ audit `denied_access` com throttle) → só então instancia client `service_role` (`persistSession:false`, por request); allowlist via env `ADMIN_USER_IDS` (ausente/vazia → 403 para TODOS). `service_role` jamais chega ao client
+- [ ] **ADMIN-03**: Rota `/painel` (`painel.html` isolado, `storageKey` próprio) servida ANTES do catch-all no `vercel.json` + headers `X-Frame-Options: DENY` e `Referrer-Policy: no-referrer`; UI lista contas (com uso de `assistant_usage`) e troca o tier free/pro/family, refletindo no app após F5
+- [ ] **ADMIN-04**: Hardening/integração — rate-limit geral, confirmação de troca com motivo obrigatório (fides-ui `ConfirmDialog`) → audit before/after/reason, retenção LGPD ratificada, memória `testar-tier-free-pro` apontando ao painel, e gate de dogfooding (re-executar os 5 UATs pendentes da Phase 13 + UATs da Phase 12 via painel)
+
 ## Future Requirements (deferred)
 
 ### META — evolução (M5+)
@@ -90,6 +99,10 @@
 | WR-03 | Phase 11 | Complete |
 | AI-SHARED-01 | Phase 11 | Complete |
 | AI-TELEM-01 | Phase 11 | Complete |
+| ADMIN-01 | Phase 16 | Planned |
+| ADMIN-02 | Phase 16 | Planned |
+| ADMIN-03 | Phase 16 | Planned |
+| ADMIN-04 | Phase 16 | Planned |
 
 **Coverage:**
 
