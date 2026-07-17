@@ -480,7 +480,7 @@ Plans:
 
 **Wave 3** *(blocked on Wave 2 completion)*
 
-- [ ] 16-03-PLAN.md — ADMIN-03: front `/painel` isolado (login/contas/alterar-plano/auditoria) + rewrite antes do catch-all + headers anti-clickjacking [wave 3]
+- [x] 16-03-PLAN.md — ADMIN-03: front `/painel` isolado (login/contas/alterar-plano/auditoria) + rewrite antes do catch-all + headers anti-clickjacking [wave 3]
 
 **Wave 4** *(blocked on Wave 3 completion)*
 
@@ -497,7 +497,7 @@ Plans:
 | 13 - IA-3 Gating premium | 5/5 | Complete   | 2026-07-16 |
 | 14 - IA-4 Bot WhatsApp | 0/? | Not started | - |
 | 15 - UI Polish (Favicon) | 0/? | Not started | - |
-| 16 - Painel admin/backoffice | 3/4 | In Progress|  |
+| 16 - Painel admin/backoffice | 4/4 | Complete   | 2026-07-17 |
 
 ### Phase 15: UI Polish (Favicon)
 
