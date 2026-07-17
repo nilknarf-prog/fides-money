@@ -18,6 +18,10 @@
       "destination": "/Fides-app.html"
     },
     {
+      "source": "/painel",
+      "destination": "/painel.html"
+    },
+    {
       "source": "/((?!api/).*)",
       "destination": "/index.html"
     }
@@ -27,6 +31,13 @@
       "source": "/fides-config.js",
       "headers": [
         { "key": "Cache-Control", "value": "no-store, no-cache, must-revalidate" }
+      ]
+    },
+    {
+      "source": "/painel",
+      "headers": [
+        { "key": "X-Frame-Options", "value": "DENY" },
+        { "key": "Referrer-Policy", "value": "no-referrer" }
       ]
     }
   ]
