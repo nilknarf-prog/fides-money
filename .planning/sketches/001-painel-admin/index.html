@@ -1,0 +1,636 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Sketch 001 — Painel Admin Fides Money</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="../themes/default.css">
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    font-family: var(--font-sans);
+    font-feature-settings: 'cv01','cv02','cv05','cv11','ss03';
+    -webkit-font-smoothing: antialiased;
+    background: var(--bg);
+    color: var(--ink);
+    padding-top: 46px; /* variant nav */
+  }
+  .tabular { font-variant-numeric: tabular-nums; }
+  button { font-family: inherit; cursor: pointer; }
+  input, select, textarea { font-family: inherit; }
+
+  /* ── Variant nav (meta-UI do sketch) ─────────────────────── */
+  #variant-nav {
+    position: fixed; top: 0; left: 0; right: 0; z-index: 9998;
+    background: #0F1A14; color: #fff;
+    padding: 8px 16px; display: flex; gap: 8px; align-items: center;
+    font-size: 12px;
+  }
+  #variant-nav .vlabel { color: #ABB5A8; margin-right: 8px; font-weight: 600; letter-spacing: .08em; }
+  .variant-tab {
+    background: transparent; color: #DCE0D5; border: 1px solid #4A574F;
+    border-radius: 999px; padding: 5px 14px; font-size: 12px; font-weight: 600;
+    transition: all .15s ease;
+  }
+  .variant-tab:hover { border-color: #ABB5A8; }
+  .variant-tab.active { background: #4A8B5C; border-color: #4A8B5C; color: #fff; }
+  .variant { display: none; }
+  .variant.active { display: block; }
+
+  /* ── Componentes compartilhados ──────────────────────────── */
+  .badge {
+    display: inline-flex; align-items: center; gap: 5px;
+    border-radius: var(--radius-pill); padding: 3px 10px;
+    font-size: var(--fs-xs); font-weight: 700; letter-spacing: .02em;
+  }
+  .badge::before { content: ''; width: 6px; height: 6px; border-radius: 50%; background: currentColor; }
+  .badge.free   { background: var(--card-soft); color: var(--ink-3); }
+  .badge.pro    { background: var(--accent-soft); color: var(--accent); }
+  .badge.family { background: var(--info-soft); color: var(--info); }
+  .badge.ok     { background: var(--ok-soft); color: var(--ok); }
+  .badge.denied { background: var(--bad-soft); color: var(--bad); }
+  .badge.read   { background: var(--card-soft); color: var(--muted); }
+
+  .btn {
+    border: 1px solid var(--border-strong); background: var(--card); color: var(--ink-2);
+    border-radius: var(--radius-sm); padding: 7px 14px; font-size: var(--fs-sm);
+    font-weight: 700; transition: all .15s ease;
+  }
+  .btn:hover { background: var(--card-soft); border-color: var(--accent); color: var(--accent); }
+  .btn.primary { background: var(--accent); border-color: var(--accent); color: #fff; }
+  .btn.primary:hover { background: var(--accent-2); }
+  .btn.primary:disabled { opacity: .45; cursor: not-allowed; }
+
+  .search-input, .plan-filter {
+    background: var(--card-soft); border: 1px solid var(--border);
+    border-radius: var(--radius-sm); padding: 8px 12px; font-size: var(--fs-ui);
+    color: var(--ink); outline: none; transition: border-color .15s ease;
+  }
+  .search-input:focus, .plan-filter:focus { border-color: var(--accent); background: var(--bg-elev); }
+  .search-input { width: 280px; }
+
+  table.data { width: 100%; border-collapse: collapse; font-size: var(--fs-ui); }
+  table.data th {
+    text-align: left; font-size: var(--fs-xs); font-weight: 700;
+    letter-spacing: var(--tracking-eyebrow); text-transform: uppercase;
+    color: var(--muted); padding: 10px 14px; border-bottom: 1px solid var(--border-strong);
+    white-space: nowrap;
+  }
+  table.data td { padding: 12px 14px; border-bottom: 1px solid var(--border); vertical-align: middle; }
+  table.data tbody tr { transition: background .15s ease; }
+  table.data tbody tr:hover { background: var(--card-soft); }
+  .cell-main { font-weight: 700; color: var(--ink); }
+  .cell-sub  { font-size: var(--fs-sm); color: var(--muted); }
+  .num { font-family: var(--font-mono); font-size: var(--fs-sm); }
+
+  .kpis { display: grid; grid-template-columns: repeat(4, 1fr); gap: 14px; margin-bottom: 20px; }
+  .kpi {
+    background: var(--card); border: 1px solid var(--border); border-radius: var(--radius-md);
+    box-shadow: var(--shadow-card); padding: 14px 16px;
+  }
+  .kpi .k-label { font-size: var(--fs-xs); font-weight: 700; letter-spacing: var(--tracking-eyebrow); text-transform: uppercase; color: var(--muted); }
+  .kpi .k-value { font-size: var(--fs-h3); font-weight: 800; letter-spacing: var(--tracking-tight); margin-top: 4px; }
+  .kpi .k-hint { font-size: var(--fs-sm); color: var(--ink-3); margin-top: 2px; }
+
+  .panel-card {
+    background: var(--card); border: 1px solid var(--border); border-radius: var(--radius-lg);
+    box-shadow: var(--shadow-card); overflow: hidden;
+  }
+  .panel-card .card-head {
+    display: flex; align-items: center; justify-content: space-between; gap: 12px;
+    padding: 14px 16px; border-bottom: 1px solid var(--border); flex-wrap: wrap;
+  }
+  .empty-row td { text-align: center; color: var(--muted); padding: 32px; font-size: var(--fs-ui); }
+
+  /* ── VARIANTE A — Sidebar ────────────────────────────────── */
+  .va-shell { display: flex; min-height: calc(100vh - 46px); }
+  .va-side {
+    width: 216px; flex-shrink: 0; background: var(--accent-2); color: #E8EFE9;
+    display: flex; flex-direction: column; padding: 20px 0;
+  }
+  .va-logo { padding: 0 20px 18px; border-bottom: 1px solid rgba(255,255,255,.12); }
+  .va-logo .brand { font-weight: 800; font-size: var(--fs-h4); letter-spacing: var(--tracking-tight); color: #fff; }
+  .va-logo .brand .tick { color: var(--accent-bright); }
+  .va-logo .env { font-size: var(--fs-xs); letter-spacing: var(--tracking-eyebrow); text-transform: uppercase; color: #9DB8A4; margin-top: 2px; }
+  .va-nav { padding: 14px 10px; display: flex; flex-direction: column; gap: 2px; flex: 1; }
+  .va-nav button {
+    display: flex; align-items: center; gap: 10px; width: 100%;
+    background: transparent; border: 0; color: #C8D6CB;
+    padding: 9px 12px; border-radius: var(--radius-sm); font-size: var(--fs-ui); font-weight: 600;
+    text-align: left; transition: all .15s ease;
+  }
+  .va-nav button:hover { background: rgba(255,255,255,.08); color: #fff; }
+  .va-nav button.active { background: var(--accent-bright); color: #fff; }
+  .va-nav button.soon { opacity: .45; cursor: default; }
+  .va-nav button.soon:hover { background: transparent; color: #C8D6CB; }
+  .va-nav .soon-pill { margin-left: auto; font-size: 9.5px; border: 1px solid rgba(255,255,255,.25); border-radius: 999px; padding: 1px 7px; }
+  .va-admin {
+    margin: 0 10px; padding: 10px 12px; border-radius: var(--radius-sm);
+    background: rgba(255,255,255,.06); font-size: var(--fs-sm);
+  }
+  .va-admin .who { font-weight: 700; color: #fff; }
+  .va-admin .sair { color: #9DB8A4; font-size: var(--fs-xs); background: none; border: 0; padding: 0; margin-top: 3px; text-decoration: underline; }
+  .va-main { flex: 1; padding: 26px 30px; min-width: 0; }
+  .va-title { font-size: var(--fs-h2); font-weight: 800; letter-spacing: var(--tracking-tight); }
+  .va-sub { color: var(--ink-3); font-size: var(--fs-ui); margin: 4px 0 20px; }
+
+  /* ── VARIANTE B — Masthead editorial ─────────────────────── */
+  .vb-shell { max-width: 1120px; margin: 0 auto; padding: 30px 24px 60px; }
+  .vb-masthead { border-bottom: 3px solid var(--ink); padding-bottom: 16px; margin-bottom: 0; }
+  .vb-eyebrow { font-size: var(--fs-xs); font-weight: 700; letter-spacing: var(--tracking-eyebrow); text-transform: uppercase; color: var(--accent); }
+  .vb-masthead .row { display: flex; align-items: flex-end; justify-content: space-between; gap: 16px; }
+  .vb-title { font-size: var(--fs-display); font-weight: 800; letter-spacing: var(--tracking-display); line-height: 1.05; margin-top: 6px; }
+  .vb-title .tick { color: var(--accent-bright); }
+  .vb-who { text-align: right; font-size: var(--fs-sm); color: var(--ink-3); }
+  .vb-who .who { font-weight: 700; color: var(--ink); }
+  .vb-tabs { display: flex; gap: 22px; border-bottom: 1px solid var(--border-strong); margin-bottom: 24px; }
+  .vb-tabs button {
+    background: none; border: 0; padding: 13px 2px 11px; font-size: var(--fs-ui); font-weight: 700;
+    color: var(--muted); border-bottom: 2.5px solid transparent; margin-bottom: -1px; transition: all .15s ease;
+  }
+  .vb-tabs button:hover { color: var(--ink-2); }
+  .vb-tabs button.active { color: var(--accent); border-bottom-color: var(--accent); }
+  .vb-tabs button.soon { opacity: .5; cursor: default; }
+
+  /* ── VARIANTE C — Console escuro ─────────────────────────── */
+  .vc { background: #0C1410; min-height: calc(100vh - 46px); color: #D7E2D9; }
+  .vc-shell { max-width: 1240px; margin: 0 auto; padding: 22px 24px 60px; }
+  .vc-head { display: flex; align-items: center; justify-content: space-between; gap: 14px; padding-bottom: 14px; border-bottom: 1px solid #1E2C23; margin-bottom: 16px; }
+  .vc-brand { font-family: var(--font-mono); font-size: var(--fs-h4); font-weight: 600; color: #fff; }
+  .vc-brand .path { color: #4A8B5C; }
+  .vc-tabs { display: flex; gap: 6px; }
+  .vc-tabs button {
+    background: transparent; border: 1px solid #24382B; color: #9DB8A4;
+    font-family: var(--font-mono); font-size: 12px; padding: 6px 14px; border-radius: 6px; transition: all .15s ease;
+  }
+  .vc-tabs button:hover { border-color: #4A8B5C; color: #D7E2D9; }
+  .vc-tabs button.active { background: #17402A; border-color: #4A8B5C; color: #fff; }
+  .vc .kpi { background: #111C15; border-color: #1E2C23; box-shadow: none; }
+  .vc .kpi .k-label { color: #6E8577; }
+  .vc .kpi .k-value { color: #fff; font-family: var(--font-mono); font-weight: 600; }
+  .vc .kpi .k-hint { color: #8FA796; }
+  .vc .panel-card { background: #111C15; border-color: #1E2C23; box-shadow: none; }
+  .vc .card-head { border-bottom-color: #1E2C23; }
+  .vc .search-input, .vc .plan-filter { background: #0C1410; border-color: #24382B; color: #D7E2D9; }
+  .vc .search-input:focus { border-color: #4A8B5C; background: #0C1410; }
+  .vc table.data { font-size: 13px; }
+  .vc table.data th { color: #6E8577; border-bottom-color: #24382B; padding: 8px 12px; }
+  .vc table.data td { border-bottom-color: #17231B; padding: 9px 12px; }
+  .vc table.data tbody tr:hover { background: #15221A; }
+  .vc .cell-main { color: #fff; }
+  .vc .cell-sub { color: #6E8577; }
+  .vc .badge.free { background: #1B2820; color: #9DB8A4; }
+  .vc .badge.pro { background: #17402A; color: #7BC492; }
+  .vc .badge.family { background: #16283E; color: #7FA8D9; }
+  .vc .badge.ok { background: #17402A; color: #7BC492; }
+  .vc .badge.denied { background: #3E1A1A; color: #E08B8B; }
+  .vc .badge.read { background: #1B2820; color: #6E8577; }
+  .vc .btn { background: transparent; border-color: #2C4434; color: #B9CCBE; }
+  .vc .btn:hover { border-color: #4A8B5C; color: #fff; background: #15221A; }
+  .vc .btn.primary { background: #2D5A3D; border-color: #2D5A3D; color: #fff; }
+  .vc .num { color: #B9CCBE; }
+
+  /* ── Login (compartilhado, por variante) ─────────────────── */
+  .login-wrap { min-height: calc(100vh - 46px); display: flex; align-items: center; justify-content: center; padding: 24px; }
+  .login-card {
+    width: 380px; background: var(--card); border: 1px solid var(--border);
+    border-radius: var(--radius-lg); box-shadow: var(--shadow-hero); padding: 34px 32px;
+  }
+  .login-card .brand { font-weight: 800; font-size: var(--fs-h3); letter-spacing: var(--tracking-tight); }
+  .login-card .brand .tick { color: var(--accent-bright); }
+  .login-card .eyebrow { font-size: var(--fs-xs); font-weight: 700; letter-spacing: var(--tracking-eyebrow); text-transform: uppercase; color: var(--accent); margin-bottom: 6px; }
+  .login-card .hint { color: var(--ink-3); font-size: var(--fs-sm); margin: 8px 0 22px; line-height: 1.5; }
+  .login-card label { display: block; font-size: var(--fs-xs); font-weight: 700; letter-spacing: .04em; text-transform: uppercase; color: var(--muted); margin: 14px 0 5px; }
+  .login-card input {
+    width: 100%; background: var(--card-soft); border: 1px solid var(--border);
+    border-radius: var(--radius-sm); padding: 10px 12px; font-size: var(--fs-ui); outline: none; transition: border-color .15s;
+  }
+  .login-card input:focus { border-color: var(--accent); background: var(--bg-elev); }
+  .login-card .btn.primary { width: 100%; margin-top: 22px; padding: 11px; font-size: var(--fs-ui); }
+  .login-note { margin-top: 16px; font-size: var(--fs-xs); color: var(--muted); text-align: center; line-height: 1.5; }
+  .vc .login-card { background: #111C15; border-color: #1E2C23; box-shadow: none; }
+  .vc .login-card .brand { color: #fff; }
+  .vc .login-card .hint { color: #8FA796; }
+  .vc .login-card input { background: #0C1410; border-color: #24382B; color: #fff; }
+  .vc .login-note { color: #6E8577; }
+
+  /* ── Modal + toast ────────────────────────────────────────── */
+  #modal-overlay {
+    position: fixed; inset: 0; background: rgba(15,26,20,.45); z-index: 10000;
+    display: none; align-items: center; justify-content: center; padding: 20px;
+  }
+  #modal-overlay.open { display: flex; }
+  #modal {
+    width: 440px; background: var(--card); border-radius: var(--radius-lg);
+    box-shadow: var(--shadow-hero); padding: 26px 26px 22px;
+    animation: pop .18s ease;
+  }
+  @keyframes pop { from { transform: scale(.96); opacity: 0; } to { transform: scale(1); opacity: 1; } }
+  #modal h3 { font-size: var(--fs-h4); font-weight: 800; letter-spacing: var(--tracking-tight); }
+  #modal .target { font-size: var(--fs-sm); color: var(--ink-3); margin: 4px 0 18px; }
+  #modal label { display: block; font-size: var(--fs-xs); font-weight: 700; letter-spacing: .04em; text-transform: uppercase; color: var(--muted); margin: 14px 0 6px; }
+  #modal select, #modal textarea {
+    width: 100%; background: var(--card-soft); border: 1px solid var(--border);
+    border-radius: var(--radius-sm); padding: 9px 11px; font-size: var(--fs-ui); outline: none;
+  }
+  #modal select:focus, #modal textarea:focus { border-color: var(--accent); background: var(--bg-elev); }
+  #modal textarea { resize: vertical; min-height: 70px; }
+  #modal .req { color: var(--bad); }
+  #modal .warn-box {
+    margin-top: 14px; background: var(--warn-soft); color: var(--warn);
+    border-radius: var(--radius-sm); padding: 9px 12px; font-size: var(--fs-sm); font-weight: 600;
+    display: none;
+  }
+  #modal .warn-box.show { display: block; }
+  #modal .actions { display: flex; justify-content: flex-end; gap: 10px; margin-top: 20px; }
+  #toast {
+    position: fixed; bottom: 24px; left: 50%; transform: translate(-50%, 80px); z-index: 10001;
+    background: var(--ink); color: #fff; border-radius: var(--radius-md);
+    padding: 12px 18px; font-size: var(--fs-ui); font-weight: 600;
+    box-shadow: var(--shadow-hero); transition: transform .25s ease; max-width: 90vw;
+  }
+  #toast.show { transform: translate(-50%, 0); }
+  #toast .tick { color: var(--accent-bright); margin-right: 6px; }
+
+  /* ── Sketch toolbar ──────────────────────────────────────── */
+  #sketch-tools {
+    position: fixed; bottom: 12px; right: 12px; z-index: 9999;
+    font-family: system-ui; font-size: 12px; background: rgba(0,0,0,.72); color: #fff;
+    padding: 8px 12px; border-radius: 8px; opacity: .4; transition: opacity .2s;
+    display: flex; gap: 8px; align-items: center;
+  }
+  #sketch-tools:hover { opacity: 1; }
+  #sketch-tools button { background: #333; color: #fff; border: 1px solid #555; border-radius: 5px; padding: 3px 8px; font-size: 11px; }
+  #sketch-tools button:hover { background: #4A8B5C; }
+</style>
+</head>
+<body>
+
+<!-- Meta-navegação do sketch -->
+<div id="variant-nav">
+  <span class="vlabel">SKETCH 001 · PAINEL ADMIN</span>
+  <button class="variant-tab active" data-v="a" onclick="showVariant('a', this)">A: Sidebar de admin</button>
+  <button class="variant-tab" data-v="b" onclick="showVariant('b', this)">B: Masthead editorial</button>
+  <button class="variant-tab" data-v="c" onclick="showVariant('c', this)">C: Console escuro</button>
+</div>
+
+<!-- ════════ VARIANTE A — Sidebar ════════ -->
+<div id="variant-a" class="variant active">
+  <div class="login-view" id="login-a" style="display:none">
+    <div class="login-wrap"><div class="login-card">
+      <div class="eyebrow">Backoffice</div>
+      <div class="brand">Fides Money<span class="tick">.</span> <span style="font-weight:600;color:var(--ink-3)">/painel</span></div>
+      <p class="hint">Acesso restrito a administradores. Conta dedicada — a sua conta pessoal do app não entra aqui.</p>
+      <label>E-mail do admin</label>
+      <input type="email" placeholder="admin@fides.money" value="admin@fides.money">
+      <label>Senha</label>
+      <input type="password" placeholder="••••••••••" value="••••••••••">
+      <button class="btn primary" onclick="fakeLogin('a', this)">Entrar no painel</button>
+      <p class="login-note">Sessão isolada do app (storage próprio).<br>Tentativas negadas são auditadas.</p>
+    </div></div>
+  </div>
+  <div class="app-view" id="app-a">
+    <div class="va-shell">
+      <aside class="va-side">
+        <div class="va-logo">
+          <div class="brand">Fides<span class="tick">.</span> Admin</div>
+          <div class="env">produção</div>
+        </div>
+        <nav class="va-nav">
+          <button class="active" data-tab="contas" onclick="switchTab('a','contas',this)">◫ &nbsp;Contas</button>
+          <button data-tab="audit" onclick="switchTab('a','audit',this)">≡ &nbsp;Auditoria</button>
+          <button class="soon">◔ &nbsp;Métricas <span class="soon-pill">fase 2</span></button>
+          <button class="soon">⚙ &nbsp;Config <span class="soon-pill">backlog</span></button>
+        </nav>
+        <div class="va-admin">
+          <div class="who">admin@fides.money</div>
+          <button class="sair" onclick="showLogin('a')">sair</button>
+        </div>
+      </aside>
+      <main class="va-main">
+        <div data-pane="contas">
+          <h1 class="va-title">Contas</h1>
+          <p class="va-sub">Todas as contas cadastradas no Fides Money. Trocar plano exige motivo e fica na auditoria.</p>
+          <div class="kpis" data-kpis></div>
+          <div class="panel-card">
+            <div class="card-head">
+              <input class="search-input" placeholder="Buscar por e-mail ou nome…" oninput="renderAccounts('a')">
+              <select class="plan-filter" onchange="renderAccounts('a')">
+                <option value="">Todos os planos</option><option value="free">free</option>
+                <option value="pro">pro</option><option value="family">family</option>
+              </select>
+            </div>
+            <table class="data">
+              <thead><tr><th>Conta</th><th>Plano</th><th>Criado em</th><th>Último login</th><th style="text-align:right">IA/mês</th><th></th></tr></thead>
+              <tbody data-accounts></tbody>
+            </table>
+          </div>
+        </div>
+        <div data-pane="audit" style="display:none">
+          <h1 class="va-title">Auditoria</h1>
+          <p class="va-sub">Toda ação admin — leituras em linha leve, mutações com antes/depois e motivo.</p>
+          <div class="panel-card">
+            <table class="data">
+              <thead><tr><th>Quando</th><th>Admin</th><th>Ação</th><th>Alvo</th><th>Antes → Depois</th><th>Motivo</th></tr></thead>
+              <tbody data-audit></tbody>
+            </table>
+          </div>
+        </div>
+      </main>
+    </div>
+  </div>
+</div>
+
+<!-- ════════ VARIANTE B — Masthead editorial ════════ -->
+<div id="variant-b" class="variant">
+  <div class="login-view" id="login-b" style="display:none">
+    <div class="login-wrap"><div class="login-card">
+      <div class="eyebrow">Backoffice</div>
+      <div class="brand">Fides Money<span class="tick">.</span> <span style="font-weight:600;color:var(--ink-3)">/painel</span></div>
+      <p class="hint">Acesso restrito a administradores. Conta dedicada — a sua conta pessoal do app não entra aqui.</p>
+      <label>E-mail do admin</label>
+      <input type="email" value="admin@fides.money">
+      <label>Senha</label>
+      <input type="password" value="••••••••••">
+      <button class="btn primary" onclick="fakeLogin('b', this)">Entrar no painel</button>
+      <p class="login-note">Sessão isolada do app (storage próprio).<br>Tentativas negadas são auditadas.</p>
+    </div></div>
+  </div>
+  <div class="app-view" id="app-b">
+    <div class="vb-shell">
+      <header class="vb-masthead">
+        <div class="vb-eyebrow">Backoffice · Produção</div>
+        <div class="row">
+          <h1 class="vb-title">Fides Money<span class="tick">.</span> Painel</h1>
+          <div class="vb-who"><span class="who">admin@fides.money</span><br><button class="btn" style="margin-top:6px;padding:4px 10px;font-size:var(--fs-xs)" onclick="showLogin('b')">sair</button></div>
+        </div>
+      </header>
+      <nav class="vb-tabs">
+        <button class="active" data-tab="contas" onclick="switchTab('b','contas',this)">Contas</button>
+        <button data-tab="audit" onclick="switchTab('b','audit',this)">Auditoria</button>
+        <button class="soon">Métricas · fase 2</button>
+        <button class="soon">Config · backlog</button>
+      </nav>
+      <div data-pane="contas">
+        <div class="kpis" data-kpis></div>
+        <div class="panel-card">
+          <div class="card-head">
+            <input class="search-input" placeholder="Buscar por e-mail ou nome…" oninput="renderAccounts('b')">
+            <select class="plan-filter" onchange="renderAccounts('b')">
+              <option value="">Todos os planos</option><option value="free">free</option>
+              <option value="pro">pro</option><option value="family">family</option>
+            </select>
+          </div>
+          <table class="data">
+            <thead><tr><th>Conta</th><th>Plano</th><th>Criado em</th><th>Último login</th><th style="text-align:right">IA/mês</th><th></th></tr></thead>
+            <tbody data-accounts></tbody>
+          </table>
+        </div>
+      </div>
+      <div data-pane="audit" style="display:none">
+        <div class="panel-card">
+          <table class="data">
+            <thead><tr><th>Quando</th><th>Admin</th><th>Ação</th><th>Alvo</th><th>Antes → Depois</th><th>Motivo</th></tr></thead>
+            <tbody data-audit></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ════════ VARIANTE C — Console escuro ════════ -->
+<div id="variant-c" class="variant">
+  <div class="vc">
+    <div class="login-view" id="login-c" style="display:none">
+      <div class="login-wrap"><div class="login-card">
+        <div class="eyebrow">Backoffice</div>
+        <div class="brand">fides<span class="tick">/</span>painel</div>
+        <p class="hint">Acesso restrito a administradores. Conta dedicada — a sua conta pessoal do app não entra aqui.</p>
+        <label>E-mail do admin</label>
+        <input type="email" value="admin@fides.money">
+        <label>Senha</label>
+        <input type="password" value="••••••••••">
+        <button class="btn primary" onclick="fakeLogin('c', this)">Entrar no painel</button>
+        <p class="login-note">Sessão isolada do app (storage próprio).<br>Tentativas negadas são auditadas.</p>
+      </div></div>
+    </div>
+    <div class="app-view" id="app-c">
+      <div class="vc-shell">
+        <div class="vc-head">
+          <div class="vc-brand">fides<span class="path">/painel</span></div>
+          <nav class="vc-tabs">
+            <button class="active" data-tab="contas" onclick="switchTab('c','contas',this)">contas</button>
+            <button data-tab="audit" onclick="switchTab('c','audit',this)">auditoria</button>
+            <button class="soon" style="opacity:.4;cursor:default">métricas</button>
+          </nav>
+          <div style="font-family:var(--font-mono);font-size:12px;color:#6E8577">admin@fides.money · <button style="background:none;border:0;color:#9DB8A4;text-decoration:underline;font-family:inherit;font-size:inherit" onclick="showLogin('c')">sair</button></div>
+        </div>
+        <div data-pane="contas">
+          <div class="kpis" data-kpis></div>
+          <div class="panel-card">
+            <div class="card-head">
+              <input class="search-input" placeholder="buscar e-mail ou nome…" oninput="renderAccounts('c')">
+              <select class="plan-filter" onchange="renderAccounts('c')">
+                <option value="">todos os planos</option><option value="free">free</option>
+                <option value="pro">pro</option><option value="family">family</option>
+              </select>
+            </div>
+            <table class="data">
+              <thead><tr><th>Conta</th><th>Plano</th><th>Criado em</th><th>Último login</th><th style="text-align:right">IA/mês</th><th></th></tr></thead>
+              <tbody data-accounts></tbody>
+            </table>
+          </div>
+        </div>
+        <div data-pane="audit" style="display:none">
+          <div class="panel-card">
+            <table class="data">
+              <thead><tr><th>Quando</th><th>Admin</th><th>Ação</th><th>Alvo</th><th>Antes → Depois</th><th>Motivo</th></tr></thead>
+              <tbody data-audit></tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Modal Alterar plano (compartilhado) -->
+<div id="modal-overlay" onclick="if(event.target===this) closeModal()">
+  <div id="modal">
+    <h3>Alterar plano</h3>
+    <p class="target" id="modal-target"></p>
+    <label>Novo plano</label>
+    <select id="modal-plan">
+      <option value="free">free</option><option value="pro">pro</option><option value="family">family</option>
+    </select>
+    <label>Motivo <span class="req">*</span> <span style="text-transform:none;letter-spacing:0;font-weight:500">(vai para a auditoria)</span></label>
+    <textarea id="modal-reason" placeholder="Ex.: teste de degustação free — UAT Phase 13" oninput="validateModal()"></textarea>
+    <div class="warn-box" id="modal-warn">O motivo é obrigatório — toda mutação fica registrada na auditoria.</div>
+    <div class="actions">
+      <button class="btn" onclick="closeModal()">Cancelar</button>
+      <button class="btn primary" id="modal-confirm" disabled onclick="confirmPlanChange(this)">Confirmar alteração</button>
+    </div>
+  </div>
+</div>
+
+<div id="toast"><span class="tick">✓</span><span id="toast-msg"></span></div>
+
+<!-- Sketch toolbar -->
+<div id="sketch-tools">
+  <span>viewport:</span>
+  <button onclick="setViewport(1024)">1024</button>
+  <button onclick="setViewport(1280)">1280</button>
+  <button onclick="setViewport(0)">full</button>
+  <span style="margin-left:6px">telas:</span>
+  <button onclick="showLogin(currentVariant())">login</button>
+  <button onclick="showApp(currentVariant())">painel</button>
+</div>
+
+<script>
+// ── Dados mockados (nomes de campos = draft §2: auth.users × profiles + agregados) ──
+const accounts = [
+  { id: 'e7a1', email: 'caduucomc@gmail.com',      name: 'Cadu',     plan: 'pro',    created_at: '12 mar 2026', last_sign_in_at: 'hoje, 09:12',  ai_msgs_month: 47 },
+  { id: 'b3f2', email: 'mari.souza@gmail.com',     name: 'Mariana',  plan: 'family', created_at: '02 abr 2026', last_sign_in_at: 'ontem, 21:40', ai_msgs_month: 31 },
+  { id: '9c4d', email: 'joao.plt@hotmail.com',     name: 'João',     plan: 'free',   created_at: '18 abr 2026', last_sign_in_at: '3 dias atrás', ai_msgs_month: 10 },
+  { id: '51aa', email: 'renata.lima@gmail.com',    name: 'Renata',   plan: 'free',   created_at: '05 mai 2026', last_sign_in_at: 'hoje, 07:55',  ai_msgs_month: 8 },
+  { id: '77b0', email: 'pedro.hq@outlook.com',     name: 'Pedro',    plan: 'pro',    created_at: '11 mai 2026', last_sign_in_at: '5 dias atrás', ai_msgs_month: 12 },
+  { id: 'c2e9', email: 'ana.beatriz@gmail.com',    name: 'Ana',      plan: 'free',   created_at: '29 mai 2026', last_sign_in_at: '2 sem atrás',  ai_msgs_month: 0 },
+  { id: 'f0d3', email: 'lucas.mfar@gmail.com',     name: 'Lucas',    plan: 'free',   created_at: '14 jun 2026', last_sign_in_at: 'ontem, 13:02', ai_msgs_month: 4 },
+  { id: '3a8e', email: 'carla.nog@yahoo.com.br',   name: 'Carla',    plan: 'pro',    created_at: '01 jul 2026', last_sign_in_at: 'hoje, 11:30',  ai_msgs_month: 22 },
+];
+const audit = [
+  { when: 'hoje, 11:32',  admin: 'admin@fides.money', action: 'set_plan',      target: 'joao.plt@hotmail.com',  diff: 'pro → free',  reason: 'fim do trial de cortesia', kind: 'ok' },
+  { when: 'hoje, 11:30',  admin: 'admin@fides.money', action: 'list_accounts', target: '—',                     diff: '—',           reason: '—',                        kind: 'read' },
+  { when: 'hoje, 09:14',  admin: 'mari.souza@gmail.com', action: 'denied_access', target: '—',                  diff: '—',           reason: 'não allowlisted (403)',    kind: 'denied' },
+  { when: 'ontem, 22:01', admin: 'admin@fides.money', action: 'set_plan',      target: 'renata.lima@gmail.com', diff: 'free → pro',  reason: 'UAT Phase 13 — degustação', kind: 'ok' },
+  { when: 'ontem, 21:58', admin: 'admin@fides.money', action: 'view_audit',    target: '—',                     diff: '—',           reason: '—',                        kind: 'read' },
+];
+
+const FREE_CAP = 10;
+let pendingTarget = null;
+
+function currentVariant() { return document.querySelector('.variant.active').id.slice(-1); }
+function vEl(v) { return document.getElementById('variant-' + v); }
+
+function showVariant(v, btn) {
+  document.querySelectorAll('.variant').forEach(x => x.classList.remove('active'));
+  document.querySelectorAll('.variant-tab').forEach(t => t.classList.remove('active'));
+  vEl(v).classList.add('active');
+  btn.classList.add('active');
+}
+function showLogin(v) { document.getElementById('login-'+v).style.display=''; document.getElementById('app-'+v).style.display='none'; }
+function showApp(v)   { document.getElementById('login-'+v).style.display='none'; document.getElementById('app-'+v).style.display=''; }
+function fakeLogin(v, btn) {
+  btn.textContent = 'Verificando allowlist…'; btn.disabled = true;
+  setTimeout(() => { btn.textContent = 'Entrar no painel'; btn.disabled = false; showApp(v); toast('Sessão admin iniciada — ação registrada na auditoria'); }, 700);
+}
+function switchTab(v, tab, btn) {
+  const root = vEl(v);
+  root.querySelectorAll('[data-pane]').forEach(p => p.style.display = p.dataset.pane === tab ? '' : 'none');
+  btn.closest('nav').querySelectorAll('button[data-tab]').forEach(b => b.classList.toggle('active', b === btn));
+}
+
+function planBadge(p) { return `<span class="badge ${p}">${p}</span>`; }
+function aiCell(a) {
+  const over = a.plan === 'free' && a.ai_msgs_month >= FREE_CAP;
+  return `<span class="num" style="${over ? 'color:var(--warn);font-weight:600' : ''}">${a.ai_msgs_month}${a.plan==='free' ? '/'+FREE_CAP : ''}${over ? ' ⚠' : ''}</span>`;
+}
+
+function renderAccounts(v) {
+  const root = vEl(v);
+  const q = (root.querySelector('.search-input')?.value || '').toLowerCase();
+  const pf = root.querySelector('.plan-filter')?.value || '';
+  const rows = accounts.filter(a =>
+    (!q || a.email.toLowerCase().includes(q) || a.name.toLowerCase().includes(q)) && (!pf || a.plan === pf));
+  const body = root.querySelector('[data-accounts]');
+  body.innerHTML = rows.length ? rows.map(a => `
+    <tr>
+      <td><div class="cell-main">${a.email}</div><div class="cell-sub">${a.name} · ${a.id}…</div></td>
+      <td>${planBadge(a.plan)}</td>
+      <td class="cell-sub">${a.created_at}</td>
+      <td class="cell-sub">${a.last_sign_in_at}</td>
+      <td style="text-align:right">${aiCell(a)}</td>
+      <td style="text-align:right"><button class="btn" onclick="openModal('${a.id}')">Alterar plano</button></td>
+    </tr>`).join('')
+    : `<tr class="empty-row"><td colspan="6">Nenhuma conta encontrada para essa busca/filtro.</td></tr>`;
+  renderKpis(v);
+}
+function renderKpis(v) {
+  const k = vEl(v).querySelector('[data-kpis]'); if (!k) return;
+  const total = accounts.length;
+  const free = accounts.filter(a => a.plan === 'free').length;
+  const paid = total - free;
+  const nearCap = accounts.filter(a => a.plan === 'free' && a.ai_msgs_month >= FREE_CAP).length;
+  k.innerHTML = `
+    <div class="kpi"><div class="k-label">Contas</div><div class="k-value tabular">${total}</div><div class="k-hint">cadastradas</div></div>
+    <div class="kpi"><div class="k-label">Free</div><div class="k-value tabular">${free}</div><div class="k-hint">degustação de IA</div></div>
+    <div class="kpi"><div class="k-label">Premium</div><div class="k-value tabular">${paid}</div><div class="k-hint">pro + family</div></div>
+    <div class="kpi"><div class="k-label">No cap de IA</div><div class="k-value tabular">${nearCap}</div><div class="k-hint">free com ${FREE_CAP}/${FREE_CAP} msgs</div></div>`;
+}
+function renderAudit() {
+  document.querySelectorAll('[data-audit]').forEach(body => {
+    body.innerHTML = audit.map(e => `
+      <tr>
+        <td class="cell-sub" style="white-space:nowrap">${e.when}</td>
+        <td class="cell-main" style="font-size:var(--fs-sm)">${e.admin}</td>
+        <td><span class="badge ${e.kind}">${e.action}</span></td>
+        <td class="cell-sub">${e.target}</td>
+        <td class="num">${e.diff}</td>
+        <td class="cell-sub">${e.reason}</td>
+      </tr>`).join('');
+  });
+}
+
+// ── Modal alterar plano ──
+function openModal(id) {
+  pendingTarget = accounts.find(a => a.id === id);
+  document.getElementById('modal-target').innerHTML =
+    `<b>${pendingTarget.email}</b> — plano atual: <b>${pendingTarget.plan}</b>`;
+  document.getElementById('modal-plan').value = pendingTarget.plan === 'free' ? 'pro' : 'free';
+  document.getElementById('modal-reason').value = '';
+  document.getElementById('modal-warn').classList.remove('show');
+  validateModal();
+  document.getElementById('modal-overlay').classList.add('open');
+}
+function closeModal() { document.getElementById('modal-overlay').classList.remove('open'); }
+function validateModal() {
+  const ok = document.getElementById('modal-reason').value.trim().length >= 4;
+  document.getElementById('modal-confirm').disabled = !ok;
+  document.getElementById('modal-warn').classList.toggle('show', !ok && document.getElementById('modal-reason').value.length > 0);
+}
+function confirmPlanChange(btn) {
+  const newPlan = document.getElementById('modal-plan').value;
+  const reason = document.getElementById('modal-reason').value.trim();
+  btn.textContent = 'Aplicando…'; btn.disabled = true;
+  setTimeout(() => {
+    const before = pendingTarget.plan;
+    pendingTarget.plan = newPlan;
+    audit.unshift({ when: 'agora', admin: 'admin@fides.money', action: 'set_plan',
+      target: pendingTarget.email, diff: `${before} → ${newPlan}`, reason, kind: 'ok' });
+    ['a','b','c'].forEach(renderAccounts); renderAudit();
+    btn.textContent = 'Confirmar alteração';
+    closeModal();
+    toast(`Plano de ${pendingTarget.email}: ${before} → ${newPlan} (auditado)`);
+  }, 650);
+}
+
+function toast(msg) {
+  document.getElementById('toast-msg').textContent = msg;
+  const t = document.getElementById('toast');
+  t.classList.add('show');
+  clearTimeout(t._h); t._h = setTimeout(() => t.classList.remove('show'), 3200);
+}
+function setViewport(w) {
+  document.querySelectorAll('.va-shell, .vb-shell, .vc-shell').forEach(s => {
+    s.style.maxWidth = w ? w + 'px' : ''; s.style.margin = w ? '0 auto' : '';
+  });
+}
+
+['a','b','c'].forEach(renderAccounts);
+renderAudit();
+</script>
+</body>
+</html>

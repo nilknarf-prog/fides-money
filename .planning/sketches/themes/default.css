@@ -1,0 +1,64 @@
+/* Sketch theme — derivado 1:1 de assets/tokens.css (Fides Money)
+ * Sage paper + verde floresta · Manrope · JetBrains Mono
+ * Só variáveis — componentes vivem em cada sketch. */
+
+:root {
+  /* Tipografia */
+  --font-sans:    'Manrope', ui-sans-serif, system-ui, sans-serif;
+  --font-display: 'Manrope', ui-sans-serif, system-ui, sans-serif;
+  --font-mono:    'JetBrains Mono', ui-monospace, monospace;
+
+  /* Cores — sage paper + verde floresta */
+  --bg:            #F4F5F1;
+  --bg-elev:       #FFFFFF;
+  --card:          #FFFFFF;
+  --card-soft:     #EDEFE9;
+  --border:        #DCE0D5;
+  --border-strong: #BFC6B2;
+
+  --ink:           #0F1A14;
+  --ink-2:         #233028;
+  --ink-3:         #4A574F;
+  --muted:         #7A857C;
+  --muted-2:       #ABB5A8;
+
+  --accent:        #2D5A3D;
+  --accent-2:      #1F4029;
+  --accent-soft:   #DDE9DE;
+  --accent-bright: #4A8B5C;
+
+  --ok:        #2D5A3D;
+  --ok-soft:   #DDE9DE;
+  --bad:       #9B2C2C;
+  --bad-soft:  #F2DDDD;
+  --warn:      #B45309;
+  --warn-soft: #FEF0D6;
+  --info:      #2C5282;
+  --info-soft: #DCE6F2;
+
+  /* Raios e elevações */
+  --radius-pill: 999px;
+  --radius-sm:   8px;
+  --radius-md:   11px;
+  --radius-lg:   16px;
+  --radius-xl:   20px;
+
+  --shadow-card: 0 1px 0 rgba(15,26,20,.04), 0 8px 24px -16px rgba(45,90,61,.14);
+  --shadow-hero: 0 1px 0 rgba(15,26,20,.04), 0 12px 32px -16px rgba(45,90,61,.18);
+  --shadow-elev: 0 1px 0 rgba(15,26,20,.04), 0 6px 16px -10px rgba(45,90,61,.16);
+
+  /* Escala tipográfica */
+  --fs-hero:    40px;
+  --fs-display: 36px;
+  --fs-h2:      28px;
+  --fs-h3:      22px;
+  --fs-h4:      18px;
+  --fs-body:    15px;
+  --fs-ui:      13.5px;
+  --fs-sm:      12.5px;
+  --fs-xs:      11px;
+
+  --tracking-tight:   -0.03em;
+  --tracking-display: -0.025em;
+  --tracking-eyebrow: 0.10em;
+}
