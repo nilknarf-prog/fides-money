@@ -476,7 +476,7 @@ Plans:
 
 **Wave 2** *(blocked on Wave 1 completion)*
 
-- [ ] 16-02-PLAN.md — ADMIN-02: guard `requireAdmin` fail-closed (401→401→403+audit) + roteador `api/admin.js` (whoami/accounts/audit/set_plan) + throttle denied_access + env vars Vercel [wave 2]
+- [x] 16-02-PLAN.md — ADMIN-02: guard `requireAdmin` fail-closed (401→401→403+audit) + roteador `api/admin.js` (whoami/accounts/audit/set_plan) + throttle denied_access + env vars Vercel [wave 2]
 
 **Wave 3** *(blocked on Wave 2 completion)*
 
@@ -497,7 +497,7 @@ Plans:
 | 13 - IA-3 Gating premium | 5/5 | Complete   | 2026-07-16 |
 | 14 - IA-4 Bot WhatsApp | 0/? | Not started | - |
 | 15 - UI Polish (Favicon) | 0/? | Not started | - |
-| 16 - Painel admin/backoffice | 1/4 | In Progress|  |
+| 16 - Painel admin/backoffice | 2/4 | In Progress|  |
 
 ### Phase 15: UI Polish (Favicon)
 

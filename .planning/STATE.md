@@ -5,10 +5,10 @@ milestone_name: Épico IA/WhatsApp (Phases 11–14) — milestone formal pendent
 current_phase: 16
 current_phase_name: painel-admin-backoffice
 status: executing
-stopped_at: Completed 16-01-PLAN.md
+stopped_at: Completed 16-02-PLAN.md
 last_updated: "2026-07-17T03:05:13.240Z"
 last_activity: 2026-07-17
-last_activity_desc: 16-01 fundação SQL admin aplicada + verificada no live
+last_activity_desc: 16-02 backend api/admin.js deployado + fail-closed verificado
 progress:
   total_phases: 6
   completed_phases: 3
@@ -24,9 +24,9 @@ progress:
 ## Current Position
 
 Phase: 16 (painel-admin-backoffice) — EXECUTING
-Plan: 2 of 4 (16-01 ✓ fundação SQL concluída)
+Plan: 3 of 4 (16-01 ✓ SQL · 16-02 ✓ backend deployado/fail-closed)
 Status: Executing Phase 16
-Last activity: 2026-07-16 — 16-01 fundação SQL admin aplicada + verificada no live
+Last activity: 2026-07-17 — 16-02 backend api/admin.js deployado + fail-closed verificado
 
 ## Project Reference
 
