@@ -484,7 +484,7 @@ Plans:
 
 **Wave 4** *(blocked on Wave 3 completion)*
 
-- [ ] 16-04-PLAN.md — ADMIN-04: rate-limit geral + nota LGPD + memória `testar-tier-free-pro` + gate D-seq (dogfooding UATs 12/13 via painel) [wave 4]
+- [x] 16-04-PLAN.md — ADMIN-04: rate-limit geral + nota LGPD + memória `testar-tier-free-pro` + gate D-seq (dogfooding UATs 12/13 via painel) [wave 4]
 
 ---
 
@@ -497,7 +497,7 @@ Plans:
 | 13 - IA-3 Gating premium | 5/5 | Complete   | 2026-07-16 |
 | 14 - IA-4 Bot WhatsApp | 0/? | Not started | - |
 | 15 - UI Polish (Favicon) | 0/? | Not started | - |
-| 16 - Painel admin/backoffice | 2/4 | In Progress|  |
+| 16 - Painel admin/backoffice | 3/4 | In Progress|  |
 
 ### Phase 15: UI Polish (Favicon)
 

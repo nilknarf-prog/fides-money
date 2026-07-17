@@ -5,15 +5,15 @@ milestone_name: Épico IA/WhatsApp (Phases 11–14) — milestone formal pendent
 current_phase: 16
 current_phase_name: painel-admin-backoffice
 status: executing
-stopped_at: Completed 16-02-PLAN.md
-last_updated: "2026-07-17T03:05:13.240Z"
+stopped_at: 16-04 tasks de codigo/doc concluidas (rate-limit + LGPD) - checkpoint dogfooding (Task 3) pendente, bloqueado por 16-03 sem SUMMARY
+last_updated: "2026-07-17T16:10:47.079Z"
 last_activity: 2026-07-17
 last_activity_desc: 16-02 backend api/admin.js deployado + fail-closed verificado
 progress:
   total_phases: 6
   completed_phases: 3
   total_plans: 20
-  completed_plans: 16
+  completed_plans: 19
   percent: 50
 ---
 
@@ -40,7 +40,7 @@ See: .planning/PROJECT.md (updated 2026-07-06)
 | Phase | Name | Requirements | Status |
 |-------|------|--------------|--------|
 | 11 | IA-1 Hardening Gemini | WR-01/02/03, AI-SHARED-01, AI-TELEM-01 | ✅ Complete (VERIFICATION: PASSED, UAT A–D) |
-| 12 | IA-2 WRITE in-app (B8) | WRITE-01..04, HONEST-01, DERIVED-SAFE-01 | ✅ Implementado — ⚠️ UAT humano pendente (0/4) |
+| 12 | IA-2 WRITE in-app (B8) | WRITE-01..04, HONEST-01, DERIVED-SAFE-01 | ✅ Implementado (gap-closure 12-06/12-07) — ⚠️ 2 UATs de regressão pendentes (Tests 1+4), ver `12-VERIFICATION.md` |
 | 13 | IA-3 Gating Premium | GATE-01/02/03, PAYWALL-01 (a formalizar) | 📋 Não planejada |
 | 14 | IA-4 Bot WhatsApp | WA-* (a formalizar) | ⏳ Não iniciada |
 | 15 | UI Polish (favicon) | — | ⏳ Polish avulso, não iniciado |
@@ -51,8 +51,8 @@ See: .planning/PROJECT.md (updated 2026-07-06)
 
 | Categoria | Item | Status |
 |-----------|------|--------|
-| verification | Phase 12 — 4 UATs humanos (WRITE in-app) | **adiado por decisão** → rodar via painel da Phase 16 (não SQL) |
-| verification | Phase 13 — 5 UATs humanos (gating free/pro) | **adiado por decisão** → rodar via painel da Phase 16 (13-UAT.md); código já live/verificado 16/16 |
+| verification | Phase 12 — 2 UATs de regressão (Test 1 cartão homônimo + Test 4 falso "cancelei", pós gap-closure 12-06/12-07) | **adiado por decisão** → rodar via painel da Phase 16 (16-04-SUMMARY.md tem a lista exata; supera a contagem antiga "0/4" — os outros 2 testes originais já passaram e não têm regressão pendente, ver `12-VERIFICATION.md`) |
+| verification | Phase 13 — 5 UATs humanos (gating free/pro) | **adiado por decisão** → rodar via painel da Phase 16 (lista exata em `16-04-SUMMARY.md` e `13-VERIFICATION.md`); código já live/verificado 16/16 |
 | verification | `fatura-ciclo-VERIFICATION.md` (feature v1.0/M4 `ade84f7`) | human_needed (desde 2026-07-01) |
 | security todo | `todos/pending/ratelimit-bypass-toolresults.md` (high) | aberto — endereçar durante o épico IA |
 | bug (assistente WRITE) | `todos/pending/2026-07-16-assistente-modais-write-stale-acumulados.md` (high) | aberto — modais de confirmação stale/acumulados; puxar p/ próxima fase de IA in-app |
@@ -179,12 +179,13 @@ Phase 12 (IA-2 B8) implementada em 5 commits (`9a9ead5` → `6714d3f`).
 - [Phase 13]: 13-05: WRITE_NAMES deriva de WRITE_FUNCTIONS.map(f=>f.name), fonte unica, sem re-hardcode; FREE_TIER_ADDENDUM reescrito comportacionalmente (WR-04) sem os 4 nomes literais
 - [Phase 13]: 13-05: guard cliente !fs.isPremium em executeTools reusa fs ja capturado no topo de FidesAssistant - sem novo useFides()/hook (Rules of Hooks)
 - [Sequência 2026-07-16]: decisão do usuário — PULAR os UATs humanos das Phases 12 e 13 por ora (código já live + verificado 16/16); rodá-los depois via o painel admin da Phase 16 (alternar tier na UI do Fides) em vez do Supabase SQL Editor. Próxima etapa = planejar+construir a Phase 16. 14/15 ficam depois.
+- [Phase 16]: 16-04 (parcial): rate-limit geral pos-guard (30 req/60s admin_id/ip, fail-open) em guard.js + docs/admin-lgpd.md (base legal/minimizacao/retencao 2 anos a ratificar). Memoria testar-tier-free-pro e checkpoint de dogfooding (UATs 12/13) NAO executados nesta sessao (ver 16-04-SUMMARY.md)
 
 ## Session
 
-**Last session:** 2026-07-16T21:44:00.654Z
-**Stopped at:** Completed 13-03-PLAN.md
-**Resume file:** None
+**Last session:** 2026-07-17T16:00:33.186Z
+**Stopped at:** 16-04 tasks de codigo/doc concluidas (rate-limit + LGPD) - checkpoint dogfooding (Task 3) pendente, bloqueado por 16-03 sem SUMMARY
+**Resume file:** 16-04-SUMMARY.md
 
 ## Accumulated Context
 
@@ -221,7 +222,9 @@ Milestone v1.0 e v1.1 shipadas (tags `v1.0`/`v1.1`); decisões arquivadas em PRO
 | Phase 13 P03 | ~10min | 3 tasks | 1 files |
 | Phase 13 P02 | 18min | 2 tasks | 1 files |
 | Phase 13 P05 | ~15min | 3 tasks | 2 files |
+| Phase 16 P04 (parcial) | ~25min | 1/3 tasks | 4 files |
 
 ### Blockers
 
 - 16-01: MCP Supabase indisponivel nesta sessao de execucao (sem tool mcp__supabase__* no ambiente do agente executor). Task 1 exige introspeccao live ANTES de qualquer DDL (VALIDATION Wave 0). O servidor MCP configurado roda com flag --read-only, o que bloquearia apply_migration da Task 2 mesmo se a introspeccao fosse possivel por outra via. Nenhuma DDL foi escrita; plano 16-01 pausado no Task 1.
+- 16-04 Task 3 (checkpoint dogfooding UATs 12/13) bloqueado: 16-03 (front /painel) ainda sem 16-03-SUMMARY.md nesta arvore - painel precisa estar deployado antes do login humano para o dogfooding
