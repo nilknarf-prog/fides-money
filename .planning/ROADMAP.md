@@ -463,15 +463,18 @@ Plans:
 ### Phase 16: Painel de administração / backoffice (admin online)
 
 **Goal:** Painel de administração acessível online (ex.: `fides-money.vercel.app/painel`) para o admin gerir o produto **sem depender do Supabase SQL Editor** (complicado e visualmente pobre): listar contas cadastradas, ver usos (`assistant_usage`, métricas), gerir privilégios e **alternar o tier free/pro/family**, com controle detalhado. Superfície de admin **server-side via `service_role`** (NUNCA client SDK — não reabrir a brecha fechada na Phase 13-02), **audit log** de toda ação admin e **autenticação de admin dedicada**. Escopo amplo (gestão de contas/usuários, billing/assinaturas do M6, observabilidade/métricas, feature flags, suporte) — MVP provável = "listar contas + trocar tier + audit log".
-**Requirements**: ADMIN-* (a formalizar no discuss/spec)
+**Requirements**: ADMIN-01 (fundação SQL: RPCs + audit table, grants service_role-only), ADMIN-02 (guard fail-closed + roteador `api/admin.js` + throttle denied_access), ADMIN-03 (front `/painel` isolado + rewrite antes do catch-all + headers anti-clickjacking), ADMIN-04 (hardening + LGPD + dogfooding UATs 12/13)
 **Depends on:** Phase 13 (tier via `profiles.plan` + trava de coluna 13-02)
-**Fonte:** `.planning/research/painel-admin-backoffice.md` (demanda-contexto capturada 2026-07-16)
+**Fonte:** `.planning/research/painel-admin-backoffice.md` (demanda) + `painel-admin-backoffice-PLAN-DRAFT.md` (arquitetura decidida 3x-revisada) + `16-CONTEXT.md`/`16-RESEARCH.md`/`16-VALIDATION.md`
 **Caminho sensível:** superfície admin com `service_role` + auth + dados de terceiros (LGPD) → `security-reviewer` + `database-reviewer` obrigatórios. Provável gatilho da migração p/ Vite/Next (ROADMAP B11).
-**Plans:** 0 plans
+**Plans:** 4 plans
 
 Plans:
 
-- [ ] TBD (run /gsd-plan-phase 16 to break down)
+- [ ] 16-01-PLAN.md — ADMIN-01: fundação SQL (introspecção MCP + `admin_audit_log` + RPCs `admin_list_accounts`/`admin_set_plan` service_role-only, `set search_path`, REVOKE/GRANT) [wave 1]
+- [ ] 16-02-PLAN.md — ADMIN-02: guard `requireAdmin` fail-closed (401→401→403+audit) + roteador `api/admin.js` (whoami/accounts/audit/set_plan) + throttle denied_access + env vars Vercel [wave 2]
+- [ ] 16-03-PLAN.md — ADMIN-03: front `/painel` isolado (login/contas/alterar-plano/auditoria) + rewrite antes do catch-all + headers anti-clickjacking [wave 3]
+- [ ] 16-04-PLAN.md — ADMIN-04: rate-limit geral + nota LGPD + memória `testar-tier-free-pro` + gate D-seq (dogfooding UATs 12/13 via painel) [wave 4]
 
 ---
 
@@ -484,7 +487,7 @@ Plans:
 | 13 - IA-3 Gating premium | 5/5 | Complete   | 2026-07-16 |
 | 14 - IA-4 Bot WhatsApp | 0/? | Not started | - |
 | 15 - UI Polish (Favicon) | 0/? | Not started | - |
-| 16 - Painel admin/backoffice | 0/? | Not started (não planejada) | - |
+| 16 - Painel admin/backoffice | 0/4 | Planned (4 waves) | - |
 
 ### Phase 15: UI Polish (Favicon)
 
