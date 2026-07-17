@@ -4,9 +4,9 @@ milestone: ia-whatsapp
 milestone_name: Épico IA/WhatsApp (Phases 11–14) — milestone formal pendente
 current_phase: 13
 current_phase_name: ia-3-gating-premium-in-app
-status: verifying
+status: executing
 stopped_at: Completed 13-03-PLAN.md
-last_updated: "2026-07-16T21:44:56.700Z"
+last_updated: "2026-07-17T02:55:52.100Z"
 last_activity: 2026-07-16
 last_activity_desc: Phase 13 execution started
 progress:
@@ -25,7 +25,7 @@ progress:
 
 Phase: 13 (ia-3-gating-premium-in-app) — EXECUTING
 Plan: 4 of 4
-Status: Phase complete — ready for verification
+Status: Ready to execute
 Last activity: 2026-07-16 — Phase 13 execution started
 
 ## Project Reference

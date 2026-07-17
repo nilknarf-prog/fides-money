@@ -470,10 +470,20 @@ Plans:
 **Plans:** 4 plans
 
 Plans:
+**Wave 1**
 
 - [ ] 16-01-PLAN.md — ADMIN-01: fundação SQL (introspecção MCP + `admin_audit_log` + RPCs `admin_list_accounts`/`admin_set_plan` service_role-only, `set search_path`, REVOKE/GRANT) [wave 1]
+
+**Wave 2** *(blocked on Wave 1 completion)*
+
 - [ ] 16-02-PLAN.md — ADMIN-02: guard `requireAdmin` fail-closed (401→401→403+audit) + roteador `api/admin.js` (whoami/accounts/audit/set_plan) + throttle denied_access + env vars Vercel [wave 2]
+
+**Wave 3** *(blocked on Wave 2 completion)*
+
 - [ ] 16-03-PLAN.md — ADMIN-03: front `/painel` isolado (login/contas/alterar-plano/auditoria) + rewrite antes do catch-all + headers anti-clickjacking [wave 3]
+
+**Wave 4** *(blocked on Wave 3 completion)*
+
 - [ ] 16-04-PLAN.md — ADMIN-04: rate-limit geral + nota LGPD + memória `testar-tier-free-pro` + gate D-seq (dogfooding UATs 12/13 via painel) [wave 4]
 
 ---
