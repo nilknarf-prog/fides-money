@@ -25,16 +25,22 @@ function getSupabaseUrl() {
   return process.env.NEXT_PUBLIC_SUPABASE_URL;
 }
 
-// Extrai IP do request (Vercel popula x-forwarded-for na borda). Best-effort —
-// usado só para chave do throttle/registro de audit, nunca para decisão de auth.
+// Extrai IP do request. Best-effort — usado para chave do throttle e para o
+// campo `ip` do audit trail (accountability/não-repúdio), nunca para decisão de
+// auth. IMPORTANTE (anti-spoof): o cliente pode enviar x-forwarded-for/x-real-ip
+// arbitrários; na Vercel a BORDA sobrescreve x-real-ip com o IP real e ANEXA o IP
+// observado ao FINAL de x-forwarded-for. Por isso: (1) preferir x-real-ip
+// (edge-set, não spoofável), (2) no fallback usar o ÚLTIMO elemento de XFF — o
+// PRIMEIRO é o valor que o cliente original mandou (forjável).
 function getClientIp(req) {
+  const real = req.headers['x-real-ip'];
+  if (typeof real === 'string' && real.trim().length > 0) {
+    return real.trim();
+  }
   const fwd = req.headers['x-forwarded-for'];
   if (typeof fwd === 'string' && fwd.length > 0) {
-    return fwd.split(',')[0].trim();
-  }
-  const real = req.headers['x-real-ip'];
-  if (typeof real === 'string' && real.length > 0) {
-    return real.trim();
+    const parts = fwd.split(',');
+    return parts[parts.length - 1].trim();
   }
   return (req.socket && req.socket.remoteAddress) || '';
 }
