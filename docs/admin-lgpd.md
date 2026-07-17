@@ -2,7 +2,7 @@
 
 **Fase:** 16-painel-admin-backoffice (ADMIN-04)
 **Escopo:** superfície `/painel` + `api/admin.js` + `admin_audit_log` (fundação em `supabase/admin-backoffice.sql`)
-**Status:** proposta a **ratificar com o dono** no checkpoint humano da Phase 16 (item ainda em aberto — ver seção Retenção)
+**Status:** **RATIFICADA pelo dono em 2026-07-17** (retenção 2 anos + expurgo manual — ver seção Retenção)
 
 ## 1. Base legal
 
@@ -25,13 +25,13 @@ O desenho do painel já aplica minimização por construção, não como camada 
 
 **LGPD não fixa um prazo numérico** para retenção de logs de acesso a dado pessoal (art. 15 define os eventos que encerram o tratamento; art. 16 trata da eliminação após o fim do tratamento, com exceções). A prática de mercado citada para logs de acesso é um mínimo de ~6 meses, sem teto máximo legal fixo, desde que documentado e com finalidade clara.
 
-**Proposta (a ratificar com o dono):**
+**Política ratificada (dono, 2026-07-17):**
 
 - **Retenção: 2 anos** a partir de `created_at` — dentro da faixa aceitável (acima do mínimo prático de mercado de ~6 meses, sem violar nenhum prazo máximo legal, pois não há um fixado).
 - **Expurgo: manual** — sem job/cron automático nesta fase (MVP). O dono roda uma exclusão pontual via SQL Editor (`delete from admin_audit_log where created_at < now() - interval '2 years'`) quando decidir aplicar o expurgo. Nenhuma automação foi implementada nesta fase (fora de escopo do MVP; um job agendado fica registrado como item de fase 2 se o volume justificar).
 - **Justificativa:** o audit log é append-only por design (`grant select, insert` apenas, sem `update`/`delete` para `service_role` — ver `supabase/admin-backoffice.sql`), então mesmo o expurgo manual exige acesso direto ao banco (SQL Editor/owner), não pelo painel — reduz risco de um admin comprometido apagar o próprio rastro.
 
-**Esta retenção (2 anos, expurgo manual) é uma decisão de produto, não uma pendência técnica — precisa ser confirmada explicitamente pelo dono no checkpoint humano da Phase 16 (Task 3 do plano 16-04). Até a ratificação, tratar como proposta.**
+**Esta retenção (2 anos, expurgo manual) foi RATIFICADA pelo dono em 2026-07-17 (checkpoint humano da Phase 16 / Task 3 do plano 16-04). Decisão de produto fechada.**
 
 ## 4. Padrão seguido — OWASP ASVS 4.0 V7 (Error Handling and Logging)
 

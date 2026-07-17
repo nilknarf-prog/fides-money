@@ -3,18 +3,18 @@ gsd_state_version: 1.0
 milestone: ia-whatsapp
 milestone_name: Épico IA/WhatsApp (Phases 11–14) — milestone formal pendente
 current_phase: 16
-current_phase_name: painel-admin-backoffice
 status: executing
 stopped_at: 16-04 tasks de codigo/doc concluidas (rate-limit + LGPD) - checkpoint dogfooding (Task 3) pendente, bloqueado por 16-03 sem SUMMARY
-last_updated: "2026-07-17T16:10:47.079Z"
+last_updated: "2026-07-17T22:56:37.583Z"
 last_activity: 2026-07-17
-last_activity_desc: 16-02 backend api/admin.js deployado + fail-closed verificado
+last_activity_desc: Phase 16 complete
 progress:
   total_phases: 6
-  completed_phases: 3
+  completed_phases: 4
   total_plans: 20
-  completed_plans: 19
-  percent: 50
+  completed_plans: 20
+  percent: 67
+current_phase_name: painel-admin-backoffice
 ---
 
 # Project State
@@ -23,10 +23,10 @@ progress:
 
 ## Current Position
 
-Phase: 16 (painel-admin-backoffice) — EXECUTING
-Plan: 3 of 4 (16-01 ✓ SQL · 16-02 ✓ backend deployado/fail-closed)
-Status: Executing Phase 16
-Last activity: 2026-07-17 — 16-02 backend api/admin.js deployado + fail-closed verificado
+Phase: 16 (painel-admin-backoffice) — ✅ COMPLETE (4/4 planos, VERIFICATION: passed)
+Plan: —
+Status: Phase 16 concluída — próximo alvo: Phase 14 (Bot WhatsApp)
+Last activity: 2026-07-17 — Phase 16 complete (painel admin no ar + dogfooding)
 
 ## Project Reference
 
@@ -41,9 +41,10 @@ See: .planning/PROJECT.md (updated 2026-07-06)
 |-------|------|--------------|--------|
 | 11 | IA-1 Hardening Gemini | WR-01/02/03, AI-SHARED-01, AI-TELEM-01 | ✅ Complete (VERIFICATION: PASSED, UAT A–D) |
 | 12 | IA-2 WRITE in-app (B8) | WRITE-01..04, HONEST-01, DERIVED-SAFE-01 | ✅ Implementado (gap-closure 12-06/12-07) — ⚠️ 2 UATs de regressão pendentes (Tests 1+4), ver `12-VERIFICATION.md` |
-| 13 | IA-3 Gating Premium | GATE-01/02/03, PAYWALL-01 (a formalizar) | 📋 Não planejada |
-| 14 | IA-4 Bot WhatsApp | WA-* (a formalizar) | ⏳ Não iniciada |
+| 13 | IA-3 Gating Premium | GATE-01/02/03, PAYWALL-01 | ✅ Complete (VERIFICATION: passed 16/16; UATs fechados via painel 2026-07-17) |
+| 14 | IA-4 Bot WhatsApp | WA-* (a formalizar) | 🟡 Próxima — não iniciada (0 planos) |
 | 15 | UI Polish (favicon) | — | ⏳ Polish avulso, não iniciado |
+| 16 | Painel admin/backoffice | ADMIN-01..04 | ✅ Complete (VERIFICATION: passed; painel live + dogfooding, 2026-07-17) |
 
 > v1.0 (Phases 03–06) e v1.1 (Phases 07–10) shipadas — detalhe em `MILESTONES.md` e `milestones/`.
 
@@ -51,8 +52,8 @@ See: .planning/PROJECT.md (updated 2026-07-06)
 
 | Categoria | Item | Status |
 |-----------|------|--------|
-| verification | Phase 12 — 2 UATs de regressão (Test 1 cartão homônimo + Test 4 falso "cancelei", pós gap-closure 12-06/12-07) | **adiado por decisão** → rodar via painel da Phase 16 (16-04-SUMMARY.md tem a lista exata; supera a contagem antiga "0/4" — os outros 2 testes originais já passaram e não têm regressão pendente, ver `12-VERIFICATION.md`) |
-| verification | Phase 13 — 5 UATs humanos (gating free/pro) | **adiado por decisão** → rodar via painel da Phase 16 (lista exata em `16-04-SUMMARY.md` e `13-VERIFICATION.md`); código já live/verificado 16/16 |
+| verification | Phase 12 — 2 UATs de regressão (Test 1 cartão homônimo + Test 4 falso "cancelei") | **débito rastreado** (deferido na Phase 16, 2026-07-17 — decisão do dono) — rodar quando conveniente; código verificado, comportamento Gemini não-determinístico |
+| verification | Phase 13 — UATs gating free/pro | **fechado 2026-07-17**: 3 verificados via dogfooding do painel (Tests 1/4/5); 2 deferidos como **débito rastreado** (Test 2 403 na Análise, Test 3 cap 10/mês). Ver `13-UAT.md` (status: resolved) |
 | verification | `fatura-ciclo-VERIFICATION.md` (feature v1.0/M4 `ade84f7`) | human_needed (desde 2026-07-01) |
 | security todo | `todos/pending/ratelimit-bypass-toolresults.md` (high) | aberto — endereçar durante o épico IA |
 | bug (assistente WRITE) | `todos/pending/2026-07-16-assistente-modais-write-stale-acumulados.md` (high) | aberto — modais de confirmação stale/acumulados; puxar p/ próxima fase de IA in-app |
@@ -62,14 +63,13 @@ See: .planning/PROJECT.md (updated 2026-07-06)
 
 ## Next Action
 
-**Ordem recomendada (reparo de saúde 2026-07-14):**
+**Phase 16 (painel admin) fechada 2026-07-17. Próximo alvo escolhido pelo dono: Phase 14 (Bot WhatsApp).**
 
-1. `/gsd-verify-work 12` — fechar os 4 UATs da IA WRITE (gate de segurança) antes de avançar.
-2. `/gsd-new-milestone` — abrir formalmente o épico IA/WhatsApp (corrige `milestone_formalized: false`).
-3. `/gsd-cleanup` — arquivar as fases v1.1 (07–10) para `milestones/v1.1-phases/`.
-4. `/gsd-plan-phase 13` — quebrar a IA-3 (gating premium via `profiles.plan`).
+1. `/gsd-plan-phase 14` — quebrar a IA-4 (bot WhatsApp via Meta Cloud API) em planos. Caminho sensível (`api/whatsapp.js` webhook público + service_role) → security-reviewer + database-reviewer obrigatórios.
+2. (housekeeping, quando conveniente) `/gsd-new-milestone` — abrir formalmente o épico IA/WhatsApp (`milestone_formalized: false`).
+3. (opcional) M6 checkout/billing (Mercado Pago/Pix) — monetiza o premium que agora liga/desliga de verdade.
 
-Phase 12 (IA-2 B8) implementada em 5 commits (`9a9ead5` → `6714d3f`).
+Débito rastreado aberto: 2 UATs de regressão da Phase 12 (Gemini não-determinístico); UATs 2/3 da Phase 13 (baixo risco). Ver §Deferred/Open Items.
 
 ## Plan Execution Log
 

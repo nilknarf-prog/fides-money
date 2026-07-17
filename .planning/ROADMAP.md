@@ -467,7 +467,7 @@ Plans:
 **Depends on:** Phase 13 (tier via `profiles.plan` + trava de coluna 13-02)
 **Fonte:** `.planning/research/painel-admin-backoffice.md` (demanda) + `painel-admin-backoffice-PLAN-DRAFT.md` (arquitetura decidida 3x-revisada) + `16-CONTEXT.md`/`16-RESEARCH.md`/`16-VALIDATION.md`
 **Caminho sensível:** superfície admin com `service_role` + auth + dados de terceiros (LGPD) → `security-reviewer` + `database-reviewer` obrigatórios. Provável gatilho da migração p/ Vite/Next (ROADMAP B11).
-**Plans:** 4 plans
+**Plans:** 4/4 plans complete
 
 Plans:
 **Wave 1**
@@ -497,7 +497,7 @@ Plans:
 | 13 - IA-3 Gating premium | 5/5 | Complete   | 2026-07-16 |
 | 14 - IA-4 Bot WhatsApp | 0/? | Not started | - |
 | 15 - UI Polish (Favicon) | 0/? | Not started | - |
-| 16 - Painel admin/backoffice | 4/4 | Complete   | 2026-07-17 |
+| 16 - Painel admin/backoffice | 4/4 | Complete    | 2026-07-17 |
 
 ### Phase 15: UI Polish (Favicon)
 
