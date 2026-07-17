@@ -1,0 +1,77 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1"/>
+<meta name="robots" content="noindex, nofollow"/>
+<title>Fides Money — Painel Admin</title>
+<meta name="theme-color" content="#1F4029"/>
+<link rel="icon" type="image/svg+xml" href="assets/favicon.svg" />
+
+<!-- Configuração de ambiente (só URL + anon key — a chave privilegiada do backend JAMAIS chega aqui) -->
+<script src="/fides-config.js"></script>
+<!-- Supabase SDK (mesma tag @2 de index.html — suporta auth.storageKey) -->
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
+
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+
+<!-- tokens.css PRIMEIRO (regra CLAUDE.md) -->
+<link rel="stylesheet" href="assets/tokens.css">
+<link rel="stylesheet" href="assets/fides-ui.css">
+<link rel="stylesheet" href="assets/fides-admin.css">
+
+<style>
+  html, body {
+    margin: 0;
+    min-height: 100%;
+    background: var(--bg, #F4F5F1);
+  }
+  body {
+    font-family: 'Manrope', ui-sans-serif, system-ui;
+    -webkit-font-smoothing: antialiased;
+  }
+  #root { min-height: 100vh; }
+</style>
+</head>
+<body>
+<div id="root"></div>
+
+<script>
+  // Client Supabase ISOLADO do painel (T-16-13): storageKey próprio evita que a
+  // sessão admin colida com a sessão do app na mesma origem. Só URL + anon key
+  // (window.FIDES_CONFIG vem de /fides-config.js) — a chave privilegiada do
+  // backend nunca chega ao client, todo dado admin passa por
+  // fetch('/api/admin?action=...').
+  (function () {
+    'use strict';
+    function initAdminSupabase() {
+      var config = window.FIDES_CONFIG;
+      if (!config || !config.supabaseUrl) {
+        console.error('[Painel Admin] FIDES_CONFIG ausente — /fides-config.js falhou.');
+        window.fidesAdminClient = null;
+        return;
+      }
+      var createClient = window.supabase.createClient;
+      window.fidesAdminClient = createClient(config.supabaseUrl, config.supabaseAnonKey, {
+        auth: {
+          storageKey: 'fides-admin-auth',
+          persistSession: true,
+          autoRefreshToken: true,
+          detectSessionInUrl: false
+        }
+      });
+    }
+    initAdminSupabase();
+  })();
+</script>
+
+<script src="https://unpkg.com/react@18.3.1/umd/react.development.js" integrity="sha384-hD6/rw4ppMLGNu3tX5cjIb+uRZ7UkRJ6BPkLpg4hAu/6onKUg4lLsHAs9EBPT82L" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/react-dom@18.3.1/umd/react-dom.development.js" integrity="sha384-u6aeetuaXnQ38mYT8rp6sbXaQe3NL9t+IBXmnYxwkUI2Hw4bsp2Wvmx4yRQF1uAm" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/@babel/standalone@7.29.0/babel.min.js" integrity="sha384-m08KidiNqLdpJqLq95G/LEi8Qvjl/xUYll3QILypMoQ65QorJ9Lvtp2RXYGBFj1y" crossorigin="anonymous"></script>
+
+<script type="text/babel" src="assets/fides-ui.jsx"></script>
+<script type="text/babel" src="assets/fides-admin.jsx"></script>
+</body>
+</html>

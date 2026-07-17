@@ -1,0 +1,284 @@
+/* ─────────────────────────────────────────────────────────────
+ * assets/fides-admin.css — Painel Admin (/painel, Phase 16)
+ *
+ * Direção visual: Sketch 001-painel-admin, Variante A (sidebar de
+ * admin) — escala melhor para a fase 2 (métricas/config futuros).
+ * Reusa tokens.css (sage paper + verde floresta). Namespace `fda-`
+ * para não colidir com fui-* (fides-ui.css) nem com o CSS do app.
+ * ──────────────────────────────────────────────────────────── */
+
+.fda-root { min-height: 100vh; }
+
+/* ─── Loading / erro genérico ──────────────────────────────── */
+.fda-loading, .fda-fatal {
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--muted);
+  font-size: var(--fs-ui);
+  text-align: center;
+  padding: 24px;
+}
+.fda-fatal { color: var(--bad); flex-direction: column; gap: 8px; }
+
+/* ─── Login ─────────────────────────────────────────────────── */
+.fda-login-wrap {
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+}
+.fda-login-card {
+  width: 380px;
+  max-width: 100%;
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-hero);
+  padding: 34px 32px;
+}
+.fda-login-card .fda-eyebrow {
+  font-size: var(--fs-xs);
+  font-weight: 700;
+  letter-spacing: var(--tracking-eyebrow);
+  text-transform: uppercase;
+  color: var(--accent);
+  margin-bottom: 6px;
+}
+.fda-login-card .fda-brand {
+  font-weight: 800;
+  font-size: var(--fs-h3);
+  letter-spacing: var(--tracking-tight);
+  color: var(--ink);
+}
+.fda-login-card .fda-brand .tick { color: var(--accent-bright); }
+.fda-login-card .fda-hint {
+  color: var(--ink-3);
+  font-size: var(--fs-sm);
+  margin: 8px 0 22px;
+  line-height: 1.5;
+}
+.fda-login-card label {
+  display: block;
+  font-size: var(--fs-xs);
+  font-weight: 700;
+  letter-spacing: .04em;
+  text-transform: uppercase;
+  color: var(--muted);
+  margin: 14px 0 5px;
+}
+.fda-login-card input {
+  width: 100%;
+  background: var(--card-soft);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  padding: 10px 12px;
+  font-size: var(--fs-ui);
+  color: var(--ink);
+  outline: none;
+  transition: border-color .15s ease;
+  font-family: inherit;
+}
+.fda-login-card input:focus { border-color: var(--accent); background: var(--bg-elev); }
+.fda-login-error {
+  margin-top: 12px;
+  background: var(--bad-soft);
+  color: var(--bad);
+  border-radius: var(--radius-sm);
+  padding: 9px 12px;
+  font-size: var(--fs-sm);
+  font-weight: 600;
+}
+.fda-login-note {
+  margin-top: 16px;
+  font-size: var(--fs-xs);
+  color: var(--muted);
+  text-align: center;
+  line-height: 1.5;
+}
+
+/* ─── Acesso negado (403) ──────────────────────────────────── */
+.fda-denied-wrap {
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+}
+.fda-denied-card {
+  width: 420px;
+  max-width: 100%;
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-hero);
+  padding: 34px 32px;
+  text-align: center;
+}
+.fda-denied-card .fda-denied-icon {
+  width: 48px; height: 48px; margin: 0 auto 14px;
+  border-radius: 999px;
+  background: var(--bad-soft);
+  color: var(--bad);
+  display: flex; align-items: center; justify-content: center;
+  font-size: 22px; font-weight: 800;
+}
+.fda-denied-card h1 { font-size: var(--fs-h3); font-weight: 800; margin: 0 0 8px; color: var(--ink); }
+.fda-denied-card p { color: var(--ink-3); font-size: var(--fs-ui); line-height: 1.5; margin: 0 0 20px; }
+
+/* ─── Botões ────────────────────────────────────────────────── */
+.fda-btn {
+  border: 1px solid var(--border-strong);
+  background: var(--card);
+  color: var(--ink-2);
+  border-radius: var(--radius-sm);
+  padding: 7px 14px;
+  font-size: var(--fs-sm);
+  font-weight: 700;
+  font-family: inherit;
+  cursor: pointer;
+  transition: all .15s ease;
+}
+.fda-btn:hover { background: var(--card-soft); border-color: var(--accent); color: var(--accent); }
+.fda-btn.fda-btn-primary { background: var(--accent); border-color: var(--accent); color: #fff; width: 100%; padding: 11px; margin-top: 22px; }
+.fda-btn.fda-btn-primary:hover { background: var(--accent-2); color: #fff; }
+.fda-btn.fda-btn-primary:disabled,
+.fda-btn:disabled { opacity: .45; cursor: not-allowed; }
+.fda-btn.fda-btn-primary:disabled:hover { background: var(--accent); }
+
+/* ─── Shell (Variante A — sidebar) ────────────────────────── */
+.fda-shell { display: flex; min-height: 100vh; }
+.fda-side {
+  width: 216px;
+  flex-shrink: 0;
+  background: var(--accent-2);
+  color: #E8EFE9;
+  display: flex;
+  flex-direction: column;
+  padding: 20px 0;
+}
+.fda-logo { padding: 0 20px 18px; border-bottom: 1px solid rgba(255,255,255,.12); }
+.fda-logo .fda-brand { font-weight: 800; font-size: var(--fs-h4); letter-spacing: var(--tracking-tight); color: #fff; }
+.fda-logo .fda-brand .tick { color: var(--accent-bright); }
+.fda-logo .fda-env { font-size: var(--fs-xs); letter-spacing: var(--tracking-eyebrow); text-transform: uppercase; color: #9DB8A4; margin-top: 2px; }
+.fda-nav { padding: 14px 10px; display: flex; flex-direction: column; gap: 2px; flex: 1; }
+.fda-nav button {
+  display: flex; align-items: center; gap: 10px; width: 100%;
+  background: transparent; border: 0; color: #C8D6CB;
+  padding: 9px 12px; border-radius: var(--radius-sm); font-size: var(--fs-ui); font-weight: 600;
+  text-align: left; transition: all .15s ease; font-family: inherit; cursor: pointer;
+}
+.fda-nav button:hover { background: rgba(255,255,255,.08); color: #fff; }
+.fda-nav button.active { background: var(--accent-bright); color: #fff; }
+.fda-nav button.fda-soon { opacity: .45; cursor: default; }
+.fda-nav button.fda-soon:hover { background: transparent; color: #C8D6CB; }
+.fda-nav .fda-soon-pill { margin-left: auto; font-size: 9.5px; border: 1px solid rgba(255,255,255,.25); border-radius: 999px; padding: 1px 7px; }
+.fda-admin-who {
+  margin: 0 10px; padding: 10px 12px; border-radius: var(--radius-sm);
+  background: rgba(255,255,255,.06); font-size: var(--fs-sm);
+}
+.fda-admin-who .who { font-weight: 700; color: #fff; word-break: break-all; }
+.fda-admin-who .fda-signout {
+  color: #9DB8A4; font-size: var(--fs-xs); background: none; border: 0; padding: 0; margin-top: 3px;
+  text-decoration: underline; cursor: pointer; font-family: inherit;
+}
+.fda-main { flex: 1; padding: 26px 30px; min-width: 0; }
+.fda-title { font-size: var(--fs-h2); font-weight: 800; letter-spacing: var(--tracking-tight); color: var(--ink); margin: 0; }
+.fda-sub { color: var(--ink-3); font-size: var(--fs-ui); margin: 4px 0 20px; }
+
+/* ─── Card / tabela ─────────────────────────────────────────── */
+.fda-panel-card {
+  background: var(--card); border: 1px solid var(--border); border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-card); overflow: hidden;
+}
+.fda-card-head {
+  display: flex; align-items: center; justify-content: space-between; gap: 12px;
+  padding: 14px 16px; border-bottom: 1px solid var(--border); flex-wrap: wrap;
+}
+.fda-search-input, .fda-plan-filter {
+  background: var(--card-soft); border: 1px solid var(--border);
+  border-radius: var(--radius-sm); padding: 8px 12px; font-size: var(--fs-ui);
+  color: var(--ink); outline: none; transition: border-color .15s ease; font-family: inherit;
+}
+.fda-search-input:focus, .fda-plan-filter:focus { border-color: var(--accent); background: var(--bg-elev); }
+.fda-search-input { width: 280px; max-width: 100%; }
+
+table.fda-table { width: 100%; border-collapse: collapse; font-size: var(--fs-ui); }
+table.fda-table th {
+  text-align: left; font-size: var(--fs-xs); font-weight: 700;
+  letter-spacing: var(--tracking-eyebrow); text-transform: uppercase;
+  color: var(--muted); padding: 10px 14px; border-bottom: 1px solid var(--border-strong);
+  white-space: nowrap;
+}
+table.fda-table td { padding: 12px 14px; border-bottom: 1px solid var(--border); vertical-align: middle; }
+table.fda-table tbody tr:hover { background: var(--card-soft); }
+.fda-cell-main { font-weight: 700; color: var(--ink); }
+.fda-cell-sub { font-size: var(--fs-sm); color: var(--muted); }
+.fda-num { font-family: var(--font-mono); font-size: var(--fs-sm); }
+.fda-empty-row td { text-align: center; color: var(--muted); padding: 32px; font-size: var(--fs-ui); }
+
+/* ─── Badges ────────────────────────────────────────────────── */
+.fda-badge {
+  display: inline-flex; align-items: center; gap: 5px;
+  border-radius: var(--radius-pill); padding: 3px 10px;
+  font-size: var(--fs-xs); font-weight: 700; letter-spacing: .02em;
+}
+.fda-badge::before { content: ''; width: 6px; height: 6px; border-radius: 50%; background: currentColor; }
+.fda-badge.free   { background: var(--card-soft); color: var(--ink-3); }
+.fda-badge.pro    { background: var(--accent-soft); color: var(--accent); }
+.fda-badge.family { background: var(--info-soft); color: var(--info); }
+.fda-badge.ok     { background: var(--ok-soft); color: var(--ok); }
+.fda-badge.denied { background: var(--bad-soft); color: var(--bad); }
+.fda-badge.error  { background: var(--bad-soft); color: var(--bad); }
+.fda-badge.read   { background: var(--card-soft); color: var(--muted); }
+
+/* ─── Paginação ─────────────────────────────────────────────── */
+.fda-pagination {
+  display: flex; align-items: center; justify-content: space-between; gap: 12px;
+  padding: 12px 16px; font-size: var(--fs-sm); color: var(--ink-3);
+}
+
+/* ─── Modal Alterar Plano (custom, previa antes do ConfirmDialog fides-ui) ── */
+.fda-modal-backdrop {
+  position: fixed; inset: 0; z-index: 9990;
+  background: rgba(15,26,20,.45);
+  display: flex; align-items: center; justify-content: center; padding: 20px;
+}
+.fda-modal {
+  width: 440px; max-width: 100%;
+  background: var(--card); border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-hero); padding: 26px 26px 22px;
+}
+.fda-modal h3 { font-size: var(--fs-h4); font-weight: 800; letter-spacing: var(--tracking-tight); margin: 0; color: var(--ink); }
+.fda-modal .fda-modal-target { font-size: var(--fs-sm); color: var(--ink-3); margin: 4px 0 18px; }
+.fda-modal label {
+  display: block; font-size: var(--fs-xs); font-weight: 700; letter-spacing: .04em;
+  text-transform: uppercase; color: var(--muted); margin: 14px 0 6px;
+}
+.fda-modal select, .fda-modal textarea {
+  width: 100%; background: var(--card-soft); border: 1px solid var(--border);
+  border-radius: var(--radius-sm); padding: 9px 11px; font-size: var(--fs-ui); outline: none;
+  font-family: inherit; color: var(--ink);
+}
+.fda-modal select:focus, .fda-modal textarea:focus { border-color: var(--accent); background: var(--bg-elev); }
+.fda-modal textarea { resize: vertical; min-height: 70px; }
+.fda-modal .fda-req { color: var(--bad); }
+.fda-modal .fda-warn-box {
+  margin-top: 14px; background: var(--warn-soft); color: var(--warn);
+  border-radius: var(--radius-sm); padding: 9px 12px; font-size: var(--fs-sm); font-weight: 600;
+}
+.fda-modal .fda-actions { display: flex; justify-content: flex-end; gap: 10px; margin-top: 20px; }
+
+/* ─── Responsivo (o painel é desktop-first, mas não trava embaixo de tablet) ── */
+@media (max-width: 860px) {
+  .fda-shell { flex-direction: column; }
+  .fda-side { width: 100%; flex-direction: row; align-items: center; gap: 14px; padding: 12px 16px; }
+  .fda-logo { padding: 0; border: 0; }
+  .fda-nav { flex-direction: row; padding: 0; }
+  .fda-admin-who { margin: 0 0 0 auto; }
+  .fda-main { padding: 18px 16px; }
+  .fda-search-input { width: 100%; }
+  .fda-card-head { flex-direction: column; align-items: stretch; }
+}
