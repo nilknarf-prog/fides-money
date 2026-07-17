@@ -27,6 +27,14 @@
 --    RLS on + ZERO policies + REVOKE ALL de anon/authenticated (defesa dupla).
 --    Só service_role (via api/admin.js) lê/escreve. Minimização LGPD: guarda
 --    metadados da ação, nunca lançamentos financeiros individuais.
+--
+--    RETENÇÃO (LGPD, ADMIN-04 — ver docs/admin-lgpd.md): proposta 2 anos a
+--    partir de created_at, expurgo MANUAL via SQL Editor (sem job/cron nesta
+--    fase) — a ratificar com o dono no checkpoint humano da Phase 16. Este é
+--    um comentário de documentação, não uma alteração de schema: nenhuma
+--    coluna/policy/grant muda aqui, nada precisa ser reaplicado no banco.
+--    Exemplo do expurgo manual quando ratificado:
+--      delete from public.admin_audit_log where created_at < now() - interval '2 years';
 -- ─────────────────────────────────────────────
 create table if not exists public.admin_audit_log (
   id          uuid primary key default uuid_generate_v4(),

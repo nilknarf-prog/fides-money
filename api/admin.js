@@ -8,7 +8,7 @@
 //
 // Actions: GET whoami | GET accounts | GET audit | POST set_plan.
 
-const { requireAdmin, logAction, getClientIp, getUserAgent } = require('./_lib/admin/guard');
+const { requireAdmin, logAction, checkGeneralRateLimit, getClientIp, getUserAgent } = require('./_lib/admin/guard');
 const { listAccounts } = require('./_lib/admin/accounts');
 const { setPlan } = require('./_lib/admin/set-plan');
 const { listAudit } = require('./_lib/admin/audit-list');
@@ -23,6 +23,17 @@ module.exports = async (req, res) => {
     return;
   }
   const { user, adminClient } = g;
+
+  // Rate-limit GERAL da superfície admin (ADMIN-04, T-16-15) — DEPOIS do guard
+  // já ter liberado o acesso (nunca antes da allowlist), vale para TODAS as
+  // actions autenticadas abaixo. Complementa (não substitui) o throttle de
+  // denied_access já aplicado dentro do próprio guard.
+  const rateLimit = await checkGeneralRateLimit(adminClient, user, req);
+  if (rateLimit.limited) {
+    res.status(429).json({ error: 'RATE_LIMITED' });
+    return;
+  }
+
   const ip = getClientIp(req);
   const userAgent = getUserAgent(req);
   const action = (req.query && req.query.action) || (req.body && req.body.action) || null;

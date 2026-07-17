@@ -21,6 +21,15 @@ const { createClient } = require('@supabase/supabase-js');
 const DENIED_THROTTLE_WINDOW_MS = 60 * 1000;
 const DENIED_THROTTLE_MAX = 5;
 
+// Janela/teto do rate-limit GERAL da superfície admin (T-16-15, ADMIN-04).
+// Distinto do throttle acima: aquele protege a tabela de audit contra
+// não-admins martelando o guard (status='denied'); este protege TODAS as
+// actions autenticadas (whoami/accounts/audit/set_plan) contra um admin/token
+// já allowlisted mas comprometido martelando o endpoint. Mesmo padrão count de
+// api/assistant.js:264-291 (fail-open no erro de leitura, 429 no estouro).
+const GENERAL_RATE_LIMIT_WINDOW_MS = 60 * 1000;
+const GENERAL_RATE_LIMIT_MAX = 30;
+
 function getSupabaseUrl() {
   return process.env.NEXT_PUBLIC_SUPABASE_URL;
 }
@@ -132,6 +141,49 @@ async function logAction(adminClient, { action, admin_id, admin_email, target_us
   }
 }
 
+// checkGeneralRateLimit: rate-limit GERAL da superfície admin (T-16-15, ADMIN-04).
+// Chamado pelo ROTEADOR (api/admin.js) DEPOIS que requireAdmin já retornou
+// { user, adminClient } com sucesso — nunca antes da allowlist, não altera a
+// ordem load-bearing do guard. Usa o `adminClient` (service_role) já
+// autorizado do request corrente — não instancia client novo.
+//
+// Chave = admin_id (JWT verificado) OU ip do requisitante; conta TODAS as
+// linhas de admin_audit_log na janela (qualquer action/status — não só
+// denied_access, que já tem seu próprio throttle em auditDenied acima). Isso
+// cobre o cenário de um admin/token legítimo porém comprometido martelando
+// accounts/audit/set_plan/whoami depois de já ter passado o guard.
+//
+// Fail-open: erro na leitura do count NUNCA bloqueia a requisição (mesmo
+// padrão de assistant.js:285-291) — um rate-limit não pode virar um DoS
+// próprio quando o banco está com problema transitório.
+async function checkGeneralRateLimit(adminClient, user, req) {
+  const ip = getClientIp(req);
+  try {
+    const windowStart = new Date(Date.now() - GENERAL_RATE_LIMIT_WINDOW_MS).toISOString();
+    const safeIp = (ip || '').replace(/[,()]/g, '');
+    let countQuery = adminClient
+      .from('admin_audit_log')
+      .select('id', { count: 'exact', head: true })
+      .gte('created_at', windowStart);
+    countQuery = safeIp
+      ? countQuery.or(`admin_id.eq.${user.id},ip.eq.${safeIp}`)
+      : countQuery.eq('admin_id', user.id);
+
+    const { count, error } = await countQuery;
+    if (error) {
+      console.error('[admin-guard] checkGeneralRateLimit count error (fail-open)', error);
+      return { limited: false };
+    }
+    if (typeof count === 'number' && count >= GENERAL_RATE_LIMIT_MAX) {
+      return { limited: true };
+    }
+    return { limited: false };
+  } catch (err) {
+    console.error('[admin-guard] checkGeneralRateLimit exception (fail-open)', err);
+    return { limited: false };
+  }
+}
+
 async function requireAdmin(req) {
   // (a) Bearer — mesmo padrão de api/assistant.js:207-212 (WR-03).
   const authHeader = req.headers.authorization || '';
@@ -179,4 +231,4 @@ async function requireAdmin(req) {
   return { user, adminClient };
 }
 
-module.exports = { requireAdmin, auditDenied, logAction, getClientIp, getUserAgent };
+module.exports = { requireAdmin, auditDenied, logAction, checkGeneralRateLimit, getClientIp, getUserAgent };
