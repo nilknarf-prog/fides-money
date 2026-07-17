@@ -2,19 +2,19 @@
 gsd_state_version: 1.0
 milestone: ia-whatsapp
 milestone_name: Épico IA/WhatsApp (Phases 11–14) — milestone formal pendente
-current_phase: 13
-current_phase_name: ia-3-gating-premium-in-app
+current_phase: 16
+current_phase_name: painel-admin-backoffice
 status: executing
-stopped_at: Completed 13-03-PLAN.md
-last_updated: "2026-07-17T02:55:52.100Z"
-last_activity: 2026-07-16
-last_activity_desc: Phase 13 execution started
+stopped_at: Completed 16-01-PLAN.md
+last_updated: "2026-07-17T03:05:13.240Z"
+last_activity: 2026-07-17
+last_activity_desc: 16-01 fundação SQL admin aplicada + verificada no live
 progress:
-  total_phases: 5
+  total_phases: 6
   completed_phases: 3
-  total_plans: 16
+  total_plans: 20
   completed_plans: 16
-  percent: 60
+  percent: 50
 ---
 
 # Project State
@@ -23,17 +23,17 @@ progress:
 
 ## Current Position
 
-Phase: 13 (ia-3-gating-premium-in-app) — EXECUTING
-Plan: 4 of 4
-Status: Ready to execute
-Last activity: 2026-07-16 — Phase 13 execution started
+Phase: 16 (painel-admin-backoffice) — EXECUTING
+Plan: 2 of 4 (16-01 ✓ fundação SQL concluída)
+Status: Executing Phase 16
+Last activity: 2026-07-16 — 16-01 fundação SQL admin aplicada + verificada no live
 
 ## Project Reference
 
 See: .planning/PROJECT.md (updated 2026-07-06)
 
 **Core value:** Finanças pessoais por registro manual (fricção intencional → consciência); nunca número que impressiona mas engana.
-**Current focus:** Phase 13 — ia-3-gating-premium-in-app
+**Current focus:** Phase 16 — painel-admin-backoffice
 
 ## Phase Overview
 
@@ -221,3 +221,7 @@ Milestone v1.0 e v1.1 shipadas (tags `v1.0`/`v1.1`); decisões arquivadas em PRO
 | Phase 13 P03 | ~10min | 3 tasks | 1 files |
 | Phase 13 P02 | 18min | 2 tasks | 1 files |
 | Phase 13 P05 | ~15min | 3 tasks | 2 files |
+
+### Blockers
+
+- 16-01: MCP Supabase indisponivel nesta sessao de execucao (sem tool mcp__supabase__* no ambiente do agente executor). Task 1 exige introspeccao live ANTES de qualquer DDL (VALIDATION Wave 0). O servidor MCP configurado roda com flag --read-only, o que bloquearia apply_migration da Task 2 mesmo se a introspeccao fosse possivel por outra via. Nenhuma DDL foi escrita; plano 16-01 pausado no Task 1.

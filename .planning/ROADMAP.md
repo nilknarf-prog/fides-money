@@ -472,7 +472,7 @@ Plans:
 Plans:
 **Wave 1**
 
-- [ ] 16-01-PLAN.md — ADMIN-01: fundação SQL (introspecção MCP + `admin_audit_log` + RPCs `admin_list_accounts`/`admin_set_plan` service_role-only, `set search_path`, REVOKE/GRANT) [wave 1]
+- [x] 16-01-PLAN.md — ADMIN-01: fundação SQL (introspecção MCP + `admin_audit_log` + RPCs `admin_list_accounts`/`admin_set_plan` service_role-only, `set search_path`, REVOKE/GRANT) [wave 1]
 
 **Wave 2** *(blocked on Wave 1 completion)*
 
@@ -497,7 +497,7 @@ Plans:
 | 13 - IA-3 Gating premium | 5/5 | Complete   | 2026-07-16 |
 | 14 - IA-4 Bot WhatsApp | 0/? | Not started | - |
 | 15 - UI Polish (Favicon) | 0/? | Not started | - |
-| 16 - Painel admin/backoffice | 0/4 | Planned (4 waves) | - |
+| 16 - Painel admin/backoffice | 1/4 | In Progress|  |
 
 ### Phase 15: UI Polish (Favicon)
 
