@@ -126,6 +126,15 @@ de controle**". Este doc captura esse escopo amplo.
 - **LGPD:** base legal para admin ver dados financeiros de terceiros; minimização; retenção do
   audit log.
 
+## 5.1. Uso downstream explícito — fechar UATs de 12 e 13 pelo painel
+
+Decisão do usuário (2026-07-16): os UATs humanos pendentes das **Phase 12** (4 UATs WRITE in-app)
+e **Phase 13** (5 UATs gating free/pro) **não** serão rodados via Supabase SQL Editor. Ficam
+adiados para serem executados **através deste painel**, alternando o tier (free↔pro) direto na UI
+do Fides. Ou seja: a capacidade "listar contas + trocar tier" do MVP do painel é o que destrava o
+fechamento formal das Phases 12 e 13 (cujo código já está live e verificado estruturalmente —
+Phase 13 em 16/16 must-haves). Construir a 16 valida a 13 na prática (exercita a mesma trava).
+
 ## 6. Nota tática para AGORA (enquanto o painel não existe)
 
 Para testar free/pro sem o painel: alternar `profiles.plan` via **Supabase SQL Editor**

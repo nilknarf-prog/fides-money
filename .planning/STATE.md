@@ -51,8 +51,8 @@ See: .planning/PROJECT.md (updated 2026-07-06)
 
 | Categoria | Item | Status |
 |-----------|------|--------|
-| verification | Phase 12 — 4 UATs humanos (WRITE in-app) | pending → rodar `/gsd-verify-work 12` |
-| verification | Phase 13 — 5 UATs humanos (gating free/pro) | pending → rodar `/gsd-verify-work 13` (13-UAT.md) |
+| verification | Phase 12 — 4 UATs humanos (WRITE in-app) | **adiado por decisão** → rodar via painel da Phase 16 (não SQL) |
+| verification | Phase 13 — 5 UATs humanos (gating free/pro) | **adiado por decisão** → rodar via painel da Phase 16 (13-UAT.md); código já live/verificado 16/16 |
 | verification | `fatura-ciclo-VERIFICATION.md` (feature v1.0/M4 `ade84f7`) | human_needed (desde 2026-07-01) |
 | security todo | `todos/pending/ratelimit-bypass-toolresults.md` (high) | aberto — endereçar durante o épico IA |
 | bug (assistente WRITE) | `todos/pending/2026-07-16-assistente-modais-write-stale-acumulados.md` (high) | aberto — modais de confirmação stale/acumulados; puxar p/ próxima fase de IA in-app |
@@ -178,6 +178,7 @@ Phase 12 (IA-2 B8) implementada em 5 commits (`9a9ead5` → `6714d3f`).
 - [Phase 13]: 13-05: guard 403 CR-01 fica dentro de if(toolCalls.length>0), antes de assinar nextNonce - bloqueio nao emite nonce novo no caminho detectado
 - [Phase 13]: 13-05: WRITE_NAMES deriva de WRITE_FUNCTIONS.map(f=>f.name), fonte unica, sem re-hardcode; FREE_TIER_ADDENDUM reescrito comportacionalmente (WR-04) sem os 4 nomes literais
 - [Phase 13]: 13-05: guard cliente !fs.isPremium em executeTools reusa fs ja capturado no topo de FidesAssistant - sem novo useFides()/hook (Rules of Hooks)
+- [Sequência 2026-07-16]: decisão do usuário — PULAR os UATs humanos das Phases 12 e 13 por ora (código já live + verificado 16/16); rodá-los depois via o painel admin da Phase 16 (alternar tier na UI do Fides) em vez do Supabase SQL Editor. Próxima etapa = planejar+construir a Phase 16. 14/15 ficam depois.
 
 ## Session
 
