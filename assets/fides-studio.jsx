@@ -718,6 +718,12 @@ function PerfilView({ onNav }) {
   var msg = _st2[0]; var setMsg = _st2[1];
   var _st3 = React.useState(false);
   var upgradeOpen = _st3[0]; var setUpgradeOpen = _st3[1];
+  // WA-OPTIN-01: hooks declarados incondicionalmente no topo (Rules of Hooks,
+  // lição Phase 07) — o gate premium só decide o que é RENDERIZADO mais abaixo.
+  var _st4 = React.useState(false);
+  var waConnecting = _st4[0]; var setWaConnecting = _st4[1];
+  var _st5 = React.useState(null);
+  var waResult = _st5[0]; var setWaResult = _st5[1];
 
   React.useEffect(function () { setNameVal(userName || ''); }, [userName]);
 
@@ -733,6 +739,50 @@ function PerfilView({ onNav }) {
       setMsg({ type: 'ok', text: 'Nome atualizado com sucesso!' });
       setTimeout(function () { setMsg(null); }, 3000);
     }
+  }
+
+  // WA-OPTIN-01: camada 1 do gating (UI) — este handler só é alcançável quando
+  // isPremium (botão só renderiza nesse caso); a camada 2 (server-side,
+  // fail-closed) vive em api/wa-link.js e é a defesa real (AC-01, T-14-10).
+  async function handleConnectWhatsApp() {
+    if (waConnecting) return;
+    setWaConnecting(true);
+    setMsg(null);
+    try {
+      var jwt = null;
+      if (window.fidesAuth && typeof window.fidesAuth.getSession === 'function') {
+        var sessionResult = await window.fidesAuth.getSession();
+        jwt = (sessionResult && sessionResult.data && sessionResult.data.session)
+          ? sessionResult.data.session.access_token
+          : null;
+      }
+      if (!jwt) {
+        setMsg({ type: 'erro', text: 'Sessão expirada. Recarregue a página e tente de novo.' });
+        setWaConnecting(false);
+        return;
+      }
+      // WR-03: token só no header Authorization Bearer, nunca no corpo.
+      var res = await fetch('/api/wa-link', {
+        method: 'POST',
+        headers: { 'Authorization': 'Bearer ' + jwt }
+      });
+      var data = await res.json().catch(function () { return {}; });
+      if (!res.ok) {
+        var errMap = {
+          PREMIUM_REQUIRED: 'Conectar WhatsApp é um recurso Premium.',
+          JWT_MISSING: 'Sessão expirada. Recarregue a página e tente de novo.',
+          JWT_INVALID: 'Sessão expirada. Recarregue a página e tente de novo.',
+          WA_CONFIG_MISSING: 'O WhatsApp está indisponível agora. Tente em instantes.',
+        };
+        setMsg({ type: 'erro', text: errMap[data.error] || 'Não foi possível conectar agora. Tente de novo em instantes.' });
+        setWaConnecting(false);
+        return;
+      }
+      setWaResult({ code: data.code, waLink: data.wa_link });
+    } catch (err) {
+      setMsg({ type: 'erro', text: 'Sem conexão. Verifique a internet.' });
+    }
+    setWaConnecting(false);
   }
 
   return React.createElement('div', { className: 'prf-view' },
@@ -759,6 +809,35 @@ function PerfilView({ onNav }) {
             className: 'fds-btn-primary prf-upgrade-btn',
             onClick: function () { setUpgradeOpen(true); }
           }, '✨ Vire Premium')
+        : null,
+      // WA-OPTIN-01 (AC-01, camada 1 do gating): só renderiza para premium — o
+      // free segue vendo apenas o "Vire Premium" acima. Store ainda não expõe
+      // waLinked/phone (14-PATTERNS.md) — botão fica sempre disponível, um novo
+      // clique gera um novo código (não inventa campo de store fora do escopo).
+      isPremium
+        ? React.createElement('div', { style: { display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '0.5rem' } },
+            waResult
+              ? React.createElement('div', { style: { display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '0.5rem', textAlign: 'center' } },
+                  React.createElement('p', {
+                    style: { fontSize: 13, color: 'var(--ink-3)', lineHeight: 1.5, margin: 0 }
+                  }, 'Toque para abrir o WhatsApp e enviar o código — isso vincula seu número ao Fides.'),
+                  React.createElement('a', {
+                    href: waResult.waLink,
+                    target: '_blank',
+                    rel: 'noopener noreferrer',
+                    className: 'fds-btn-primary prf-upgrade-btn'
+                  }, 'Abrir WhatsApp'),
+                  React.createElement('p', {
+                    style: { fontSize: 12, color: 'var(--ink-3)', margin: 0 }
+                  }, 'Código: ', React.createElement('strong', null, waResult.code))
+                )
+              : React.createElement('button', {
+                  type: 'button',
+                  className: 'fds-btn-primary prf-upgrade-btn',
+                  disabled: waConnecting,
+                  onClick: handleConnectWhatsApp
+                }, waConnecting ? 'Gerando código…' : 'Conectar WhatsApp')
+          )
         : null,
       React.createElement('div', { className: 'fds-field' },
         React.createElement('label', { className: 'fds-label', htmlFor: 'prf-name-input' }, 'Nome completo'),
