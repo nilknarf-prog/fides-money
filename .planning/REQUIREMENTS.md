@@ -45,6 +45,8 @@
 
 > Formalizados progressivamente conforme cada plano da fase 14 executa. Fonte: `.planning/research/whatsapp-e-ia-arquitetura.md` + `14-RESEARCH.md`/`14-CONTEXT.md`.
 
+> **14-01 (fundação SQL, aplicada e verificada no banco LIVE, 2026-07-17):** RPC `wa_log_transaction_service` (SECURITY DEFINER, service_role-only, `p_user_id` explícito, owner-guard) + 4 tabelas protegidas (`wa_link_codes`, `wa_messages`, `wa_pending`, `wa_usage`) + colunas `profiles.phone`/`profiles.wa_linked_at`. Cobre a FUNDAÇÃO de schema de WA-INSERT-01, WA-OPTIN-01, WA-WEBHOOK-01 (dedupe), WA-CONFIRM-01, WA-GATE-01 e WA-LGPD-01 (cascata `on delete cascade`) — database+security review PASS zero-findings. Checkboxes abaixo permanecem abertos: a verificação funcional/E2E de cada requirement (webhook processando mensagens, gate rodando antes do LLM, confirmação bloqueando insert, retenção/opt-out operacionais) só existe nos planos 04-07.
+
 - [ ] **WA-WEBHOOK-01**: Webhook `api/whatsapp.js` verifica assinatura HMAC (`X-Hub-Signature-256`) e garante idempotência por `wamid`
 - [ ] **WA-OPTIN-01**: Opt-in por código de posse (link `wa.me`) antes de qualquer processamento de mensagem
 - [ ] **WA-GATE-01**: Gating premium do canal roda antes de qualquer chamada ao LLM

@@ -459,7 +459,7 @@ Plans:
 Plans:
 **Wave 1** *(fundação — arquivos disjuntos, em paralelo)*
 
-- [ ] 14-01-PLAN.md — [BLOCKING] Fundação SQL: RPC `wa_log_transaction_service` (service_role-only, TE-01) + `wa-schema.sql` (profiles.phone/wa_linked_at + wa_link_codes/wa_messages/wa_pending/wa_usage) + apply live via checkpoint MCP (WA-INSERT-01/OPTIN/WEBHOOK/CONFIRM/GATE/LGPD)
+- [x] 14-01-PLAN.md — [BLOCKING] Fundação SQL: RPC `wa_log_transaction_service` (service_role-only, TE-01) + `wa-schema.sql` (profiles.phone/wa_linked_at + wa_link_codes/wa_messages/wa_pending/wa_usage) + apply live via checkpoint MCP (WA-INSERT-01/OPTIN/WEBHOOK/CONFIRM/GATE/LGPD)
 - [x] 14-02-PLAN.md — Primitivas `_lib/whatsapp/` (signature/graph-api/parser-schema) + protótipos Wave 0 (raw-body HMAC + responseSchema/toolMode NONE) (WA-WEBHOOK-01/PARSE-01)
 - [x] 14-03-PLAN.md — WA-RATELIMIT-01: auditoria do bypass (já fechado em 9abd83e) + decisão do gap residual + fechar todo `ratelimit-bypass-toolresults`
 
@@ -522,7 +522,7 @@ Plans:
 | 11 - IA-1 Hardening Gemini | 4/4 | Complete    | 2026-07-07 |
 | 12 - IA-2 WRITE in-app (B8) | 7/7 | Complete    | 2026-07-14 |
 | 13 - IA-3 Gating premium | 5/5 | Complete   | 2026-07-16 |
-| 14 - IA-4 Bot WhatsApp | 2/7 | In Progress|  |
+| 14 - IA-4 Bot WhatsApp | 3/7 | In Progress|  |
 | 15 - UI Polish (Favicon) | 0/? | Not started | - |
 | 16 - Painel admin/backoffice | 4/4 | Complete    | 2026-07-17 |
 

@@ -5,15 +5,15 @@ milestone_name: Épico IA/WhatsApp (Phases 11–14) — milestone formal pendent
 current_phase: 14
 current_phase_name: ia-4-bot-whatsapp-via-meta-cloud-api
 status: executing
-stopped_at: "14-03 concluído (audit+decisão+closeout de WA-RATELIMIT-01). Todo ratelimit-bypass-toolresults fechado em done/. Próximo: aguardar 14-01 (blocking, MCP) e demais plans de wave 1/2."
-last_updated: "2026-07-18T02:24:16.096Z"
+stopped_at: "14-01 concluído (fundação SQL aplicada live + review PASS). Próximo: demais plans de wave 1/2 (14-04..14-07)."
+last_updated: "2026-07-18T02:48:16.695Z"
 last_activity: 2026-07-18
 last_activity_desc: Phase 14 execution started
 progress:
   total_phases: 7
   completed_phases: 4
   total_plans: 27
-  completed_plans: 22
+  completed_plans: 23
   percent: 57
 ---
 
@@ -24,7 +24,7 @@ progress:
 ## Current Position
 
 Phase: 14 (ia-4-bot-whatsapp-via-meta-cloud-api) — EXECUTING
-Plan: 2 of 7
+Plan: 3 of 7
 Status: Ready to execute
 Last activity: 2026-07-18 — Phase 14 execution started
 
@@ -181,11 +181,12 @@ Débito rastreado aberto: 2 UATs de regressão da Phase 12 (Gemini não-determin
 - [Sequência 2026-07-16]: decisão do usuário — PULAR os UATs humanos das Phases 12 e 13 por ora (código já live + verificado 16/16); rodá-los depois via o painel admin da Phase 16 (alternar tier na UI do Fides) em vez do Supabase SQL Editor. Próxima etapa = planejar+construir a Phase 16. 14/15 ficam depois.
 - [Phase 16]: 16-04 (parcial): rate-limit geral pos-guard (30 req/60s admin_id/ip, fail-open) em guard.js + docs/admin-lgpd.md (base legal/minimizacao/retencao 2 anos a ratificar). Memoria testar-tier-free-pro e checkpoint de dogfooding (UATs 12/13) NAO executados nesta sessao (ver 16-04-SUMMARY.md)
 - [Phase 14]: 14-03: WA-RATELIMIT-01 fechado — bypass estrutural confirmado corrigido em 9abd83e (Phase 12-02, nonce HMAC); gap residual de replay-de-nonce dentro do TTL de 120s aceito como baixo risco (decisão do dono, RESEARCH.md Assumption A5), sem hardening nesta fase
+- [Phase ?]: 14-01: fundação SQL aplicada live; RPC service_role-only TE-01; 4 tabelas wa_* + colunas phone/wa_linked_at; review PASS
 
 ## Session
 
-**Last session:** 2026-07-18T02:24:16.072Z
-**Stopped at:** 14-03 concluído (audit+decisão+closeout de WA-RATELIMIT-01). Todo ratelimit-bypass-toolresults fechado em done/. Próximo: aguardar 14-01 (blocking, MCP) e demais plans de wave 1/2.
+**Last session:** 2026-07-18T02:48:16.653Z
+**Stopped at:** 14-01 concluído (fundação SQL aplicada live + review PASS). Próximo: demais plans de wave 1/2 (14-04..14-07).
 **Resume file:** .planning/phases/14-ia-4-bot-whatsapp-via-meta-cloud-api/14-01-PLAN.md
 
 ## Accumulated Context
@@ -225,6 +226,7 @@ Milestone v1.0 e v1.1 shipadas (tags `v1.0`/`v1.1`); decisões arquivadas em PRO
 | Phase 13 P05 | ~15min | 3 tasks | 2 files |
 | Phase 16 P04 (parcial) | ~25min | 1/3 tasks | 4 files |
 | Phase 14 P03 | ~20min | 3 tasks | 1 files |
+| Phase 14 P01 | ~13min | 3 tasks | 3 files |
 
 ### Blockers
 
