@@ -450,15 +450,31 @@ Plans:
 ### Phase 14: IA-4 Bot WhatsApp via Meta Cloud API
 
 **Goal:** Usuário premium registra transações e consulta saldo/mini-extrato pelo WhatsApp. `api/whatsapp.js` (Vercel Function CommonJS): webhook Meta Cloud API com verificação de assinatura HMAC (`X-Hub-Signature-256`), idempotência por `wamid`, opt-in por código de posse (link `wa.me`), gating premium antes de qualquer LLM, parser NL→JSON (Gemini, saída estruturada — NÃO function calling — com guarda determinística de valor), confirmação sempre antes do insert (D-1), insert pelo MESMO RPC/regras da fase 12. Migrações: `phone` + `wa_linked_at` em `profiles`, tabelas `wa_link_codes`/`wa_messages`/`wa_pending` (todas via ALTER standalone + MCP). Provedor: Meta direta. **Sem CNPJ não bloqueia** (adendo D-8): WABA não-verificada responde mensagens de usuário ilimitado/grátis; dev/UAT com test number (você + 4 beta testers). LGPD: consentimento explícito no opt-in, minimização (só a mensagem + listas ao LLM, nunca extrato/saldo), retenção 90 dias do texto bruto, opt-out "PARAR".
-**Requirements**: WA-WEBHOOK-01 (assinatura+idempotência), WA-OPTIN-01, WA-GATE-01, WA-PARSE-01, WA-CONFIRM-01, WA-INSERT-01, WA-LGPD-01 (a formalizar)
+**Requirements**: WA-WEBHOOK-01 (assinatura+idempotência), WA-OPTIN-01, WA-GATE-01, WA-PARSE-01, WA-CONFIRM-01, WA-INSERT-01, WA-LGPD-01, WA-RATELIMIT-01 (formalizadas nos planos)
 **Depends on:** Phase 13
-**Fonte:** `.planning/research/whatsapp-e-ia-arquitetura.md` Parte A inteira (§1–§10) + adendo D-8
-**Caminho sensível:** `api/whatsapp.js` + migrações + RPC → security-reviewer + database-reviewer (obrigatório — webhook público + service role)
-**Plans:** 0 plans
+**Fonte:** `.planning/research/whatsapp-e-ia-arquitetura.md` Parte A inteira (§1–§10) + adendo D-8; `14-CONTEXT.md`/`14-RESEARCH.md`/`14-PATTERNS.md`
+**Caminho sensível:** `api/whatsapp.js` + `api/wa-link.js` + migrações + RPC → security-reviewer + database-reviewer (obrigatório — webhook público + service role)
+**Plans:** 7 plans (waves 1→4; webhook em cadeia serial por compartilhar `api/whatsapp.js`)
 
 Plans:
+**Wave 1** *(fundação — arquivos disjuntos, em paralelo)*
 
-- [ ] TBD (run /gsd-plan-phase 14 to break down)
+- [ ] 14-01-PLAN.md — [BLOCKING] Fundação SQL: RPC `wa_log_transaction_service` (service_role-only, TE-01) + `wa-schema.sql` (profiles.phone/wa_linked_at + wa_link_codes/wa_messages/wa_pending/wa_usage) + apply live via checkpoint MCP (WA-INSERT-01/OPTIN/WEBHOOK/CONFIRM/GATE/LGPD)
+- [ ] 14-02-PLAN.md — Primitivas `_lib/whatsapp/` (signature/graph-api/parser-schema) + protótipos Wave 0 (raw-body HMAC + responseSchema/toolMode NONE) (WA-WEBHOOK-01/PARSE-01)
+- [ ] 14-03-PLAN.md — WA-RATELIMIT-01: auditoria do bypass (já fechado em 9abd83e) + decisão do gap residual + fechar todo `ratelimit-bypass-toolresults`
+
+**Wave 2** *(depende de wave 1; arquivos disjuntos)*
+
+- [ ] 14-04-PLAN.md — UI opt-in "Conectar WhatsApp" premium-only (PerfilView) + endpoint `api/wa-link.js` (gera código + link wa.me) (WA-OPTIN-01/GATE-01)
+- [ ] 14-05-PLAN.md — Webhook espinha de segurança (`api/whatsapp.js`): handshake GET + HMAC raw body + dedupe wamid + gate premium fail-closed + respostas estáticas (cap 3/dia, zero LLM) + caps do canal + sempre-200 (WA-WEBHOOK-01/GATE-01)
+
+**Wave 3** *(depende de 14-05 — mesmo arquivo)*
+
+- [ ] 14-06-PLAN.md — Webhook: consumo do opt-in + parser NL→JSON (structured output + guarda de valor) + card de confirmação numerado + wa_pending (D-1, nunca auto-insert) (WA-OPTIN-01/PARSE-01/CONFIRM-01)
+
+**Wave 4** *(depende de 14-06 — mesmo arquivo)*
+
+- [ ] 14-07-PLAN.md — Webhook: confirmação "1/2/3" → insert via RPC + saldo/mini-extrato (D-6) + opt-out PARAR + `docs/whatsapp-lgpd.md` (retenção 90d) (WA-INSERT-01/LGPD-01)
 
 ### Phase 16: Painel de administração / backoffice (admin online)
 
@@ -506,7 +522,7 @@ Plans:
 | 11 - IA-1 Hardening Gemini | 4/4 | Complete    | 2026-07-07 |
 | 12 - IA-2 WRITE in-app (B8) | 7/7 | Complete    | 2026-07-14 |
 | 13 - IA-3 Gating premium | 5/5 | Complete   | 2026-07-16 |
-| 14 - IA-4 Bot WhatsApp | 0/? | Not started | - |
+| 14 - IA-4 Bot WhatsApp | 0/7 | Planned | - |
 | 15 - UI Polish (Favicon) | 0/? | Not started | - |
 | 16 - Painel admin/backoffice | 4/4 | Complete    | 2026-07-17 |
 
