@@ -486,6 +486,17 @@ Plans:
 
 - [x] 16-04-PLAN.md — ADMIN-04: rate-limit geral + nota LGPD + memória `testar-tier-free-pro` + gate D-seq (dogfooding UATs 12/13 via painel) [wave 4]
 
+### Phase 17: Assistente robusto no WhatsApp premium
+
+**Goal:** [Placeholder — planejar só pós-tração do bot leve] Levar capacidades do assistente robusto in-app (conselhos, análises, criar/modificar categorias) ao canal WhatsApp para premium. Registrado em 2026-07-17 na discussão da Phase 14 (decisão ES-01: Phase 14 permanece bot LEVE, escopo D-6). Atenção ao custo pós-out/2026 (~R$ 0,04/msg enviada) e ao multi-turn (rejeitado como over-engineering no bot leve — reavaliar aqui). Contexto em `14-CONTEXT.md` (deferred).
+**Requirements**: TBD
+**Depends on:** Phase 14
+**Plans:** 0 plans
+
+Plans:
+
+- [ ] TBD (run /gsd-plan-phase 17 to break down)
+
 ---
 
 ### Progress Table — Próximo milestone (IA/WhatsApp)
