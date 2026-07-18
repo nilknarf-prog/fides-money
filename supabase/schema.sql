@@ -15,6 +15,13 @@ create table if not exists public.profiles (
   created_at  timestamptz not null default now()
 );
 
+-- Defensive idempotent ALTERs (aprendizado 08-08 — create-table-if-not-exists
+-- não adiciona coluna a tabela pré-existente): vínculo de WhatsApp (Phase 14
+-- / WA-OPTIN-01). Corpo completo (índice único parcial + tabelas wa_*) em
+-- supabase/wa-schema.sql (doc-of-record dedicado, como admin-backoffice.sql).
+alter table public.profiles add column if not exists phone        text;
+alter table public.profiles add column if not exists wa_linked_at timestamptz;
+
 -- ─────────────────────────────────────────────
 -- TABELA: accounts
 -- ─────────────────────────────────────────────
