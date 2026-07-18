@@ -35,12 +35,24 @@
 - [x] **AI-SHARED-01**: Helper Gemini CommonJS único (payload + safetySettings + mapeamento de erros) consumido por `api/assistant.js` e, na Fase 14, por `api/whatsapp.js`; não roteável como endpoint Vercel
 - [x] **AI-TELEM-01**: `assistant_usage` grava tokens in/out (`usageMetadata`) + latência por chamada (ALTER standalone via MCP; colunas nullable)
 
-### Phases 12–14 (a detalhar no discuss/plan de cada fase)
+### Phases 12–13 (a detalhar no discuss/plan de cada fase)
 
 > Requisitos preliminares no ROADMAP (Goal de cada fase). Formalizar os IDs ao planejar cada uma:
 > - **Phase 12 (IA-2 · B8):** WRITE-01..04 (lançar/recategorizar/editar/criar-categoria), HONEST-01, DERIVED-SAFE-01
 > - **Phase 13 (IA-3 · gating):** GATE-01/02/03, PAYWALL-01
-> - **Phase 14 (IA-4 · bot):** WA-WEBHOOK-01, WA-OPTIN-01, WA-GATE-01, WA-PARSE-01, WA-CONFIRM-01, WA-INSERT-01, WA-LGPD-01
+
+### Phase 14 — IA-4 Bot WhatsApp via Meta Cloud API
+
+> Formalizados progressivamente conforme cada plano da fase 14 executa. Fonte: `.planning/research/whatsapp-e-ia-arquitetura.md` + `14-RESEARCH.md`/`14-CONTEXT.md`.
+
+- [ ] **WA-WEBHOOK-01**: Webhook `api/whatsapp.js` verifica assinatura HMAC (`X-Hub-Signature-256`) e garante idempotência por `wamid`
+- [ ] **WA-OPTIN-01**: Opt-in por código de posse (link `wa.me`) antes de qualquer processamento de mensagem
+- [ ] **WA-GATE-01**: Gating premium do canal roda antes de qualquer chamada ao LLM
+- [ ] **WA-PARSE-01**: Parser NL→JSON estruturado (Gemini, sem function calling) com guarda determinística de valor
+- [ ] **WA-CONFIRM-01**: Confirmação explícita do usuário sempre antes de qualquer insert (D-1)
+- [ ] **WA-INSERT-01**: Insert usa o mesmo RPC/regras de negócio da fase 12 (WRITE in-app)
+- [ ] **WA-LGPD-01**: Consentimento explícito, minimização de dados ao LLM, retenção 90 dias, opt-out "PARAR"
+- [x] **WA-RATELIMIT-01**: Bypass do rate-limit via `toolResults` forjado auditado e confirmado fechado (commit `9abd83e`, Phase 12-02, nonce HMAC anti-replay); gap residual de replay-de-nonce dentro do TTL de 120s avaliado e aceito como baixo risco (decisão do dono, `14-RESEARCH.md` Assumption A5). Fechado via `14-03-PLAN.md`/`14-03-SUMMARY.md`, todo `ratelimit-bypass-toolresults` movido para `done/`.
 
 ## Phase 16 Requirements (painel admin/backoffice — não planejada, capturada 2026-07-16)
 
@@ -103,6 +115,7 @@
 | ADMIN-02 | Phase 16 | Planned |
 | ADMIN-03 | Phase 16 | Planned |
 | ADMIN-04 | Phase 16 | Planned |
+| WA-RATELIMIT-01 | Phase 14 | Complete |
 
 **Coverage:**
 
