@@ -5,14 +5,14 @@ milestone_name: Épico IA/WhatsApp (Phases 11–14) — milestone formal pendent
 current_phase: 16
 current_phase_name: painel-admin-backoffice
 status: executing
-stopped_at: Phase 14 context gathered (reanálise estratégica + pesquisa de preços 2026)
-last_updated: "2026-07-18T00:07:53.137Z"
+stopped_at: "Phase 14 planejada (7 plans, 4 waves, checker PASS iter 2). Override registrado: gate decision-coverage falhou por formato (CONTEXT usa IDs AC-/CU-/TE-/ES- em vez de D-NN; uncovered=[]; fidelidade às decisões verificada semanticamente pelo plan-checker). Próximo: /gsd-execute-phase 14"
+last_updated: "2026-07-18T01:49:07.356Z"
 last_activity: 2026-07-17
 last_activity_desc: Phase 16 complete (painel admin no ar + dogfooding)
 progress:
   total_phases: 7
   completed_phases: 4
-  total_plans: 20
+  total_plans: 27
   completed_plans: 20
   percent: 57
 ---
@@ -183,9 +183,9 @@ Débito rastreado aberto: 2 UATs de regressão da Phase 12 (Gemini não-determin
 
 ## Session
 
-**Last session:** 2026-07-18T00:07:52.930Z
-**Stopped at:** Phase 14 context gathered (reanálise estratégica + pesquisa de preços 2026)
-**Resume file:** .planning/phases/14-ia-4-bot-whatsapp-via-meta-cloud-api/14-CONTEXT.md
+**Last session:** 2026-07-18T01:49:07.275Z
+**Stopped at:** Phase 14 planejada (7 plans, 4 waves, checker PASS iter 2). Override registrado: gate decision-coverage falhou por formato (CONTEXT usa IDs AC-/CU-/TE-/ES- em vez de D-NN; uncovered=[]; fidelidade às decisões verificada semanticamente pelo plan-checker). Próximo: /gsd-execute-phase 14
+**Resume file:** .planning/phases/14-ia-4-bot-whatsapp-via-meta-cloud-api/14-01-PLAN.md
 
 ## Accumulated Context
 
