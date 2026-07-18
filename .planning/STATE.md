@@ -2,13 +2,13 @@
 gsd_state_version: 1.0
 milestone: ia-whatsapp
 milestone_name: Épico IA/WhatsApp (Phases 11–14) — milestone formal pendente
-current_phase: 16
-current_phase_name: painel-admin-backoffice
+current_phase: 14
+current_phase_name: ia-4-bot-whatsapp-via-meta-cloud-api
 status: executing
 stopped_at: "Phase 14 planejada (7 plans, 4 waves, checker PASS iter 2). Override registrado: gate decision-coverage falhou por formato (CONTEXT usa IDs AC-/CU-/TE-/ES- em vez de D-NN; uncovered=[]; fidelidade às decisões verificada semanticamente pelo plan-checker). Próximo: /gsd-execute-phase 14"
-last_updated: "2026-07-18T01:49:07.356Z"
-last_activity: 2026-07-17
-last_activity_desc: Phase 16 complete (painel admin no ar + dogfooding)
+last_updated: "2026-07-18T01:58:32.815Z"
+last_activity: 2026-07-18
+last_activity_desc: Phase 14 execution started
 progress:
   total_phases: 7
   completed_phases: 4
@@ -23,17 +23,17 @@ progress:
 
 ## Current Position
 
-Phase: 16 (painel-admin-backoffice) — ✅ COMPLETE (4/4 planos, VERIFICATION: passed)
-Plan: —
-Status: Phase 16 concluída — próximo alvo: Phase 14 (Bot WhatsApp)
-Last activity: 2026-07-17 — Phase 16 complete (painel admin no ar + dogfooding)
+Phase: 14 (ia-4-bot-whatsapp-via-meta-cloud-api) — EXECUTING
+Plan: 1 of 7
+Status: Executing Phase 14
+Last activity: 2026-07-18 — Phase 14 execution started
 
 ## Project Reference
 
 See: .planning/PROJECT.md (updated 2026-07-06)
 
 **Core value:** Finanças pessoais por registro manual (fricção intencional → consciência); nunca número que impressiona mas engana.
-**Current focus:** Phase 16 — painel-admin-backoffice
+**Current focus:** Phase 14 — ia-4-bot-whatsapp-via-meta-cloud-api
 
 ## Phase Overview
 
