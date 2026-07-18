@@ -472,22 +472,25 @@ Ver seção "Architecture Patterns" acima — os 5 patterns já incluem os exemp
 
 **Se esta tabela estivesse vazia:** não é o caso — vários pontos de mecânica (raw body, compatibilidade de schema Gemini) não foram confirmados com fonte primária nesta sessão (sem acesso a Context7/MCP) e precisam de validação prática no início da execução da fase.
 
-## Open Questions
+## Open Questions (RESOLVED — Q1/Q2: protótipos Wave 0 no plano 14-02; Q3: decisão wa_usage no plano 14-01)
 
 1. **Raw body em `@vercel/node` puro é realmente estável para este caso de uso?**
    - What we know: é a abordagem oficialmente documentada pela Vercel para funções não-Next.js (ler o stream de `req`); existe também um caminho alternativo via handler Web API.
    - What's unclear: relatos de comunidade (não oficiais) mencionam instabilidade ("socket hangup") em cenários não especificados — não ficou claro se isso afeta volumes baixos como os deste projeto (bot pessoal + poucos beta testers).
    - Recommendation: Wave 0 do plano deve incluir um teste isolado (`vercel dev` + `curl -X POST` com um corpo JSON simulando o payload da Meta, checando que os bytes recebidos batem com os bytes enviados) antes de integrar a lógica de negócio.
+   - **RESOLVED (plano 14-02, Task 1):** protótipo Wave 0-a `scripts/wa-proto-hmac.js` prova offline a mecânica raw-body + HMAC numa função `@vercel/node` CommonJS pura (PASS na assinatura correta + 3 casos negativos); a estabilidade em volume baixo é validada de ponta-a-ponta no checkpoint do plano 14-05 (smoke com o test number Meta real). Evidência registrada no 14-02-SUMMARY.
 
 2. **`responseSchema` do Gemini funciona sem alteração no `buildPayload` atual de `api/_lib/gemini.js`?**
    - What we know: `buildPayload` já aceita `generationConfig` arbitrário (é repassado sem transformação) — não há razão estrutural para não funcionar.
    - What's unclear: nunca foi exercitado em produção neste projeto; a combinação com `toolMode: 'NONE'` especificamente não tem precedente de teste.
    - Recommendation: teste isolado com `curl` direto ao endpoint `generateContent` (fora do handler) antes de integrar — mesmo espírito do item 1.
+   - **RESOLVED (plano 14-02, Task 3):** protótipo Wave 0-b `scripts/wa-proto-gemini.js` exercita `responseSchema` + `toolMode:'NONE'` no mesmo payload `generateContent` (PASS com GEMINI_API_KEY, SKIP documentado sem a key). Evidência registrada no 14-02-SUMMARY.
 
 3. **Modelagem do cap separado do canal WhatsApp (CU-02): coluna `channel` em `assistant_usage` ou tabela `wa_usage` própria?**
    - What we know: qualquer uma das duas resolve o requisito funcional (Pitfall 4).
    - What's unclear: qual tem menor risco de regressão nas queries existentes de `api/assistant.js`/`api/_lib/admin/accounts.js` (que já fazem `count()` sobre `assistant_usage` sem filtro de canal — adicionar uma coluna NOT NULL DEFAULT muda o comportamento de queries antigas só se elas também precisarem excluir o canal WhatsApp, o que hoje NÃO fazem, então provavelmente é seguro, mas não foi auditado linha a linha nesta pesquisa).
    - Recommendation: planner decide na modelagem SQL da fundação; se optar por coluna nova em `assistant_usage`, auditar os `count()` existentes em `api/assistant.js` (linhas 279-283, 301-305) e `admin_list_accounts` (`ai_msgs_month`, `admin-backoffice.sql:109-111`) para confirmar que continuam corretos incluindo a nova coluna (provavelmente sim, pois já filtram por `user_id`+janela de tempo, não por canal — mas checar).
+   - **RESOLVED (plano 14-01, "Decisão de modelagem"):** optou-se pela **tabela irmã `wa_usage`** (não coluna `channel` em `assistant_usage`), justamente para isolar os `count()` existentes (`api/assistant.js:279-305`, `admin_list_accounts`) de qualquer mudança de semântica — a alternativa de menor risco de regressão. Decisão fixada no frontmatter/objetivo do plano 14-01.
 
 ## Environment Availability
 
