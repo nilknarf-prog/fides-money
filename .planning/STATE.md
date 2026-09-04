@@ -6,9 +6,9 @@ current_phase: 14
 current_phase_name: ia-4-bot-whatsapp-via-meta-cloud-api
 status: executing
 stopped_at: "14-01 concluído (fundação SQL aplicada live + review PASS). Próximo: demais plans de wave 1/2 (14-04..14-07)."
-last_updated: "2026-07-18T02:48:16.695Z"
-last_activity: 2026-07-18
-last_activity_desc: Phase 14 execution started
+last_updated: "2026-09-04T04:10:00.000Z"
+last_activity: 2026-09-04
+last_activity_desc: "Quick task 20260904-login-transition-hang planejada; incidente JWT bloat + RLS resolvido (.planning/learnings/2026-09-04-jwt-bloat-rls-incident.md)"
 progress:
   total_phases: 7
   completed_phases: 4
@@ -59,7 +59,12 @@ See: .planning/PROJECT.md (updated 2026-07-06)
 | bug (assistente WRITE) | `todos/pending/2026-07-16-assistente-modais-write-stale-acumulados.md` (high) | aberto — modais de confirmação stale/acumulados; puxar p/ próxima fase de IA in-app |
 | deploy setup | `ASSISTANT_NONCE_SECRET` no Vercel Project (nonce D-06) | verificar setado pós-deploy |
 | demanda (nova fase) | Painel admin/backoffice — ver/gerir contas, trocar tier free/pro, audit, etc. | contexto em `.planning/research/painel-admin-backoffice.md` — planejar em sessão dedicada |
-| product | Fonte do valor atual da meta (aportes vs vínculo a conta) | deferido p/ M5+ |
+## Quick Tasks Active & Completed
+
+| Slug | Data | Status | Descrição |
+|------|------|--------|-----------|
+| `20260904-login-transition-hang` | 2026-09-04 | ✅ complete | Correção de transição de tela após login ("Carregando seu painel...") |
+| `20260904-jwt-bloat-rls-fix` | 2026-09-04 | ✅ complete | Incidente Supabase: limpeza de metadata JWT (77KB->1KB) + remoção de tabela sem RLS + trigger protetor (`.planning/learnings/2026-09-04-jwt-bloat-rls-incident.md`) |
 
 ## Next Action
 

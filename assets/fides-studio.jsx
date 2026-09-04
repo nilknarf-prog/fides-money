@@ -14,7 +14,7 @@ function FidesStudio({ page = 'dashboard' }) {
 }
 
 function FidesStudioGuard({ initialPage }) {
-  const { mode, isLoading } = useFides();
+  const { mode, isLoading, handleLoginSuccess } = useFides();
 
   if (isLoading) return (
     <div style={{
@@ -32,7 +32,23 @@ function FidesStudioGuard({ initialPage }) {
     </div>
   );
 
-  if (mode === 'mock') return <FidesAuth />;
+  if (mode === 'mock') {
+    return (
+      <FidesAuth onAuthenticated={(session) => {
+        if (typeof handleLoginSuccess === 'function') {
+          handleLoginSuccess(session);
+        }
+        // Salvaguarda: se em 800ms o estado React não transicionar, recarrega
+        setTimeout(() => {
+          if (window.fidesAuth) {
+            window.fidesAuth.getUser().then(({ data }) => {
+              if (data?.user) window.location.reload();
+            }).catch(() => {});
+          }
+        }, 800);
+      }}/>
+    );
+  }
 
   return <FidesStudioShell initialPage={initialPage}/>;
 }
