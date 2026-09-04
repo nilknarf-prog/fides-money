@@ -5,16 +5,16 @@ milestone_name: Épico IA/WhatsApp (Phases 11–14) — milestone formal pendent
 current_phase: 14
 current_phase_name: ia-4-bot-whatsapp-via-meta-cloud-api
 status: executing
-stopped_at: "14-01 concluído (fundação SQL aplicada live + review PASS). Próximo: demais plans de wave 1/2 (14-04..14-07)."
-last_updated: "2026-09-04T04:10:00.000Z"
+stopped_at: "14-05 concluído (Waves 1 e 2 completas). Próximo: 14-06 (Wave 3: parser NL->JSON + proposta D-1)."
+last_updated: "2026-09-04T04:40:00.000Z"
 last_activity: 2026-09-04
-last_activity_desc: "Quick task 20260904-login-transition-hang planejada; incidente JWT bloat + RLS resolvido (.planning/learnings/2026-09-04-jwt-bloat-rls-incident.md)"
+last_activity_desc: "Reconciliação documental dos planos 14-04 e 14-05; incidente JWT bloat resolvido; próxima: 14-06"
 progress:
   total_phases: 7
   completed_phases: 4
   total_plans: 27
-  completed_plans: 23
-  percent: 57
+  completed_plans: 25
+  percent: 65
 ---
 
 # Project State
@@ -24,9 +24,9 @@ progress:
 ## Current Position
 
 Phase: 14 (ia-4-bot-whatsapp-via-meta-cloud-api) — EXECUTING
-Plan: 3 of 7
-Status: Ready to execute
-Last activity: 2026-07-18 — Phase 14 execution started
+Plan: 5 of 7
+Status: Ready to execute 14-06
+Last activity: 2026-09-04 — Phase 14 Wave 2 reconciliada e documentada
 
 ## Project Reference
 
@@ -42,7 +42,7 @@ See: .planning/PROJECT.md (updated 2026-07-06)
 | 11 | IA-1 Hardening Gemini | WR-01/02/03, AI-SHARED-01, AI-TELEM-01 | ✅ Complete (VERIFICATION: PASSED, UAT A–D) |
 | 12 | IA-2 WRITE in-app (B8) | WRITE-01..04, HONEST-01, DERIVED-SAFE-01 | ✅ Implementado (gap-closure 12-06/12-07) — ⚠️ 2 UATs de regressão pendentes (Tests 1+4), ver `12-VERIFICATION.md` |
 | 13 | IA-3 Gating Premium | GATE-01/02/03, PAYWALL-01 | ✅ Complete (VERIFICATION: passed 16/16; UATs fechados via painel 2026-07-17) |
-| 14 | IA-4 Bot WhatsApp | WA-* (a formalizar) | 🟡 Próxima — não iniciada (0 planos) |
+| 14 | IA-4 Bot WhatsApp | WA-* (a formalizar) | 🟡 Em andamento (5/7 planos concluídos — Waves 1 e 2 prontas) |
 | 15 | UI Polish (favicon) | — | ⏳ Polish avulso, não iniciado |
 | 16 | Painel admin/backoffice | ADMIN-01..04 | ✅ Complete (VERIFICATION: passed; painel live + dogfooding, 2026-07-17) |
 
@@ -232,6 +232,8 @@ Milestone v1.0 e v1.1 shipadas (tags `v1.0`/`v1.1`); decisões arquivadas em PRO
 | Phase 16 P04 (parcial) | ~25min | 1/3 tasks | 4 files |
 | Phase 14 P03 | ~20min | 3 tasks | 1 files |
 | Phase 14 P01 | ~13min | 3 tasks | 3 files |
+| Phase 14 P04 | ~15min | 3 tasks | 2 files |
+| Phase 14 P05 | ~25min | 3 tasks | 2 files |
 
 ### Blockers
 

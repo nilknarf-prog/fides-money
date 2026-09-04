@@ -465,8 +465,8 @@ Plans:
 
 **Wave 2** *(depende de wave 1; arquivos disjuntos)*
 
-- [ ] 14-04-PLAN.md — UI opt-in "Conectar WhatsApp" premium-only (PerfilView) + endpoint `api/wa-link.js` (gera código + link wa.me) (WA-OPTIN-01/GATE-01)
-- [ ] 14-05-PLAN.md — Webhook espinha de segurança (`api/whatsapp.js`): handshake GET + HMAC raw body + dedupe wamid + gate premium fail-closed + respostas estáticas (cap 3/dia, zero LLM) + caps do canal + sempre-200 (WA-WEBHOOK-01/GATE-01)
+- [x] 14-04-PLAN.md — UI opt-in "Conectar WhatsApp" premium-only (PerfilView) + endpoint `api/wa-link.js` (gera código + link wa.me) (WA-OPTIN-01/GATE-01)
+- [x] 14-05-PLAN.md — Webhook espinha de segurança (`api/whatsapp.js`): handshake GET + HMAC raw body + dedupe wamid + gate premium fail-closed + respostas estáticas (cap 3/dia, zero LLM) + caps do canal + sempre-200 (WA-WEBHOOK-01/GATE-01)
 
 **Wave 3** *(depende de 14-05 — mesmo arquivo)*
 
