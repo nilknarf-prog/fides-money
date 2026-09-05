@@ -44,6 +44,11 @@ Requirements: WA-WEBHOOK-01, WA-OPTIN-01, WA-GATE-01, WA-PARSE-01, WA-CONFIRM-01
 ### Claude's Discretion
 - Números finais dos caps (dentro do teto CU-02), janela do contador (dia/mês calendário vs rolling), copy exata das mensagens do bot, estrutura fina do prompt do parser, divisão e ordem dos planos, escolha entre as duas opções de fix do rate-limit (contar tudo vs nonce).
 
+### Decisões de Alinhamento e Usabilidade (2026-09-05)
+- **AL-01 Ambiente de Teste e Mocks:** Desenvolver e validar 100% da lógica dos planos 14-06 (parser/opt-in) e 14-07 (insert RPC/saldo) com testes automatizados, scripts de validação e mocks locais primeiro. O setup de credenciais reais da Meta Cloud API (test number, verify token, app secret) na Vercel será feito na etapa de smoke final / UAT.
+- **AL-02 Omissão de Conta/Cartão:** Se o usuário registrar uma despesa sem citar conta/cartão (ex.: "almoço 35 reais"), o bot assume a conta principal/padrão do usuário no card proposto, mantendo a opção de troca no passo 3 ("3 · Trocar categoria/conta"). Evita atrito e perguntas redundantes para despesas do dia a dia.
+- **AL-03 Confirmação Tolerante:** O parser de resposta para o card de confirmação aceita tanto os dígitos numéricos ('1', '2', '3') quanto sinônimos comuns em linguagem natural (ex.: '1', 'sim', 'confirma', 'ok' -> confirmação; '2', 'não', 'cancela', 'esquece' -> cancelamento; '3', 'trocar', 'mudar' -> troca de categoria/conta).
+
 </decisions>
 
 <canonical_refs>

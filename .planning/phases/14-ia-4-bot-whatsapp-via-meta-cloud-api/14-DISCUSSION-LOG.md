@@ -113,3 +113,29 @@
 - Botões interativos nativos, áudio/imagem no bot — pós-MVP/V2.
 - Modais WRITE stale in-app — fase futura de hardening/UX do assistente WRITE (todo mantido em pending).
 - Verificação Meta Business + display name + mensagens proativas — pós-tração (exige CNPJ/SLU).
+
+---
+
+## Sessão de Alinhamento e Usabilidade (2026-09-05)
+
+**Data:** 2026-09-05  
+**Contexto:** Retomada da Fase 14 após reconciliação forense. O usuário solicitou `/gsd-discuss-phase 14` para alinhar premissas de execução das Waves 3 e 4.
+
+### 1. Ambiente de Testes & Validação da Meta
+- **Opções consideradas:**
+  - (A) Finalizar o código com testes automatizados / mocks locais primeiro, e conectar credenciais da Meta no Vercel depois (Recomendado).
+  - (B) Configurar chaves da Meta em paralelo e testar no WhatsApp real desde o primeiro commit.
+- **Decisão (AL-01):** Opção A selecionada. Foco em estabilidade, cobertura e simulação local de requisições de webhook antes de depender da infraestrutura externa da Meta.
+
+### 2. Tratamento de Omissão de Conta/Cartão
+- **Opções consideradas:**
+  - (A) Propor a conta principal/padrão do usuário no card de confirmação, permitindo troca caso necessário (Recomendado).
+  - (B) Não montar o card e fazer uma pergunta adicional ("Qual conta ou cartão você usou?").
+- **Decisão (AL-02):** Opção A selecionada. Reduz atrito no registro manual e preserva a velocidade de registro pelo WhatsApp, mantendo o fallback de troca no card.
+
+### 3. Tolerância no Reconhecimento de Confirmação
+- **Opções consideradas:**
+  - (A) Tolerante: aceitar números ('1', '2', '3') e comandos em linguagem natural ('sim', 'ok', 'cancela', 'trocar') (Recomendado).
+  - (B) Estrito: aceitar unicamente dígitos ('1', '2', '3').
+- **Decisão (AL-03):** Opção A selecionada. Aceita variantes comuns em PT-BR para uma experiência fluida no chat.
+
